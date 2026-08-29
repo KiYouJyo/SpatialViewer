@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using SpatialViewer.Core;
 using SpatialViewer.Rendering;
+using SpatialViewer.Formats.Cad;
 using SpatialViewer.Formats.Cad.ACadSharp;
 
 var sizes = new[] { 10_000, 100_000, 1_000_000 };
@@ -29,3 +30,11 @@ foreach (var count in new[] { 10_000, 100_000 })
     }
     finally { if (File.Exists(path)) File.Delete(path); }
 }
+
+var origin = new Point2D(0, 0);
+var mark = new CadBlockDefinition("MARK", origin, new CadEntity[] { new CadLineEntity("nested-line", origin, new Point2D(10, 0)) });
+var nest = new CadBlockDefinition("NEST", origin, new CadEntity[] { new CadBlockReferenceEntity("nested-mark", "MARK", new Point2D(5, 5), Math.PI / 6d, 1.5, 0.5) });
+var references = Enumerable.Range(0, 100_000).Select(index => (CadEntity)new CadBlockReferenceEntity($"nested-reference-{index}", "NEST", new Point2D(index % 1_000 * 20, index / 1_000 * 20))).ToArray();
+var nestedScene = Stopwatch.StartNew(); var nestedDocument = new CadDocument("nested-block-benchmark", "Synthetic CAD", "Stage2", CadUnits.Millimetres, new[] { new CadLayer("0", CadColor.FromAci(7)) }, new[] { mark, nest }, references); nestedScene.Stop();
+var nestedPreparation = Stopwatch.StartNew(); var nestedFrame = RenderPreparation.Prepare(nestedDocument.Scene, new Camera2D(nestedDocument.Bounds.Center)); nestedPreparation.Stop();
+Console.WriteLine($"CAD nested blocks 100,000: scene={nestedScene.Elapsed.TotalMilliseconds:F1} prepare={nestedPreparation.Elapsed.TotalMilliseconds:F1} commands={nestedFrame.Commands.Count}");

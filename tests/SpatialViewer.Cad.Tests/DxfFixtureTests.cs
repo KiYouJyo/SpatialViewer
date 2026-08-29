@@ -76,6 +76,22 @@ public sealed class DxfFixtureTests
     }
 
     [Fact]
+    public async Task DwgLargeCoordinateFixtureRetainsDoublePrecision()
+    {
+        var dwg = Path.Combine(Path.GetTempPath(), $"spatial-viewer-large-{Guid.NewGuid():N}.dwg");
+        try
+        {
+            ACadSharpFixtureTranscoder.WriteDwgFromDxf(Fixture("large-coordinate.dxf"), dwg);
+            var result = await new ACadSharpCadImporter().ImportAsync(new ImportRequest(dwg));
+            var document = Assert.IsType<CadDocument>(result.Document);
+            var line = Assert.IsType<CadLineEntity>(Assert.Single(document.ModelSpace.OfType<CadLineEntity>()));
+            Assert.True(result.IsSuccess); Assert.Equal("DWG", document.SourceFormat);
+            Assert.Equal(500000.123456, line.Start.X, 6); Assert.Equal(3400000.654321, line.Start.Y, 6);
+        }
+        finally { if (File.Exists(dwg)) File.Delete(dwg); }
+    }
+
+    [Fact]
     public async Task FixtureScenesProduceDeterministicPngGoldenOutputs()
     {
         var output = Path.Combine(RepositoryRoot(), "artifacts", "stage2", "render");

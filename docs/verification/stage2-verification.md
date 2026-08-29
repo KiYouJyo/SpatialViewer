@@ -9,7 +9,7 @@ The Debug Host opens `.dxf` and `.dwg` with an unpackaged WinUI picker, imports 
 ## Verified baseline (2026-08-29)
 
 - Debug and Release solution builds succeeded with 0 warnings and 0 errors.
-- Tests: Core 9, Rendering 3, Integration 3, CAD 10; total 25 passed, 0 failed, 0 skipped.
-- Stage 1 synthetic benchmark (ms): 10K create/bounds/prepare/hit = 22.4/11.1/15.5/16.2; 100K = 43.1/81.4/35.9/41.9; 1M = 588.3/104.6/167.0/320.3.
-- CAD importer benchmark (ms): 10K import/prepare = 256.3/3.2; 100K = 1654.6/44.1.
+- Tests: Core 9, Rendering 3, Integration 3, CAD 11; total 26 passed, 0 failed, 0 skipped.
+- Stage 1 synthetic benchmark (ms): 10K create/bounds/prepare/hit = 20.0/11.2/15.7/15.9; 100K = 40.2/90.0/21.9/45.2; 1M = 586.9/110.5/155.1/302.7.
+- CAD importer benchmark (ms): 10K import/prepare = 275.1/16.0; 100K = 2036.8/82.3. A 100K nested-block scene builds/translates in 660.3 ms and prepares 100K commands in 79.7 ms.
 - The CAD fixture test generated deterministic PNG files at `artifacts/stage2/render/` for mixed-basic and large-coordinate scenes.
