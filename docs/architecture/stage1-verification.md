@@ -24,3 +24,15 @@ The test projects cover double math and inversion, empty/union/transformed bound
 - On the large-coordinate scene, pan/zoom around the survey geometry and confirm its relative geometry stays stable.
 
 The GitHub Actions Windows CI restores, Debug builds, Release builds, and Release tests every main/Stage 1 change and pull request.
+
+## Verified baseline (2026-08-29)
+
+- `dotnet restore`: succeeded.
+- Debug and Release solution builds: succeeded with 0 warnings and 0 errors.
+- Tests: Core 9, Rendering 3, Integration 3; total 15 passed, 0 failed, 0 skipped.
+- Benchmark (Release, milliseconds):
+  - 10K: create 21.4, bounds 11.3, prepare 15.1, hit test 15.0.
+  - 100K: create 53.7, bounds 79.1, prepare 31.7, hit test 40.0.
+  - 1M: create 569.7, bounds 115.3, prepare 166.7, hit test 309.4.
+- The unpackaged x64 Debug Host was built and passed a real five-second startup smoke test.
+- GitHub Actions Windows CI run `33257428816` passed on the Stage 1 branch.
