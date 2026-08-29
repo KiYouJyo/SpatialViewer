@@ -4,7 +4,12 @@ Spatial Viewer may use third-party open-source libraries, SDKs, codecs, format r
 
 ## Current status
 
-The repository is currently in its foundation stage. This file is the canonical place for human-readable third-party attribution that is not already fully represented by package metadata or license files.
+The repository uses these Stage 1 runtime dependencies:
+
+- **Windows App SDK 1.8** — MIT License. Used only by the unpackaged WinUI 3 Debug Host.
+- **Win2D 1.4.0** — MIT License. Direct2D/DirectWrite-backed 2D rendering surface used by `SpatialViewer.Rendering.Windows`.
+
+These packages are restored from NuGet and are not copied into this repository. This file remains the canonical place for human-readable third-party attribution that is not already fully represented by package metadata or license files.
 
 Before adding a third-party dependency or asset, contributors must verify that:
 
