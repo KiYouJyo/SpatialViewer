@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added the foundational DXF/DWG import pipeline with isolated ACadSharp adapter, CAD document model, Scene2D translation, fixtures, diagnostics, and Debug Host file opening.
+
 本文件记录 Spatial Viewer 的用户可见变化与重要工程变化。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本规划遵循语义化版本的基本原则；在首个可验证版本形成前，变化集中记录于 `Unreleased`。
