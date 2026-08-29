@@ -86,7 +86,7 @@ public sealed class SceneLayer
     public IReadOnlyList<SceneNode> Nodes { get; }
 }
 
-public readonly record struct SceneItem(ObjectId Id, Geometry2D Geometry, Transform2D Transform, SceneStyle Style, Layer Layer, BoundingBox2D Bounds);
+public readonly record struct SceneItem(ObjectId Id, Geometry2D Geometry, Transform2D Transform, SceneStyle Style, Layer Layer, BoundingBox2D Bounds, IReadOnlyDictionary<string, string> Metadata);
 
 public sealed class Scene2D
 {
@@ -98,5 +98,5 @@ public sealed class Scene2D
     }
     public BoundingBox2D GetBounds(bool visibleOnly = true) { var bounds = BoundingBox2D.Empty; foreach (var item in GetItems(visibleOnly)) bounds = bounds.Union(item.Bounds); return bounds; }
     private static IEnumerable<SceneItem> Flatten(SceneNode node, Transform2D parent, Layer layer)
-    { var transform = node.Transform.Then(parent); if (node.Geometry is { } geometry) yield return new(node.Id, geometry, transform, node.Style, layer, geometry.GetBounds().Transform(transform)); foreach (var child in node.Children) foreach (var item in Flatten(child, transform, layer)) yield return item; }
+    { var transform = node.Transform.Then(parent); if (node.Geometry is { } geometry) yield return new(node.Id, geometry, transform, node.Style, layer, geometry.GetBounds().Transform(transform), node.Metadata); foreach (var child in node.Children) foreach (var item in Flatten(child, transform, layer)) yield return item; }
 }

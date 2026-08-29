@@ -5,3 +5,4 @@ BenchmarkDotNet.Artifacts/
 .vs/
 *.user
 *.suo
+artifacts/stage2/render/*.png
