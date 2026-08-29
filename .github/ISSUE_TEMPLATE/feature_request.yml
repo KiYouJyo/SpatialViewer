@@ -1,0 +1,35 @@
+name: Feature request / 功能建议
+description: Suggest a viewer capability, format, or workflow improvement
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Use case / 使用场景
+      description: What are you trying to view, inspect, or understand?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议方案
+      description: Describe the smallest useful behavior rather than a full replacement for the source application.
+    validations:
+      required: true
+  - type: input
+    id: format
+    attributes:
+      label: Related format or software / 相关格式或软件
+      placeholder: AutoCAD / DWG / DXF / GIS / IFC / Rhino / 3DM / other
+  - type: textarea
+    id: references
+    attributes:
+      label: References / 参考
+      description: Public specifications, screenshots, documentation, or legally shareable examples that help explain the request.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check / 范围确认
+      options:
+        - label: This request is primarily about viewing, inspection, navigation, or lightweight query rather than full authoring/editing.
+          required: false
