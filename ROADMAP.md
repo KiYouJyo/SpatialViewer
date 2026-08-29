@@ -4,7 +4,7 @@
 
 ## 0. 项目基础
 
-- WinUI 3 应用骨架与多标签查看框架
+- Stage 1 已完成：格式无关 Core、Scene2D、双精度坐标、Win2D Debug Host、自动测试、benchmark 与 Windows CI；正式多标签应用框架仍在后续阶段
 - 简体中文、日本語、English 本地化基础
 - 文件类型识别、错误处理与诊断信息
 - 通用视图状态、图层/对象信息模型与渲染接口

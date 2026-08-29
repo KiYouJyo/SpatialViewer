@@ -56,6 +56,7 @@ Spatial Viewer 是**看图器**，不是 AutoCAD、GIS 桌面编辑器、Revit �
 - [行为准则](CODE_OF_CONDUCT.md)
 - [隐私说明](PRIVACY.md)
 - [第三方声明](THIRD-PARTY-NOTICES.md)
+- [Stage 1 架构文档](docs/architecture/core-architecture.md)
 
 ## 贡献
 
