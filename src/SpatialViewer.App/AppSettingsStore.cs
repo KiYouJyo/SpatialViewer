@@ -2,7 +2,8 @@ using System.Text.Json;
 
 namespace SpatialViewer.Product;
 
-internal enum AppLanguagePreference { System, SimplifiedChinese, Japanese, English }
+// Preserve the first three numeric values written by v0.2 settings JSON.
+internal enum AppLanguagePreference { SimplifiedChinese = 0, Japanese = 1, English = 2, System = 3 }
 // Retained only so existing v0.2 JSON can be migrated without data loss. The
 // viewer now always follows the application theme and exposes no separate UI.
 internal enum ViewerThemePreference { FollowApp, Light, Dark }
