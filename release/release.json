@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "SpatialViewer",
+    "version": "0.1.0",
+    "packageVersion": "0.1.0.0"
+  },
+  "channels": {
+    "github": {
+      "publish": true
+    }
+  },
+  "title": {
+    "zh-CN": "Spatial Viewer v0.1.0 首个预览版",
+    "ja-JP": "Spatial Viewer v0.1.0 最初のプレビュー",
+    "en-US": "Spatial Viewer v0.1.0 first preview"
+  }
+}

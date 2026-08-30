@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+  <Identity Name="SpatialViewer" Publisher="CN=AppPublisher" Version="0.1.0.0" />
+  <mp:PhoneIdentity PhoneProductId="A423C3B4-2B87-4EA4-921B-5E596A107C08" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <Properties>
+    <DisplayName>Spatial Viewer</DisplayName>
+    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="zh-CN" />
+    <Resource Language="ja-JP" />
+    <Resource Language="en-US" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="Spatial Viewer"
+        Description="A modern Windows viewer for CAD, GIS, BIM and Rhino data."
+        BackgroundColor="#202020"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#202020" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="spatialviewer-cad">
+            <uap:DisplayName>Spatial Viewer CAD drawing</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.dwg</uap:FileType>
+              <uap:FileType>.dxf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

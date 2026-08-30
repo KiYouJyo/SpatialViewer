@@ -3,10 +3,16 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <UseWinUI>true</UseWinUI>
-    <EnableMsixTooling>false</EnableMsixTooling>
-    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>true</EnableMsixTooling>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion>0.1.0</InformationalVersion>
+    <DefaultLanguage>zh-CN</DefaultLanguage>
+    <AppxBundleAutoResourcePackageQualifiers>Scale|DXFeatureLevel</AppxBundleAutoResourcePackageQualifiers>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SpatialViewer.Core\SpatialViewer.Core.csproj" />

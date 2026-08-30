@@ -46,6 +46,15 @@ Spatial Viewer は**ビューアー**であり、AutoCAD、フル機能の GIS �
 
 現在は基盤整備とビューアーコアの開発段階です。互換性、描画の完全性、性能目標、配布方法については、検証可能な実装が整った段階で文書化します。
 
+## ダウンロードとインストール
+
+最初の Preview は [GitHub Releases](https://github.com/KiYouJyo/SpatialViewer/releases/latest) からダウンロードできます。
+
+- `SpatialViewer-v0.1.0-x64-one-click.zip` を推奨します。完全に展開してから `① 安装图览.cmd` を実行すると、対応する MSIXBundle をダウンロード、検証、インストールします。
+- `SpatialViewer_0.1.0.0_x64.msixbundle` は手動展開用です。同じ Release の `SHA256SUMS.txt` で検証し、付属の公開証明書を信頼してから使用してください。
+
+プロジェクトホームページ: https://kiyoujyo.github.io/SpatialViewer/
+
 ## ドキュメント
 
 - [ロードマップ](ROADMAP.md)

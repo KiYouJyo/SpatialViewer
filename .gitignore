@@ -2,6 +2,9 @@ bin/
 obj/
 TestResults/
 BenchmarkDotNet.Artifacts/
+artifacts/
+**/artifacts/
+BundleArtifacts/
 .vs/
 *.user
 *.suo

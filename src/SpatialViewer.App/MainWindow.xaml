@@ -1,8 +1,11 @@
 <Window x:Class="SpatialViewer.Product.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Grid x:Name="RootGrid" Background="{ThemeResource BgAppBrush}" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" UseLayoutRounding="True">
-    <Grid x:Name="AppTitleBar" Grid.Row="0" Background="{ThemeResource BgAppBrush}" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
+  <Window.SystemBackdrop>
+    <MicaBackdrop />
+  </Window.SystemBackdrop>
+  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" UseLayoutRounding="True">
+    <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
       <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
       <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
       <ScrollViewer Grid.Column="1" Height="32" Margin="0,8,12,8"
@@ -20,12 +23,19 @@
       </ScrollViewer>
     </Grid>
 
-    <NavigationView x:Name="ShellNavigation" Grid.Row="1" Background="{ThemeResource BgAppBrush}"
-                    PaneDisplayMode="Left" IsPaneOpen="True" OpenPaneLength="240" CompactPaneLength="52"
-                    IsBackButtonVisible="Collapsed" IsSettingsVisible="False" SelectionChanged="ShellNavigation_SelectionChanged">
+    <NavigationView x:Name="ShellNavigation" Grid.Row="1" Background="Transparent"
+                    AlwaysShowHeader="False"
+                    IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                    Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
       <NavigationView.Resources>
-        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#0B1716" />
-        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#0B1716" />
+        <!-- The Fluent default puts a rounded 1-DIP SplitView frame around an
+             inline pane. This shell already owns the outer window edge, so the
+             pane must meet the title bar directly. -->
+        <Thickness x:Key="NavigationViewBorderThickness">0</Thickness>
+        <Thickness x:Key="NavigationViewPaneContentGridMargin">0</Thickness>
+        <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
+        <Thickness x:Key="NavigationViewMinimalContentGridBorderThickness">0</Thickness>
+        <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="ShellNavigationPaneBackgroundBrush" />
       </NavigationView.Resources>
       <NavigationView.MenuItems>
         <NavigationViewItem x:Name="HomeNav" Tag="Home" Content="主页" IsSelected="True"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>

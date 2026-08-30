@@ -46,6 +46,15 @@ Repository documentation will be kept in Chinese, Japanese, and English where pr
 
 The repository is currently focused on project foundations and viewer-core development. Compatibility claims, rendering completeness, performance targets, and distribution details will be documented only after they can be verified.
 
+## Download and install
+
+Download the first Preview from [GitHub Releases](https://github.com/KiYouJyo/SpatialViewer/releases/latest):
+
+- `SpatialViewer-v0.1.0-x64-one-click.zip` is the recommended entry point. Fully extract it and run `① 安装图览.cmd`; it downloads, verifies, and installs the matching MSIXBundle.
+- `SpatialViewer_0.1.0.0_x64.msixbundle` is for manual deployment. Verify it with `SHA256SUMS.txt` from the same Release and establish trust for the accompanying public certificate first.
+
+Project homepage: https://kiyoujyo.github.io/SpatialViewer/
+
 ## Documentation
 
 - [Roadmap](ROADMAP.md)

@@ -9,7 +9,10 @@ using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Presentation;
 using SpatialViewer.Product.Views;
 using Windows.Storage.Pickers;
+using Windows.Graphics;
 using Windows.UI;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace SpatialViewer.Product;
@@ -20,13 +23,19 @@ public sealed partial class MainWindow : Window
     private readonly ACadSharpCadImporter _importer = new();
     private readonly RecentFilesService _recentFiles;
     private readonly Dictionary<string, ShellTabVisual> _homeTabs = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HomeView> _homeViews = new(StringComparer.Ordinal);
     private readonly Dictionary<DocumentSession, ShellTabVisual> _documentTabs = new();
     private object? _selectedTab;
-    private bool _suppressShellSelection;
     private ResponsiveLayoutMode _responsiveMode = ResponsiveLayoutMode.Large;
     private bool _responsiveLayoutApplied;
+    private bool _shellReady;
     private bool _restoringWindowState;
-    private static readonly string WindowStatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpatialViewer", "window-state.json");
+    private SizeInt32 _lastNormalWindowSize;
+    private bool _wasWindowMaximized;
+    private SplitView? _navigationSplitView;
+    private bool _navigationPaneBackgroundHooked;
+    private bool _navigationChromeHiddenForViewer;
+    private static readonly string WindowStatePath = GetWindowStatePath();
 
     public MainWindow()
     {
@@ -35,27 +44,44 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-        AppWindow.TitleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
-        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
-        AppWindow.TitleBar.ButtonHoverBackgroundColor = Color.FromArgb(32, 255, 255, 255);
-        AppWindow.TitleBar.ButtonPressedBackgroundColor = Color.FromArgb(48, 255, 255, 255);
-        AppWindow.TitleBar.ButtonHoverForegroundColor = Color.FromArgb(255, 255, 255, 255);
+        RootGrid.RequestedTheme = ThemePreferenceStore.Load();
+        UpdateTitleBarColors();
         RestoreWindowSize();
         AppWindow.Changed += AppWindow_Changed;
         _recentFiles = new RecentFilesService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpatialViewer", "recent-files.json"));
-        Closed += (_, _) => { PersistWindowSize(); _workspace.CloseAll(); };
-        RootGrid.Loaded += RootGrid_Loaded;
+        Closed += OnWindowClosed;
+        RootGrid.ActualThemeChanged += (_, _) =>
+        {
+            UpdateTitleBarColors();
+            RefreshTabVisuals();
+            QueueNavigationPaneBackgroundUpdate();
+        };
         CreateHomeTab(select: true);
     }
 
-    private void RootGrid_Loaded(object sender, RoutedEventArgs e)
+    // Keep the NavigationView lifecycle identical to UrbanPlanToolbox: allow the
+    // native Auto mode to choose the pane, then adapt only the page content.
+    private void ShellNavigation_Loaded(object sender, RoutedEventArgs e)
     {
+        HookNavigationPaneBackground();
+        _shellReady = true;
         ApplyResponsiveLayout(force: true);
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            ApplyResponsiveLayout(force: true);
-            ShellNavigation.UpdateLayout();
-        });
+        // NavigationView.Auto completes its first measure after Loaded. Recheck
+        // only the page grid on the next dispatcher turn; unlike the old code,
+        // this never changes PaneDisplayMode or IsPaneOpen.
+        DispatcherQueue.TryEnqueue(() => ApplyResponsiveLayout(force: true));
+    }
+
+    private static string GetWindowStatePath()
+    {
+        // Isolate debug/test artefacts from the installed app and other output
+        // directories. Previously all executables raced on window-state.json.
+        var identity = Path.GetFullPath(Environment.ProcessPath ?? AppContext.BaseDirectory);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))[..16];
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SpatialViewer",
+            $"window-state-{hash}.json");
     }
 
     private void RestoreWindowSize()
@@ -63,16 +89,27 @@ public sealed partial class MainWindow : Window
         _restoringWindowState = true;
         try
         {
+            var workArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
             var saved = File.Exists(WindowStatePath)
                 ? JsonSerializer.Deserialize<SavedWindowSize>(File.ReadAllText(WindowStatePath))
                 : null;
-            var width = saved is { Width: >= 640 and <= 7680 } ? saved.Width : 1600;
-            var height = saved is { Height: >= 480 and <= 4320 } ? saved.Height : 1000;
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
+            var placement = saved is { Width: >= 320, Height: >= 240 }
+                ? new WindowPlacement(saved.Width, saved.Height, saved.WasMaximized)
+                : WindowPlacement.CreateDefault(workArea);
+            placement = WindowPlacement.ClampToWorkArea(placement, workArea);
+            _lastNormalWindowSize = new SizeInt32(placement.Width, placement.Height);
+            _wasWindowMaximized = placement.WasMaximized;
+            AppWindow.Resize(_lastNormalWindowSize);
+            if (_wasWindowMaximized && AppWindow.Presenter is OverlappedPresenter presenter) presenter.Maximize();
+            else if (saved is null) CenterWindow(_lastNormalWindowSize, workArea);
         }
-        catch (JsonException)
+        catch (Exception) when (File.Exists(WindowStatePath))
         {
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1600, 1000));
+            var workArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+            _lastNormalWindowSize = WindowPlacement.CreateDefault(workArea).ToSize();
+            _wasWindowMaximized = false;
+            AppWindow.Resize(_lastNormalWindowSize);
+            CenterWindow(_lastNormalWindowSize, workArea);
         }
         finally
         {
@@ -80,20 +117,38 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void CenterWindow(SizeInt32 size, RectInt32 workArea)
+    {
+        var x = workArea.X + Math.Max(0, (workArea.Width - size.Width) / 2);
+        var y = workArea.Y + Math.Max(0, (workArea.Height - size.Height) / 2);
+        AppWindow.Move(new PointInt32(x, y));
+    }
+
     private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (args.DidSizeChange) PersistWindowSize();
+        if (_restoringWindowState || AppWindow.Presenter is not OverlappedPresenter presenter) return;
+        switch (presenter.State)
+        {
+            case OverlappedPresenterState.Maximized:
+                _wasWindowMaximized = true;
+                break;
+            case OverlappedPresenterState.Restored:
+                _wasWindowMaximized = false;
+                if (args.DidSizeChange) _lastNormalWindowSize = AppWindow.Size;
+                break;
+        }
     }
 
     private void PersistWindowSize()
     {
-        if (_restoringWindowState || AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Restored }) return;
-        var size = AppWindow.Size;
-        if (size.Width < 640 || size.Height < 480) return;
+        if (_restoringWindowState) return;
+        if (_lastNormalWindowSize.Width < 320 || _lastNormalWindowSize.Height < 240) return;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(WindowStatePath)!);
-            File.WriteAllText(WindowStatePath, JsonSerializer.Serialize(new SavedWindowSize(size.Width, size.Height)));
+            var temporaryPath = $"{WindowStatePath}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
+            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(new SavedWindowSize(_lastNormalWindowSize.Width, _lastNormalWindowSize.Height, _wasWindowMaximized)));
+            File.Move(temporaryPath, WindowStatePath, overwrite: true);
         }
         catch (IOException)
         {
@@ -101,10 +156,24 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void OnWindowClosed(object sender, WindowEventArgs e)
+    {
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            _wasWindowMaximized = presenter.State == OverlappedPresenterState.Maximized;
+            if (presenter.State == OverlappedPresenterState.Restored) _lastNormalWindowSize = AppWindow.Size;
+        }
+
+        PersistWindowSize();
+        AppWindow.Changed -= AppWindow_Changed;
+        _workspace.CloseAll();
+    }
+
     private string CreateHomeTab(bool select)
     {
         var id = $"home:{Guid.NewGuid():N}";
         _homeTabs.Add(id, CreateTabVisual(id, "主页", Symbol.Home, 220));
+        _homeViews.Add(id, CreateHomeView());
         if (select) ShowHome(id);
         return id;
     }
@@ -127,7 +196,6 @@ public sealed partial class MainWindow : Window
             FontSize = 14,
             Width = 16,
             Height = 16,
-            Opacity = 0.68,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -181,13 +249,22 @@ public sealed partial class MainWindow : Window
     {
         var target = tabId ?? _homeTabs.Keys.FirstOrDefault() ?? CreateHomeTab(select: false);
         ShowNavigationChrome();
-        SelectShellItem(HomeNav);
+        // NavigationView already selects its item before ItemInvoked. Writing
+        // the same selection again reopens a minimal pane, so only restore a
+        // selection when returning from the viewer where none is selected.
+        if (MainContent.Content is CadViewerView) SelectShellItem(HomeNav);
         SelectTab(target);
+        var view = _homeViews[target];
+        MainContent.Content = view;
+        view.SetResponsiveMode(_responsiveMode);
+    }
+
+    private HomeView CreateHomeView()
+    {
         var view = new HomeView(_recentFiles);
         view.OpenRequested += async (_, paths) => await OpenFilesAsync(paths);
         view.FilePickerRequested += async (_, _) => await PickAndOpenAsync();
-        MainContent.Content = view;
-        ApplyResponsiveLayout();
+        return view;
     }
 
     private async Task OpenFilesAsync(IEnumerable<string> paths)
@@ -238,6 +315,7 @@ public sealed partial class MainWindow : Window
         if (tag is DocumentSession session) { CloseSession(session); return; }
         if (tag is string homeId && _homeTabs.Remove(homeId, out var visual))
         {
+            _homeViews.Remove(homeId);
             ShellTabItems.Children.Remove(visual.Container);
             if (Equals(_selectedTab, homeId))
             {
@@ -273,6 +351,24 @@ public sealed partial class MainWindow : Window
             ApplyTabVisual(pair.Key, pair.Value, Equals(pair.Key, _selectedTab), dark);
     }
 
+    private void UpdateTitleBarColors()
+    {
+        var dark = RootGrid.ActualTheme == ElementTheme.Dark;
+        if (AppWindowTitleBar.IsCustomizationSupported())
+            AppWindow.TitleBar.PreferredTheme = dark ? TitleBarTheme.Dark : TitleBarTheme.Light;
+        var foreground = dark ? Color.FromArgb(255, 240, 245, 245) : Color.FromArgb(255, 21, 32, 32);
+        var hoverBackground = dark ? Color.FromArgb(32, 255, 255, 255) : Color.FromArgb(24, 0, 0, 0);
+        var pressedBackground = dark ? Color.FromArgb(48, 255, 255, 255) : Color.FromArgb(40, 0, 0, 0);
+        AppWindow.TitleBar.ButtonForegroundColor = foreground;
+        AppWindow.TitleBar.ButtonInactiveForegroundColor = foreground;
+        AppWindow.TitleBar.ButtonHoverForegroundColor = foreground;
+        AppWindow.TitleBar.ButtonPressedForegroundColor = foreground;
+        AppWindow.TitleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        AppWindow.TitleBar.ButtonHoverBackgroundColor = hoverBackground;
+        AppWindow.TitleBar.ButtonPressedBackgroundColor = pressedBackground;
+    }
+
     private static void ApplyTabVisual(object tag, ShellTabVisual visual, bool selected, bool dark)
     {
         visual.Container.Background = new SolidColorBrush(selected
@@ -281,7 +377,9 @@ public sealed partial class MainWindow : Window
         visual.Container.BorderThickness = new Thickness(selected ? 1 : 0);
         visual.Container.BorderBrush = new SolidColorBrush(dark ? ColorHelper.FromArgb(38, 255, 255, 255) : ColorHelper.FromArgb(51, 117, 117, 117));
         visual.HeaderText.FontWeight = selected ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-        visual.HeaderText.Opacity = selected ? 0.9 : 0.68;
+        // An available, unselected tab is not a disabled tab. Preserve the
+        // detached-tab shape, but leave text at native readable opacity.
+        visual.HeaderText.Opacity = 1;
     }
 
     private async Task PickAndOpenAsync()
@@ -292,9 +390,9 @@ public sealed partial class MainWindow : Window
         await OpenFilesAsync(files.Select(file => file.Path));
     }
 
-    private void ShellNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void ShellNavigation_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
-        if (_suppressShellSelection || args.SelectedItem is not NavigationViewItem item || item.Tag is not string tag) return;
+        if (args.InvokedItemContainer is not NavigationViewItem item || item.Tag is not string tag) return;
         switch (tag)
         {
             case "Home": ShowHome(); break;
@@ -312,23 +410,25 @@ public sealed partial class MainWindow : Window
     private void SelectShellItem(NavigationViewItem? item)
     {
         if (ReferenceEquals(ShellNavigation.SelectedItem, item)) return;
-        _suppressShellSelection = true; ShellNavigation.SelectedItem = item; _suppressShellSelection = false;
+        ShellNavigation.SelectedItem = item;
     }
 
     private void ShowNavigationChrome()
     {
-        var small = _responsiveMode == ResponsiveLayoutMode.Small;
-        var displayMode = small ? NavigationViewPaneDisplayMode.LeftMinimal : NavigationViewPaneDisplayMode.Left;
-        var paneOpen = !small;
-        if (ShellNavigation.PaneDisplayMode != displayMode) ShellNavigation.PaneDisplayMode = displayMode;
-        var compactPaneLength = small ? 64 : 52;
-        if (ShellNavigation.CompactPaneLength != compactPaneLength) ShellNavigation.CompactPaneLength = compactPaneLength;
-        if (!ShellNavigation.IsPaneToggleButtonVisible) ShellNavigation.IsPaneToggleButtonVisible = true;
-        if (ShellNavigation.IsPaneOpen != paneOpen) ShellNavigation.IsPaneOpen = paneOpen;
+        // Ordinary navigation deliberately does nothing here. In particular,
+        // selecting Home must not reopen a pane the user collapsed.
+        if (!_navigationChromeHiddenForViewer) return;
+
+        ShellNavigation.CompactPaneLength = 48;
+        ShellNavigation.IsPaneToggleButtonVisible = true;
+        ShellNavigation.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
+        _navigationChromeHiddenForViewer = false;
+        QueueNavigationPaneBackgroundUpdate();
     }
 
     private void ShowViewerChrome()
     {
+        _navigationChromeHiddenForViewer = true;
         ShellNavigation.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftMinimal;
         ShellNavigation.CompactPaneLength = 0;
         ShellNavigation.IsPaneOpen = false;
@@ -341,18 +441,64 @@ public sealed partial class MainWindow : Window
         await dialog.ShowAsync();
     }
 
-    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e) => ApplyResponsiveLayout();
+    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_shellReady) ApplyResponsiveLayout();
+    }
     private void ApplyResponsiveLayout(bool force = false)
     {
-        var logicalWidth = Content.XamlRoot?.Size.Width ?? RootGrid.ActualWidth;
+        if (!_shellReady) return;
+        // RootGrid is the actual window content and updates synchronously during
+        // resize/navigation. XamlRoot.Size can still report the previous window
+        // size while the viewer is being replaced by the home page.
+        var logicalWidth = RootGrid.ActualWidth;
+        if (logicalWidth <= 0) logicalWidth = Content.XamlRoot?.Size.Width ?? 0;
         if (logicalWidth <= 0) return;
         var mode = logicalWidth >= 1280 ? ResponsiveLayoutMode.Large : logicalWidth >= 760 ? ResponsiveLayoutMode.Medium : ResponsiveLayoutMode.Small;
         if (!force && _responsiveLayoutApplied && mode == _responsiveMode) return;
         _responsiveMode = mode;
         _responsiveLayoutApplied = true;
-        if (MainContent.Content is CadViewerView) return;
-        ShowNavigationChrome();
         if (MainContent.Content is HomeView home) home.SetResponsiveMode(_responsiveMode);
+    }
+
+    private void HookNavigationPaneBackground()
+    {
+        if (!_navigationPaneBackgroundHooked)
+        {
+            _navigationPaneBackgroundHooked = true;
+            ShellNavigation.PaneOpening += (_, _) => QueueNavigationPaneBackgroundUpdate();
+        }
+
+        QueueNavigationPaneBackgroundUpdate();
+    }
+
+    private void QueueNavigationPaneBackgroundUpdate() => DispatcherQueue.TryEnqueue(ApplySharedNavigationPaneBackground);
+
+    private void ApplySharedNavigationPaneBackground()
+    {
+        _navigationSplitView ??= FindDescendant<SplitView>(ShellNavigation);
+        var themeKey = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
+            ? "HighContrast"
+            : RootGrid.ActualTheme == ElementTheme.Dark ? "Dark" : "Light";
+        var themeResources = Application.Current.Resources.ThemeDictionaries[themeKey] as ResourceDictionary;
+        if (_navigationSplitView is not null)
+        {
+            if (themeResources?["ShellNavigationPaneBackgroundBrush"] is Brush brush)
+                _navigationSplitView.PaneBackground = brush;
+        }
+    }
+
+    private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match) return match;
+            var descendant = FindDescendant<T>(child);
+            if (descendant is not null) return descendant;
+        }
+
+        return null;
     }
 
     private async void RootGrid_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
@@ -364,4 +510,20 @@ public sealed partial class MainWindow : Window
 }
 
 internal sealed record ShellTabVisual(Border Container, TextBlock HeaderText);
-internal sealed record SavedWindowSize(int Width, int Height);
+internal sealed record SavedWindowSize(int Width, int Height, bool WasMaximized = false);
+
+internal sealed record WindowPlacement(int Width, int Height, bool WasMaximized)
+{
+    public static WindowPlacement CreateDefault(RectInt32 workArea) => new(
+        Math.Max(320, (int)Math.Round(workArea.Width * .70)),
+        Math.Max(240, (int)Math.Round(workArea.Height * .75)),
+        false);
+
+    public static WindowPlacement ClampToWorkArea(WindowPlacement placement, RectInt32 workArea) => placement with
+    {
+        Width = Math.Clamp(placement.Width, Math.Min(320, workArea.Width), Math.Max(1, workArea.Width)),
+        Height = Math.Clamp(placement.Height, Math.Min(240, workArea.Height), Math.Max(1, workArea.Height))
+    };
+
+    public SizeInt32 ToSize() => new(Width, Height);
+}

@@ -7,6 +7,25 @@
         <ResourceDictionary Source="Themes/Typography.xaml" />
         <ResourceDictionary Source="Themes/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
+      <!-- The inactive navigation pane shares the title bar's Mica layer.
+           Selection/hover surfaces remain native NavigationView states. -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
+          <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#E5F9F9" />
+          <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
+          <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#1A2323" />
+          <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+          <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+          <StaticResource x:Key="AppTransientSurfaceBrush" ResourceKey="SystemColorWindowBrush" />
+          <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
   </Application.Resources>
 </Application>

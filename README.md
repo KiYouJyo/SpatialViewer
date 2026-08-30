@@ -46,6 +46,15 @@ Spatial Viewer 是**看图器**，不是 AutoCAD、GIS 桌面编辑器、Revit �
 
 仓库目前处于 Preview 阶段。除 Debug Host 外，`SpatialViewer.App` 提供正式 WinUI 3 产品壳：主页、最近文件、DWG/DXF 打开、真实 CAD 画布、多标签、图层、选择、属性与诊断。GIS、IFC 与 Rhino 仍未接入；完整边界见 [CAD 兼容矩阵](docs/compatibility/cad.md) 与 [UI Stage 1 验证](docs/verification/ui-stage1-verification.md)。
 
+## 下载与安装
+
+首个 Preview 版本请从 [GitHub Releases](https://github.com/KiYouJyo/SpatialViewer/releases/latest) 下载：
+
+- `SpatialViewer-v0.1.0-x64-one-click.zip`：推荐入口。完整解压后运行“① 安装图览.cmd”；它会下载、校验并安装对应的 MSIXBundle。
+- `SpatialViewer_0.1.0.0_x64.msixbundle`：用于需要手动部署的场景。请先校验同一 Release 中的 `SHA256SUMS.txt`，并使用该 Release 随附的公钥证书建立信任。
+
+项目主页：https://kiyoujyo.github.io/SpatialViewer/
+
 ## 文档
 
 - [路线图](ROADMAP.md)

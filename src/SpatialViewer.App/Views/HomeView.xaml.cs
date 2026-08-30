@@ -16,6 +16,8 @@ public sealed partial class HomeView : UserControl
     private IReadOnlyList<RecentFile> _items = Array.Empty<RecentFile>();
     private string _activeFilter = "全部";
     private ResponsiveLayoutMode _responsiveMode = ResponsiveLayoutMode.Large;
+    private bool _syncingFilterSelection;
+    public IReadOnlyList<string> RecentFilterItems { get; } = ["全部", "CAD", "GIS", "BIM", "3D"];
     public IReadOnlyList<WorkflowItem> WorkflowItems { get; } =
     [
         new("CAD", "DWG / DXF", AppIconKind.Document, true, "打开 CAD 文件"),
@@ -88,18 +90,30 @@ public sealed partial class HomeView : UserControl
 
     private void Open_Click(object sender, RoutedEventArgs e) => FilePickerRequested?.Invoke(this, EventArgs.Empty);
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
-    private void Filter_Click(object sender, RoutedEventArgs e)
+    private void FilterList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var selected = (Button)sender;
-        _activeFilter = selected.Tag as string ?? "全部";
-        foreach (var filter in new[] { AllFilter, CadFilter, GisFilter, BimFilter, ThreeDFilter, CompactAllFilter, CompactCadFilter, CompactGisFilter, CompactBimFilter, CompactThreeDFilter })
+        if (_syncingFilterSelection || sender is not ListView list || list.SelectedItem is not string selected)
+            return;
+
+        _activeFilter = selected;
+        var selectedIndex = list.SelectedIndex;
+        _syncingFilterSelection = true;
+        try
         {
-            var isSelected = ReferenceEquals(filter, selected);
-            filter.Style = Application.Current.Resources[isSelected ? "RecentFilterTabSelected" : "RecentFilterTab"] as Style;
+            if (!ReferenceEquals(list, RecentFilterListLarge)) RecentFilterListLarge.SelectedIndex = selectedIndex;
+            if (!ReferenceEquals(list, RecentFilterListCompact)) RecentFilterListCompact.SelectedIndex = selectedIndex;
+        }
+        finally
+        {
+            _syncingFilterSelection = false;
         }
         ApplyFilter();
     }
-    private void RecentFiles_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (RecentFiles.SelectedItem is RecentFileTile item && item.Source.Exists) OpenRequested?.Invoke(this, new[] { item.Source.Path }); }
+    private void RecentFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: RecentFileTile item } && item.Source.Exists)
+            OpenRequested?.Invoke(this, new[] { item.Source.Path });
+    }
     private void DropZone_DragOver(object sender, DragEventArgs e) => e.AcceptedOperation = DataPackageOperation.Copy;
     private async void DropZone_Drop(object sender, DragEventArgs e)
     {
