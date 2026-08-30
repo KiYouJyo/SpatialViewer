@@ -63,7 +63,7 @@
   <data name="About_ReleaseNotes" xml:space="preserve"><value>Release notes</value></data>
   <data name="About_CheckUpdates" xml:space="preserve"><value>Check for updates</value></data>
   <data name="About_Kernels" xml:space="preserve"><value>Viewer kernels</value></data>
-  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD graphics kernel · independent GitHub release source</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD graphics kernel · SpatialViewer.CadCore</value></data>
   <data name="About_ProjectOpenSource" xml:space="preserve"><value>Project &amp; open source</value></data>
   <data name="About_Repository" xml:space="preserve"><value>GitHub repository</value></data>
   <data name="About_Repository_Desc" xml:space="preserve"><value>View source code, README, and development progress.</value></data>
@@ -80,6 +80,16 @@
   <data name="Update_Latest" xml:space="preserve"><value>You have the latest preview</value></data>
   <data name="Update_NetworkFailed" xml:space="preserve"><value>Network check failed</value></data>
   <data name="Update_Timeout" xml:space="preserve"><value>Update check timed out</value></data>
-  <data name="Update_CadNoRelease" xml:space="preserve"><value>No independent Release is available</value></data>
-  <data name="Update_CadLoaded" xml:space="preserve"><value>Read SpatialViewer.CadCore repository</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>No CadCore Release is available</value></data>
+  <data name="Update_CadUpToDate" xml:space="preserve"><value>The kernel is up to date</value></data>
+  <data name="Update_CadAvailable" xml:space="preserve"><value>A kernel update is available</value></data>
+  <data name="Update_CadDownloading" xml:space="preserve"><value>Downloading the kernel update…</value></data>
+  <data name="Update_CadVerifying" xml:space="preserve"><value>Verifying and preparing the kernel update…</value></data>
+  <data name="Update_CadReadyRestart" xml:space="preserve"><value>Update downloaded. Restart the app to apply it</value></data>
+  <data name="Update_CadFailed" xml:space="preserve"><value>Kernel update failed</value></data>
+  <data name="Update_CadMissingAsset" xml:space="preserve"><value>This Release does not contain an installable x64 kernel package</value></data>
+  <data name="Update_CadCancelled" xml:space="preserve"><value>Kernel update cancelled</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>Download update</value></data>
+  <data name="Update_Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Update_WaitingRestart" xml:space="preserve"><value>Waiting for restart</value></data>
 </root>
