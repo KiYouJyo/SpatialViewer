@@ -1,1 +1,3 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyName>SpatialViewer.Core</AssemblyName><RootNamespace>SpatialViewer.Core</RootNamespace></PropertyGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>SpatialViewer.Legacy.CoreMarker</AssemblyName><RootNamespace>SpatialViewer.Legacy.CoreMarker</RootNamespace><IsPackable>false</IsPackable></PropertyGroup>
+</Project>
