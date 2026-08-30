@@ -1,0 +1,133 @@
+name: CadCore Extraction Acceptance
+
+on:
+  push:
+    branches: ['codex/use-extracted-cadcore']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Verify extracted kernel checkout
+        shell: pwsh
+        run: |
+          $expected = git ls-tree HEAD external/SpatialViewer.CadCore | ForEach-Object { ($_ -split '\s+')[2] }
+          $actual = git -C external/SpatialViewer.CadCore rev-parse HEAD
+          if ([string]::IsNullOrWhiteSpace($expected) -or $expected -ne $actual) { throw "CadCore gitlink mismatch: expected=$expected actual=$actual" }
+          if (-not (Test-Path external/SpatialViewer.CadCore/SpatialViewer.CadCore.sln)) { throw 'Extracted CadCore solution is missing.' }
+          "CADCORE_SHA=$actual" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore, build, and test
+        shell: pwsh
+        run: |
+          dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
+          dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
+          dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
+          dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-build --verbosity normal
+
+      - name: DebugHost startup smoke
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src/SpatialViewer.DebugHost/bin/Release -Recurse -Filter SpatialViewer.DebugHost.exe | Select-Object -First 1
+          if (-not $exe) { throw 'Release DebugHost executable was not found.' }
+          $process = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 5
+          if ($process.HasExited) { throw "DebugHost exited during smoke test with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+
+      - name: Build unsigned x64 MSIX bundle
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'SpatialViewer-Acceptance-AppPackages'
+          dotnet build src/SpatialViewer.App/SpatialViewer.App.csproj -c Release -p:Platform=x64 -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false -p:AppxBundle=Always -p:AppxBundlePlatforms=x64 -p:UapAppxPackageBuildMode=SideloadOnly -p:AppxPackageDir="$output\"
+          $bundle = @(Get-ChildItem $output -Recurse -Filter '*.msixbundle') | Select-Object -First 1
+          if (-not $bundle) { throw 'MSIXBundle was not produced.' }
+          $assets = Join-Path $env:RUNNER_TEMP 'SpatialViewer-CadCore-Acceptance'
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          $finalBundle = Join-Path $assets 'SpatialViewer_0.1.0.0_CadCoreAcceptance_x64.msixbundle'
+          Copy-Item -LiteralPath $bundle.FullName -Destination $finalBundle -Force
+          "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign bundle and export certificate
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.GH_RELEASE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.GH_RELEASE_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64) -or [string]::IsNullOrWhiteSpace($env:CERTIFICATE_PASSWORD)) { throw 'GitHub release signing secrets are not configured.' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'spatialviewer-acceptance-signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          $password = ConvertTo-SecureString $env:CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if ($certificate.Subject -cne 'CN=AppPublisher' -or -not $certificate.HasPrivateKey) { throw "Unexpected release certificate: $($certificate.Subject)" }
+          $cer = Join-Path $env:ASSETS_DIRECTORY 'SpatialViewer-CadCore-Acceptance.cer'
+          Export-Certificate -Cert $certificate -FilePath $cer | Out-Null
+          $signtool = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter signtool.exe | Where-Object FullName -match '\\x64\\signtool.exe$' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'x64 signtool.exe was not found.' }
+          & $signtool.FullName sign /fd SHA256 /sha1 $certificate.Thumbprint /tr http://timestamp.digicert.com /td SHA256 $env:BUNDLE_PATH
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed: $LASTEXITCODE" }
+          $signature = Get-AuthenticodeSignature -FilePath $env:BUNDLE_PATH
+          if (-not $signature.SignerCertificate -or $signature.SignerCertificate.Subject -cne 'CN=AppPublisher' -or $signature.SignerCertificate.Thumbprint -cne $certificate.Thumbprint) { throw 'Signed bundle identity mismatch.' }
+          if ($signature.Status -notin @('Valid', 'UnknownError')) { throw "Unexpected Authenticode status: $($signature.Status)" }
+          "CERTIFICATE_PATH=$cer" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create and validate one-click installer
+        shell: pwsh
+        run: |
+          $staging = Join-Path $env:ASSETS_DIRECTORY 'staging'
+          ./packaging/New-GitHubOneClickInstallerPackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $staging -DisplayVersion '0.1.0-cadcore-acceptance' -PackageVersion '0.1.0.0'
+          $root = Join-Path $staging 'SpatialViewer-v0.1.0-cadcore-acceptance-x64-one-click'
+          ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory $root
+          $zip = Join-Path $env:ASSETS_DIRECTORY 'SpatialViewer-v0.1.0-cadcore-acceptance-x64-one-click.zip'
+          Compress-Archive -LiteralPath $root -DestinationPath $zip -CompressionLevel Optimal
+          $extracted = Join-Path $env:ASSETS_DIRECTORY 'extracted'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extracted -Force
+          ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory (Join-Path $extracted 'SpatialViewer-v0.1.0-cadcore-acceptance-x64-one-click') -ZipPath $zip
+          "ONE_CLICK_PATH=$zip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Write acceptance manifest
+        shell: pwsh
+        run: |
+          $files = @($env:BUNDLE_PATH, $env:ONE_CLICK_PATH)
+          $lines = foreach ($file in $files) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
+          Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
+          @(
+            'SpatialViewer CadCore extraction acceptance',
+            "SpatialViewer commit: $env:GITHUB_SHA",
+            "CadCore commit: $env:CADCORE_SHA",
+            'Configuration: Release x64',
+            'Debug build: PASS',
+            'Release build: PASS',
+            'Tests: PASS',
+            'DebugHost startup smoke: PASS',
+            'MSIX bundle: PASS',
+            'Authenticode signing (CN=AppPublisher): PASS',
+            'One-click installer validation: PASS'
+          ) | Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'ACCEPTANCE.txt') -Encoding utf8
+
+      - name: Upload signed acceptance package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpatialViewer-0.1.0-CadCore-acceptance-x64
+          path: |
+            ${{ env.ASSETS_DIRECTORY }}/SpatialViewer-v0.1.0-cadcore-acceptance-x64-one-click.zip
+            ${{ env.ASSETS_DIRECTORY }}/*.msixbundle
+            ${{ env.ASSETS_DIRECTORY }}/*.cer
+            ${{ env.ASSETS_DIRECTORY }}/SHA256SUMS.txt
+            ${{ env.ASSETS_DIRECTORY }}/ACCEPTANCE.txt
+          if-no-files-found: error
