@@ -8,7 +8,7 @@ public partial class App : Application
 
     public App()
     {
-        AppSettingsStore.ApplySavedLanguage();
+        AppLocalizationService.Default.ApplyPersistedLanguage(AppSettingsStore.Current);
         InitializeComponent();
     }
 
