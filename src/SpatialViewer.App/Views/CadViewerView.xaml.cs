@@ -8,13 +8,14 @@ using SpatialViewer.Presentation;
 
 namespace SpatialViewer.Product.Views;
 
-public sealed partial class CadViewerView : UserControl
+public sealed partial class CadViewerView : UserControl, IDisposable
 {
     private readonly DocumentSession _session;
     private readonly ACadSharpCadImporter _importer = new();
     private bool _leftExpanded = true;
     private bool _rightExpanded = true;
     private bool _initialViewportPrepared;
+    private bool _disposed;
     private CadLayoutMode _layoutMode = CadLayoutMode.Large;
     private FileSystemWatcher? _fileWatcher;
     private DateTimeOffset _lastReloadRequestUtc;
@@ -29,12 +30,13 @@ public sealed partial class CadViewerView : UserControl
         Viewport.PointerWorldChanged += (_, point) => CoordinateText.Text = $"X: {point.X:F2}   Y: {point.Y:F2}   Z: 0";
         Loaded += CadViewerView_Loaded;
         Unloaded += CadViewerView_Unloaded;
-        CadRoot.ActualThemeChanged += (_, _) => ApplyViewerPreferences();
+        CadRoot.ActualThemeChanged += CadRoot_ActualThemeChanged;
         KeyDown += CadViewerView_KeyDown;
     }
 
     private void CadViewerView_Loaded(object sender, RoutedEventArgs e)
     {
+        if (_disposed) return;
         AppSettingsStore.Changed += AppSettingsStore_Changed;
         ApplyViewerPreferences();
         ConfigureFileWatcher();
@@ -47,8 +49,14 @@ public sealed partial class CadViewerView : UserControl
         DisposeFileWatcher();
     }
 
+    private void CadRoot_ActualThemeChanged(FrameworkElement sender, object args)
+    {
+        if (!_disposed) ApplyViewerPreferences();
+    }
+
     private void AppSettingsStore_Changed(object? sender, EventArgs e)
     {
+        if (_disposed) return;
         ApplyViewerPreferences();
         ConfigureFileWatcher();
     }
@@ -74,7 +82,7 @@ public sealed partial class CadViewerView : UserControl
     private void ConfigureFileWatcher()
     {
         DisposeFileWatcher();
-        if (!AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
+        if (_disposed || !AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
         var directory = Path.GetDirectoryName(_session.FilePath);
         var fileName = Path.GetFileName(_session.FilePath);
         if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)) return;
@@ -99,12 +107,13 @@ public sealed partial class CadViewerView : UserControl
 
     private void FileWatcher_Changed(object sender, FileSystemEventArgs e)
     {
+        if (_disposed) return;
         var now = DateTimeOffset.UtcNow;
         if (now - _lastReloadRequestUtc < TimeSpan.FromMilliseconds(900)) return;
         _lastReloadRequestUtc = now;
         DispatcherQueue.TryEnqueue(async () =>
         {
-            if (!AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
+            if (_disposed || !AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
             ObjectText.Text = "检测到文件变化，正在重新读取…";
             await _session.LoadAsync(_importer, new Progress<ImportProgress>(_ => { }));
             Refresh(forceDraw: true);
@@ -113,6 +122,7 @@ public sealed partial class CadViewerView : UserControl
 
     private void Refresh(bool forceDraw = false)
     {
+        if (_disposed) return;
         if (_session.State == DocumentSessionState.Loading)
         {
             PropertiesEmpty.Text = $"正在打开 {_session.DisplayName}…";
@@ -212,6 +222,19 @@ public sealed partial class CadViewerView : UserControl
     {
         if (e.Key == Windows.System.VirtualKey.Escape) { _session.Selection = null; Viewport.Draw(); PropertiesEmpty.Visibility = Visibility.Visible; PropertiesList.ItemsSource = null; }
         if (e.Key == Windows.System.VirtualKey.F) Viewport.Fit();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        AppSettingsStore.Changed -= AppSettingsStore_Changed;
+        Loaded -= CadViewerView_Loaded;
+        Unloaded -= CadViewerView_Unloaded;
+        CadRoot.ActualThemeChanged -= CadRoot_ActualThemeChanged;
+        KeyDown -= CadViewerView_KeyDown;
+        DisposeFileWatcher();
+        Viewport.Dispose();
     }
 }
 
