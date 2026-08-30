@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    CadCore projects live outside SpatialViewer.sln during the repository-split
+    transition. Explicitly forward the active solution configuration so a
+    Release product build never consumes Debug outputs from the submodule.
+  -->
+  <ItemGroup>
+    <ProjectReference Update="..\..\external\SpatialViewer.CadCore\src\**\*.csproj">
+      <AdditionalProperties>Configuration=$(Configuration);Platform=$(Platform)</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
