@@ -1,2 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<root><data name="AppName" xml:space="preserve"><value>图览</value></data><data name="Home" xml:space="preserve"><value>主页</value></data><data name="OpenFile" xml:space="preserve"><value>打开文件</value></data><data name="NotImplemented" xml:space="preserve"><value>暂未实现</value></data></root>
+<root>
+  <data name="AppName" xml:space="preserve"><value>图览</value></data>
+  <data name="Home" xml:space="preserve"><value>主页</value></data>
+  <data name="OpenFile" xml:space="preserve"><value>打开文件</value></data>
+  <data name="NotImplemented" xml:space="preserve"><value>暂未实现</value></data>
+  <data name="Nav_Home" xml:space="preserve"><value>主页</value></data>
+  <data name="Nav_Projects" xml:space="preserve"><value>项目</value></data>
+  <data name="Nav_Favorites" xml:space="preserve"><value>收藏</value></data>
+  <data name="Nav_ImportFolder" xml:space="preserve"><value>导入文件夹</value></data>
+  <data name="Nav_About" xml:space="preserve"><value>关于图览</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>设置</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>设置</value></data>
+  <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>外观与语言</value></data>
+  <data name="Settings_Theme_Title" xml:space="preserve"><value>主题</value></data>
+  <data name="Settings_Theme_Desc" xml:space="preserve"><value>选择浅色、深色或跟随系统。主题更改立即生效。</value></data>
+  <data name="Theme_System" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>浅色</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="Settings_Language_Title" xml:space="preserve"><value>语言</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>选择界面语言。更改会立即应用，无需重启应用。</value></data>
+  <data name="Language_System" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
+  <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
+  <data name="Language_EnUs" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_FileSession" xml:space="preserve"><value>文件与会话</value></data>
+  <data name="Settings_Restore_Title" xml:space="preserve"><value>启动时恢复上次会话</value></data>
+  <data name="Settings_Restore_Desc" xml:space="preserve"><value>重新打开上次退出时仍在会话中的图纸。</value></data>
+  <data name="Settings_Recent_Title" xml:space="preserve"><value>记录最近打开文件</value></data>
+  <data name="Settings_Recent_Desc" xml:space="preserve"><value>仅在本机保存最近文件路径，用于主页快速访问。</value></data>
+  <data name="Settings_Watch_Title" xml:space="preserve"><value>自动检查文件变化</value></data>
+  <data name="Settings_Watch_Desc" xml:space="preserve"><value>打开的图纸被外部修改后自动重新读取。</value></data>
+  <data name="Settings_Viewer" xml:space="preserve"><value>查看器</value></data>
+  <data name="Settings_Fit_Title" xml:space="preserve"><value>打开文件后适合窗口</value></data>
+  <data name="Settings_Fit_Desc" xml:space="preserve"><value>首次显示图纸时自动缩放到全部对象。</value></data>
+  <data name="Settings_DrawingBackground_Title" xml:space="preserve"><value>图纸背景颜色</value></data>
+  <data name="Settings_DrawingBackground_Desc" xml:space="preserve"><value>跟随应用主题，或固定使用黑色/白色画布。</value></data>
+  <data name="DrawingBackground_Follow" xml:space="preserve"><value>跟随应用</value></data>
+  <data name="DrawingBackground_Dark" xml:space="preserve"><value>黑色</value></data>
+  <data name="DrawingBackground_Light" xml:space="preserve"><value>白色</value></data>
+  <data name="Language_SwitchFailed" xml:space="preserve"><value>语言切换失败</value></data>
+  <data name="About_Title" xml:space="preserve"><value>关于图览</value></data>
+  <data name="About_Tagline" xml:space="preserve"><value>建筑、规划与空间数据统一查看器</value></data>
+  <data name="About_DisplayVersion" xml:space="preserve"><value>显示版本</value></data>
+  <data name="About_Channel" xml:space="preserve"><value>发布渠道</value></data>
+  <data name="About_InternalVersion" xml:space="preserve"><value>内部版本</value></data>
+  <data name="About_Publisher" xml:space="preserve"><value>发行者</value></data>
+  <data name="About_Architecture" xml:space="preserve"><value>当前架构</value></data>
+  <data name="About_TechStack" xml:space="preserve"><value>技术栈</value></data>
+  <data name="About_UpdateManagement" xml:space="preserve"><value>更新管理</value></data>
+  <data name="About_AppProgram" xml:space="preserve"><value>SpatialViewer 主程序</value></data>
+  <data name="About_AppUpdate" xml:space="preserve"><value>应用更新</value></data>
+  <data name="About_CurrentVersion" xml:space="preserve"><value>当前版本</value></data>
+  <data name="About_AvailableVersion" xml:space="preserve"><value>可用版本</value></data>
+  <data name="About_UpdateSource" xml:space="preserve"><value>更新来源</value></data>
+  <data name="About_Status" xml:space="preserve"><value>状态</value></data>
+  <data name="About_ReleaseNotes" xml:space="preserve"><value>发行说明</value></data>
+  <data name="About_CheckUpdates" xml:space="preserve"><value>检查更新</value></data>
+  <data name="About_Kernels" xml:space="preserve"><value>查看内核</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD 图形内核 · GitHub 独立版本源</value></data>
+  <data name="About_ProjectOpenSource" xml:space="preserve"><value>项目与开源</value></data>
+  <data name="About_Repository" xml:space="preserve"><value>GitHub 仓库</value></data>
+  <data name="About_Repository_Desc" xml:space="preserve"><value>查看源码、README 与开发进度。</value></data>
+  <data name="About_OpenRepository" xml:space="preserve"><value>打开仓库</value></data>
+  <data name="About_Releases_Desc" xml:space="preserve"><value>查看历史版本、安装包与发行说明。</value></data>
+  <data name="About_ViewVersions" xml:space="preserve"><value>查看版本</value></data>
+  <data name="About_LicensePrivacy" xml:space="preserve"><value>许可与隐私</value></data>
+  <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>查看第三方组件许可与本地文件策略。</value></data>
+  <data name="About_ViewInfo" xml:space="preserve"><value>查看说明</value></data>
+  <data name="Update_NotChecked" xml:space="preserve"><value>尚未检查</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>正在检查…</value></data>
+  <data name="Update_NoRelease" xml:space="preserve"><value>暂无 GitHub Release</value></data>
+  <data name="Update_NewVersion" xml:space="preserve"><value>发现新版本</value></data>
+  <data name="Update_Latest" xml:space="preserve"><value>已是最新预览版</value></data>
+  <data name="Update_NetworkFailed" xml:space="preserve"><value>网络检查失败</value></data>
+  <data name="Update_Timeout" xml:space="preserve"><value>检查超时</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>暂无独立 Release</value></data>
+  <data name="Update_CadLoaded" xml:space="preserve"><value>已读取 SpatialViewer.CadCore</value></data>
+</root>
