@@ -9,11 +9,11 @@ internal sealed record GitHubReleaseInfo(string TagName, string HtmlUrl, string?
     public string DisplayVersion => TagName.TrimStart('v', 'V');
 }
 
-internal sealed class GitHubUpdateService
+internal static class GitHubUpdateService
 {
     private static readonly HttpClient Client = CreateClient();
 
-    public async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
+    public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
     {
         using var response = await Client.GetAsync($"https://api.github.com/repos/{repository}/releases/latest", cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
