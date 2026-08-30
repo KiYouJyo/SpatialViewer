@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.1.0",
-    "packageVersion": "0.1.0.0"
+    "version": "0.1.1",
+    "packageVersion": "0.1.1.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.1.0 首个预览版",
-    "ja-JP": "Spatial Viewer v0.1.0 最初のプレビュー",
-    "en-US": "Spatial Viewer v0.1.0 first preview"
+    "zh-CN": "Spatial Viewer v0.1.1 独立 CAD 内核预览版",
+    "ja-JP": "Spatial Viewer v0.1.1 独立 CAD コア・プレビュー",
+    "en-US": "Spatial Viewer v0.1.1 extracted CAD core preview"
   }
 }
