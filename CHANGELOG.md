@@ -2,6 +2,12 @@
 
 ## [0.2.1] - 2026-08-31
 
+### Added
+
+- Added real `SpatialViewer.CadCore` update checks that compare the active kernel version with the latest GitHub Release.
+- Added SHA-256 verified CadCore package download, safe extraction, release-manifest/architecture/compatibility validation, and restart-only staging under the user's local app data.
+- Added startup activation for a staged newer CadCore through the default assembly load context; the bundled kernel remains the fallback and automatically supersedes an older external kernel after a future app update.
+
 ### Fixed
 
 - Restored the Window Mica backdrop on Settings and About instead of covering it with a flat NavigationView content layer.
@@ -11,6 +17,7 @@
 - Connected live Simplified Chinese, Japanese, English, and system-language switching while preserving v0.2 stored language values.
 - Removed the separate viewer-theme control; the viewer now follows the application theme.
 - Moved About above Settings in navigation, corrected publisher text to `Jo Kiyō`, and labels the CAD kernel as `SpatialViewer.CadCore`.
+- Replaced the former repository-reachability message with actionable CadCore states: check, up to date, update available, download, verify, and waiting for manual restart.
 
 ## [0.2.0] - 2026-08-31
 
