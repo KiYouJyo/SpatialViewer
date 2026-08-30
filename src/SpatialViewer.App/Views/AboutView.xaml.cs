@@ -20,7 +20,7 @@ public sealed partial class AboutView : UserControl
         InitializeComponent();
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         if (version is not null)
-            CadCurrentVersionText.ToolTipServiceSet($"SpatialViewer bundle {version.Major}.{version.Minor}.{version.Build}");
+            ToolTipService.SetToolTip(CadCurrentVersionText, $"SpatialViewer bundle {version.Major}.{version.Minor}.{version.Build}");
     }
 
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)
@@ -92,8 +92,8 @@ public sealed partial class AboutView : UserControl
     private void AboutRoot_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         // Figma's 1312-DIP desktop composition remains the preferred layout.
-        // Below that width only the project cards change topology; sections and
-        // nested surfaces stay fluid and keep their native WinUI controls.
+        // Below that width the project cards reflow while the section/card
+        // surfaces retain their native WinUI materials and spacing hierarchy.
         var compact = e.NewSize.Width < 900;
         if (compact && ProjectLinksGrid.ColumnDefinitions.Count == 3)
         {
@@ -107,8 +107,9 @@ public sealed partial class AboutView : UserControl
             ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             for (var index = 0; index < ProjectLinksGrid.Children.Count; index++)
             {
-                Grid.SetColumn(ProjectLinksGrid.Children[index], 0);
-                Grid.SetRow(ProjectLinksGrid.Children[index], index * 2);
+                if (ProjectLinksGrid.Children[index] is not FrameworkElement child) continue;
+                Grid.SetColumn(child, 0);
+                Grid.SetRow(child, index * 2);
             }
         }
         else if (!compact && ProjectLinksGrid.ColumnDefinitions.Count == 1)
@@ -120,14 +121,10 @@ public sealed partial class AboutView : UserControl
             ProjectLinksGrid.ColumnDefinitions.Add(new ColumnDefinition());
             for (var index = 0; index < ProjectLinksGrid.Children.Count; index++)
             {
-                Grid.SetRow(ProjectLinksGrid.Children[index], 0);
-                Grid.SetColumn(ProjectLinksGrid.Children[index], index);
+                if (ProjectLinksGrid.Children[index] is not FrameworkElement child) continue;
+                Grid.SetRow(child, 0);
+                Grid.SetColumn(child, index);
             }
         }
     }
-}
-
-internal static class ToolTipCompatibilityExtensions
-{
-    public static void ToolTipServiceSet(this FrameworkElement element, string value) => ToolTipService.SetToolTip(element, value);
 }
