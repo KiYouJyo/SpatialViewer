@@ -56,4 +56,26 @@ public sealed class PresentationTests
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
+
+    [Fact]
+    public async Task LoadingDocumentDoesNotImplicitlyFitOrResetCamera()
+    {
+        using var session = new DocumentSession("camera-contract.dxf");
+        session.Camera.SetTarget(new Point2D(1234.5, -678.25));
+        session.Camera.SetZoom(3.75);
+
+        await session.LoadAsync(new StubImporter(SyntheticScenes.BasicPrimitives()));
+
+        Assert.Equal(DocumentSessionState.Ready, session.State);
+        Assert.Equal(new Point2D(1234.5, -678.25), session.Camera.Target);
+        Assert.Equal(3.75, session.Camera.Zoom);
+    }
+
+    private sealed class StubImporter(IDocument document) : IDocumentImporter
+    {
+        public bool CanImport(string filePath) => true;
+
+        public Task<ImportResult> ImportAsync(ImportRequest request, IProgress<ImportProgress>? progress = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ImportResult(document, Array.Empty<Diagnostic>()));
+    }
 }

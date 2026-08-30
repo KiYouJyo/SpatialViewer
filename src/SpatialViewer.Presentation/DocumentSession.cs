@@ -50,8 +50,11 @@ public sealed class DocumentSession : INotifyPropertyChanged, IDisposable
                 State = DocumentSessionState.Failed;
                 return;
             }
+
+            // The presentation layer does not know the actual viewport size or
+            // the user's fit-on-open preference. Keep the existing camera here;
+            // the active viewer decides whether to fit after the document loads.
             Document = result.Document;
-            Camera.Fit(Document.Bounds, new Size2D(1280, 720));
             State = DocumentSessionState.Ready;
         }
         catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)

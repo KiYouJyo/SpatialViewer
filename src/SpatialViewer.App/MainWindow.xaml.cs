@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window
     private bool _responsiveLayoutApplied;
     private bool _shellReady;
     private bool _restoringWindowState;
+    private bool _sessionRestoreAttempted;
     private SizeInt32 _lastNormalWindowSize;
     private bool _wasWindowMaximized;
     private SplitView? _navigationSplitView;
@@ -61,7 +62,7 @@ public sealed partial class MainWindow : Window
 
     // Keep the NavigationView lifecycle identical to UrbanPlanToolbox: allow the
     // native Auto mode to choose the pane, then adapt only the page content.
-    private void ShellNavigation_Loaded(object sender, RoutedEventArgs e)
+    private async void ShellNavigation_Loaded(object sender, RoutedEventArgs e)
     {
         HookNavigationPaneBackground();
         _shellReady = true;
@@ -70,6 +71,18 @@ public sealed partial class MainWindow : Window
         // only the page grid on the next dispatcher turn; unlike the old code,
         // this never changes PaneDisplayMode or IsPaneOpen.
         DispatcherQueue.TryEnqueue(() => ApplyResponsiveLayout(force: true));
+        if (!_sessionRestoreAttempted)
+        {
+            _sessionRestoreAttempted = true;
+            await RestoreLastSessionAsync();
+        }
+    }
+
+    private async Task RestoreLastSessionAsync()
+    {
+        if (!AppSettingsStore.Current.RestoreLastSession) return;
+        var files = SessionStateStore.Load();
+        if (files.Count > 0) await OpenFilesAsync(files);
     }
 
     private static string GetWindowStatePath()
@@ -165,6 +178,7 @@ public sealed partial class MainWindow : Window
         }
 
         PersistWindowSize();
+        SessionStateStore.Save(_workspace.Documents.Select(document => document.FilePath));
         AppWindow.Changed -= AppWindow_Changed;
         _workspace.CloseAll();
     }
@@ -281,7 +295,8 @@ public sealed partial class MainWindow : Window
     private async Task LoadSessionAsync(DocumentSession session)
     {
         await session.LoadAsync(_importer, new Progress<SpatialViewer.Core.ImportProgress>(_ => { }));
-        if (session.State == DocumentSessionState.Ready) await _recentFiles.RecordAsync(session.FilePath);
+        if (session.State == DocumentSessionState.Ready && AppSettingsStore.Current.RecordRecentFiles)
+            await _recentFiles.RecordAsync(session.FilePath);
         if (ReferenceEquals(_workspace.ActiveDocument, session)) ShowDocument(session);
     }
 
@@ -400,11 +415,12 @@ public sealed partial class MainWindow : Window
             case "Favorites": ShowPlaceholder("收藏", "收藏夹将在后续版本提供。"); break;
             case "ImportFolder": ShowPlaceholder("导入文件夹", "文件夹导入将在后续版本提供。"); break;
             case "Settings": ShowSettings(); break;
-            case "About": ShowPlaceholder("关于图览", "SpatialViewer · WinUI 3 CAD Viewer"); break;
+            case "About": ShowAbout(); break;
         }
     }
 
     private void ShowSettings() { ShowNavigationChrome(); MainContent.Content = new SettingsView(); }
+    private void ShowAbout() { ShowNavigationChrome(); MainContent.Content = new AboutView(); }
     private void ShowPlaceholder(string title, string message) { ShowNavigationChrome(); MainContent.Content = new PlaceholderView(title, message); }
 
     private void SelectShellItem(NavigationViewItem? item)

@@ -1,9 +1,90 @@
-<UserControl x:Class="SpatialViewer.Product.Views.SettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="using:SpatialViewer.Product.Controls">
-  <ScrollViewer x:Name="SettingsScrollViewer" Background="Transparent" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
-    <Grid Width="{Binding ActualWidth, ElementName=SettingsScrollViewer}" Padding="24" RowDefinitions="Auto,16,Auto,16,Auto" UseLayoutRounding="True">
+<UserControl x:Class="SpatialViewer.Product.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SpatialViewer.Product.Controls">
+  <ScrollViewer x:Name="SettingsScrollViewer" Background="Transparent" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+    <Grid x:Name="SettingsLayoutRoot" Width="{Binding ActualWidth, ElementName=SettingsScrollViewer}" Padding="24" RowDefinitions="Auto,24,Auto,18,Auto,18,Auto" UseLayoutRounding="True">
+      <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="SettingsResponsiveStates">
+          <VisualState x:Name="SettingsCompact">
+            <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
+            <VisualState.Setters>
+              <Setter Target="ThemePicker.(Grid.Row)" Value="1" /><Setter Target="ThemePicker.(Grid.Column)" Value="0" /><Setter Target="ThemePicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="ThemePicker.HorizontalAlignment" Value="Left" />
+              <Setter Target="LanguagePicker.(Grid.Row)" Value="1" /><Setter Target="LanguagePicker.(Grid.Column)" Value="0" /><Setter Target="LanguagePicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="LanguagePicker.HorizontalAlignment" Value="Left" />
+              <Setter Target="RestoreSessionToggle.(Grid.Row)" Value="1" /><Setter Target="RestoreSessionToggle.(Grid.Column)" Value="0" /><Setter Target="RestoreSessionToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="RestoreSessionToggle.HorizontalAlignment" Value="Left" />
+              <Setter Target="RecentFilesToggle.(Grid.Row)" Value="1" /><Setter Target="RecentFilesToggle.(Grid.Column)" Value="0" /><Setter Target="RecentFilesToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="RecentFilesToggle.HorizontalAlignment" Value="Left" />
+              <Setter Target="WatchFilesToggle.(Grid.Row)" Value="1" /><Setter Target="WatchFilesToggle.(Grid.Column)" Value="0" /><Setter Target="WatchFilesToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="WatchFilesToggle.HorizontalAlignment" Value="Left" />
+              <Setter Target="FitOnOpenToggle.(Grid.Row)" Value="1" /><Setter Target="FitOnOpenToggle.(Grid.Column)" Value="0" /><Setter Target="FitOnOpenToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="FitOnOpenToggle.HorizontalAlignment" Value="Left" />
+              <Setter Target="ViewerThemePicker.(Grid.Row)" Value="1" /><Setter Target="ViewerThemePicker.(Grid.Column)" Value="0" /><Setter Target="ViewerThemePicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="ViewerThemePicker.HorizontalAlignment" Value="Left" />
+              <Setter Target="DrawingBackgroundPicker.(Grid.Row)" Value="1" /><Setter Target="DrawingBackgroundPicker.(Grid.Column)" Value="0" /><Setter Target="DrawingBackgroundPicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="DrawingBackgroundPicker.HorizontalAlignment" Value="Left" />
+            </VisualState.Setters>
+          </VisualState>
+          <VisualState x:Name="SettingsWide">
+            <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="720" /></VisualState.StateTriggers>
+            <VisualState.Setters>
+              <Setter Target="ThemePicker.(Grid.Row)" Value="0" /><Setter Target="ThemePicker.(Grid.Column)" Value="1" /><Setter Target="ThemePicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="ThemePicker.HorizontalAlignment" Value="Right" />
+              <Setter Target="LanguagePicker.(Grid.Row)" Value="0" /><Setter Target="LanguagePicker.(Grid.Column)" Value="1" /><Setter Target="LanguagePicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="LanguagePicker.HorizontalAlignment" Value="Right" />
+              <Setter Target="RestoreSessionToggle.(Grid.Row)" Value="0" /><Setter Target="RestoreSessionToggle.(Grid.Column)" Value="1" /><Setter Target="RestoreSessionToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="RestoreSessionToggle.HorizontalAlignment" Value="Right" />
+              <Setter Target="RecentFilesToggle.(Grid.Row)" Value="0" /><Setter Target="RecentFilesToggle.(Grid.Column)" Value="1" /><Setter Target="RecentFilesToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="RecentFilesToggle.HorizontalAlignment" Value="Right" />
+              <Setter Target="WatchFilesToggle.(Grid.Row)" Value="0" /><Setter Target="WatchFilesToggle.(Grid.Column)" Value="1" /><Setter Target="WatchFilesToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="WatchFilesToggle.HorizontalAlignment" Value="Right" />
+              <Setter Target="FitOnOpenToggle.(Grid.Row)" Value="0" /><Setter Target="FitOnOpenToggle.(Grid.Column)" Value="1" /><Setter Target="FitOnOpenToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="FitOnOpenToggle.HorizontalAlignment" Value="Right" />
+              <Setter Target="ViewerThemePicker.(Grid.Row)" Value="0" /><Setter Target="ViewerThemePicker.(Grid.Column)" Value="1" /><Setter Target="ViewerThemePicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="ViewerThemePicker.HorizontalAlignment" Value="Right" />
+              <Setter Target="DrawingBackgroundPicker.(Grid.Row)" Value="0" /><Setter Target="DrawingBackgroundPicker.(Grid.Column)" Value="1" /><Setter Target="DrawingBackgroundPicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="DrawingBackgroundPicker.HorizontalAlignment" Value="Right" />
+            </VisualState.Setters>
+          </VisualState>
+        </VisualStateGroup>
+      </VisualStateManager.VisualStateGroups>
+
       <TextBlock Text="设置" Style="{StaticResource DisplayTitleText}" />
-      <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18"><StackPanel Spacing="12"><TextBlock Text="外观" Style="{StaticResource SectionTitleText}" /><ComboBox x:Name="ThemePicker" controls:TransientComboBoxTheme.Apply="True" Header="主题" SelectionChanged="ThemePicker_SelectionChanged"><ComboBoxItem Content="跟随系统" /><ComboBoxItem Content="浅色" /><ComboBoxItem Content="深色" /></ComboBox><TextBlock Text="查看器画布默认使用黑色背景，以保持 CAD 图纸颜色语义。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Border>
-      <Border Grid.Row="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18"><StackPanel Spacing="8"><TextBlock Text="语言" Style="{StaticResource SectionTitleText}" /><TextBlock Text="简体中文 / 日本語 / English 的资源基础已准备；完整本地化持续完善中。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Border>
+
+      <Border Grid.Row="2" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="18">
+        <StackPanel Spacing="14">
+          <TextBlock Text="外观与语言" Style="{StaticResource SectionTitleText}" />
+          <Border Background="{ThemeResource BgSelectionBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel>
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="主题" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="应用主题跟随系统，或固定为浅色/深色。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ComboBox x:Name="ThemePicker" Grid.Column="1" Width="170" VerticalAlignment="Center" controls:TransientComboBoxTheme.Apply="True" SelectionChanged="ThemePicker_SelectionChanged"><ComboBoxItem Content="跟随系统" /><ComboBoxItem Content="浅色" /><ComboBoxItem Content="深色" /></ComboBox>
+              </Grid>
+              <Border Height="1" Background="{ThemeResource BorderBrush}" />
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="语言" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="切换后将在下次启动时应用到本地化资源。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ComboBox x:Name="LanguagePicker" Grid.Column="1" Width="170" VerticalAlignment="Center" controls:TransientComboBoxTheme.Apply="True" SelectionChanged="LanguagePicker_SelectionChanged"><ComboBoxItem Content="简体中文" /><ComboBoxItem Content="日本語" /><ComboBoxItem Content="English" /></ComboBox>
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="4" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="18">
+        <StackPanel Spacing="14">
+          <TextBlock Text="文件与会话" Style="{StaticResource SectionTitleText}" />
+          <Border Background="{ThemeResource BgSelectionBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel>
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="启动时恢复上次会话" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="重新打开上次退出时仍在会话中的图纸。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ToggleSwitch x:Name="RestoreSessionToggle" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" Toggled="RestoreSessionToggle_Toggled" /></Grid>
+              <Border Height="1" Background="{ThemeResource BorderBrush}" />
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="记录最近打开文件" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="仅在本机保存最近文件路径，用于主页快速访问。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ToggleSwitch x:Name="RecentFilesToggle" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" Toggled="RecentFilesToggle_Toggled" /></Grid>
+              <Border Height="1" Background="{ThemeResource BorderBrush}" />
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="自动检查文件变化" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="打开的图纸被外部修改后自动重新读取。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ToggleSwitch x:Name="WatchFilesToggle" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" Toggled="WatchFilesToggle_Toggled" /></Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="6" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,24">
+        <StackPanel Spacing="14">
+          <TextBlock Text="查看器" Style="{StaticResource SectionTitleText}" />
+          <Border Background="{ThemeResource BgSelectionBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel>
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="打开文件后适合窗口" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="首次显示图纸时自动缩放到全部对象。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ToggleSwitch x:Name="FitOnOpenToggle" Grid.Column="1" VerticalAlignment="Center" OnContent="" OffContent="" Toggled="FitOnOpenToggle_Toggled" /></Grid>
+              <Border Height="1" Background="{ThemeResource BorderBrush}" />
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="查看器主题" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="可独立于应用固定查看器的浅色或深色外观。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ComboBox x:Name="ViewerThemePicker" Grid.Column="1" Width="170" VerticalAlignment="Center" controls:TransientComboBoxTheme.Apply="True" SelectionChanged="ViewerThemePicker_SelectionChanged"><ComboBoxItem Content="跟随应用" /><ComboBoxItem Content="浅色" /><ComboBoxItem Content="深色" /></ComboBox></Grid>
+              <Border Height="1" Background="{ThemeResource BorderBrush}" />
+              <Grid Padding="16,10" MinHeight="68" ColumnSpacing="24" RowSpacing="8" ColumnDefinitions="*,180" RowDefinitions="Auto,Auto"><StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="图纸背景颜色" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock Text="跟随查看器模式，或固定使用黑色/白色画布。" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><ComboBox x:Name="DrawingBackgroundPicker" Grid.Column="1" Width="170" VerticalAlignment="Center" controls:TransientComboBoxTheme.Apply="True" SelectionChanged="DrawingBackgroundPicker_SelectionChanged"><ComboBoxItem Content="跟随模式" /><ComboBoxItem Content="黑色" /><ComboBoxItem Content="白色" /></ComboBox></Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
     </Grid>
   </ScrollViewer>
 </UserControl>

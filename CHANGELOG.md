@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0] - 2026-08-31
+
+### Added
+
+- Implemented the Figma-designed Settings and About pages with native WinUI 3 materials and responsive nested card layouts.
+- Added persisted application, session, file-monitoring, viewer-theme, and drawing-background preferences.
+- Added GitHub Release checks for SpatialViewer and the independent SpatialViewer.CadCore, plus working repository, release, license, and privacy destinations.
+- Added session restore and automatic reload of externally modified CAD files.
+- Added trilingual v0.2.0 release notes and upgraded the signed acceptance pipeline to package version 0.2.0.0.
+
+### Changed
+
+- Fit-to-window on open is now owned by the viewer preference instead of being applied unconditionally by DocumentSession.
+- External file reloads preserve the user's current camera state.
+
 ## Unreleased
 
 - Added the foundational DXF/DWG import pipeline with isolated ACadSharp adapter, CAD document model, Scene2D translation, fixtures, diagnostics, and Debug Host file opening.
