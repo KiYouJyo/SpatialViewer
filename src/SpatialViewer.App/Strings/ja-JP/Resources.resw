@@ -63,7 +63,7 @@
   <data name="About_ReleaseNotes" xml:space="preserve"><value>リリースノート</value></data>
   <data name="About_CheckUpdates" xml:space="preserve"><value>更新を確認</value></data>
   <data name="About_Kernels" xml:space="preserve"><value>ビューアーカーネル</value></data>
-  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD グラフィックスカーネル · GitHub 独立リリース元</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD グラフィックスカーネル · SpatialViewer.CadCore</value></data>
   <data name="About_ProjectOpenSource" xml:space="preserve"><value>プロジェクトとオープンソース</value></data>
   <data name="About_Repository" xml:space="preserve"><value>GitHub リポジトリ</value></data>
   <data name="About_Repository_Desc" xml:space="preserve"><value>ソースコード、README、開発状況を確認します。</value></data>
@@ -80,6 +80,16 @@
   <data name="Update_Latest" xml:space="preserve"><value>最新のプレビューです</value></data>
   <data name="Update_NetworkFailed" xml:space="preserve"><value>ネットワーク確認に失敗しました</value></data>
   <data name="Update_Timeout" xml:space="preserve"><value>更新確認がタイムアウトしました</value></data>
-  <data name="Update_CadNoRelease" xml:space="preserve"><value>独立 Release はありません</value></data>
-  <data name="Update_CadLoaded" xml:space="preserve"><value>SpatialViewer.CadCore を確認しました</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>CadCore Release はありません</value></data>
+  <data name="Update_CadUpToDate" xml:space="preserve"><value>最新バージョンです</value></data>
+  <data name="Update_CadAvailable" xml:space="preserve"><value>カーネル更新があります</value></data>
+  <data name="Update_CadDownloading" xml:space="preserve"><value>カーネル更新をダウンロード中…</value></data>
+  <data name="Update_CadVerifying" xml:space="preserve"><value>カーネル更新を検証して準備中…</value></data>
+  <data name="Update_CadReadyRestart" xml:space="preserve"><value>更新をダウンロードしました。アプリを再起動すると反映されます</value></data>
+  <data name="Update_CadFailed" xml:space="preserve"><value>カーネル更新に失敗しました</value></data>
+  <data name="Update_CadMissingAsset" xml:space="preserve"><value>この Release にインストール可能な x64 カーネルパッケージがありません</value></data>
+  <data name="Update_CadCancelled" xml:space="preserve"><value>カーネル更新をキャンセルしました</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>更新をダウンロード</value></data>
+  <data name="Update_Retry" xml:space="preserve"><value>再試行</value></data>
+  <data name="Update_WaitingRestart" xml:space="preserve"><value>再起動待ち</value></data>
 </root>
