@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
   </ItemGroup>
 </Project>
