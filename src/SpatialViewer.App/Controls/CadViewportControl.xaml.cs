@@ -1,11 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using SpatialViewer.Core;
 using SpatialViewer.Presentation;
 using SpatialViewer.Rendering;
 using SpatialViewer.Rendering.Windows;
 using Windows.Foundation;
+using Windows.UI;
 
 namespace SpatialViewer.Product.Controls;
 
@@ -20,10 +22,25 @@ public sealed partial class CadViewportControl : UserControl, IDisposable
     private uint? _capturedPointerId;
     private bool _panMoved;
     private bool _disposed;
+    private string _canvasColor = "#000000";
+
     public event EventHandler<SceneItem?>? SelectionChanged;
     public event EventHandler<Point2D>? PointerWorldChanged;
     public ViewerMode Mode { get; set; } = ViewerMode.Pan;
     public DocumentSession? Session { get => _session; set { _session = value; Draw(); } }
+    public string CanvasColor
+    {
+        get => _canvasColor;
+        set
+        {
+            var normalized = string.Equals(value, "#FFFFFF", StringComparison.OrdinalIgnoreCase) ? "#FFFFFF" : "#000000";
+            if (_canvasColor == normalized) return;
+            _canvasColor = normalized;
+            ViewportBackground.Background = new SolidColorBrush(normalized == "#FFFFFF" ? Colors.White : Colors.Black);
+            if (_renderer is not null) _renderer.CanvasColor = normalized;
+            Draw();
+        }
+    }
 
     public CadViewportControl()
     {
@@ -39,7 +56,7 @@ public sealed partial class CadViewportControl : UserControl, IDisposable
         _renderer.Render(RenderPreparation.Prepare(document.Scene, _session.Camera), _session.Camera, Size, _session.Selection);
     }
 
-    private Win2DSceneRenderer CreateRenderer() => new(ViewportCanvas) { CanvasColor = "#000000", SelectionColor = "#42B8E3" };
+    private Win2DSceneRenderer CreateRenderer() => new(ViewportCanvas) { CanvasColor = _canvasColor, SelectionColor = "#42B8E3" };
     private Size2D Size => new(Math.Max(1, ViewportCanvas.ActualWidth), Math.Max(1, ViewportCanvas.ActualHeight));
     private void Viewport_SizeChanged(object sender, SizeChangedEventArgs e) => Draw();
     private void Viewport_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
