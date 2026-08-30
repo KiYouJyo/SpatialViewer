@@ -28,6 +28,10 @@
                     IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                     Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
       <NavigationView.Resources>
+        <!-- The Fluent default content background is LayerFillColorDefaultBrush,
+             which masks the Window Mica backdrop with a flat gray sheet. Keep
+             the content plane transparent so Settings/About sit directly on Mica. -->
+        <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="SolidBackgroundFillColorTransparent" />
         <!-- The Fluent default puts a rounded 1-DIP SplitView frame around an
              inline pane. This shell already owns the outer window edge, so the
              pane must meet the title bar directly. -->
@@ -44,10 +48,10 @@
       </NavigationView.MenuItems>
       <NavigationView.FooterMenuItems>
         <NavigationViewItem x:Name="ImportFolderNav" Tag="ImportFolder" Content="导入文件夹"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="SettingsNav" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
         <NavigationViewItem x:Name="AboutNav" Tag="About" Content="关于图览"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="SettingsNav" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
       </NavigationView.FooterMenuItems>
-      <ContentControl x:Name="MainContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+      <ContentControl x:Name="MainContent" Background="Transparent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     </NavigationView>
   </Grid>
 </Window>
