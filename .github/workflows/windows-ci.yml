@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet restore SpatialViewer.sln
-      - run: dotnet build SpatialViewer.sln -c Debug --no-restore
-      - run: dotnet build SpatialViewer.sln -c Release --no-restore
-      - run: dotnet test SpatialViewer.sln -c Release --no-build --verbosity normal
+      - run: dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
+      - run: dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
+      - run: dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
+      - run: dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-build --verbosity normal
