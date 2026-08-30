@@ -19,6 +19,7 @@ internal sealed record AppSettings(
 /// <summary>Owns persisted user-facing settings for the product shell and viewer.</summary>
 internal static class AppSettingsStore
 {
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SpatialViewer",
@@ -58,7 +59,7 @@ internal static class AppSettingsStore
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
             var temporaryPath = $"{SettingsPath}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
-            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(settings, SerializerOptions));
             File.Move(temporaryPath, SettingsPath, overwrite: true);
         }
         catch (IOException)
