@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Native WinUI font family: DirectWrite supplies the correct CJK fallback. -->
+  <Style x:Key="DisplayTitleText" TargetType="TextBlock"><Setter Property="FontSize" Value="30" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="LineHeight" Value="36" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="SectionTitleText" TargetType="TextBlock"><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="LineHeight" Value="24" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="CardTitleText" TargetType="TextBlock"><Setter Property="FontSize" Value="17" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="LineHeight" Value="22" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="BodyText" TargetType="TextBlock"><Setter Property="FontSize" Value="14" /><Setter Property="LineHeight" Value="20" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="NavText" TargetType="TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="LineHeight" Value="18" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="TabText" TargetType="TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="LineHeight" Value="16" /><Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" /></Style>
+  <Style x:Key="MetadataText" TargetType="TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="LineHeight" Value="16" /><Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" /></Style>
+  <Style x:Key="TagText" TargetType="TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="LineHeight" Value="14" /><Setter Property="Foreground" Value="{ThemeResource AccentBrush}" /></Style>
+  <Style x:Key="ToolLabelText" TargetType="TextBlock"><Setter Property="FontSize" Value="10" /><Setter Property="LineHeight" Value="12" /><Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" /></Style>
+</ResourceDictionary>

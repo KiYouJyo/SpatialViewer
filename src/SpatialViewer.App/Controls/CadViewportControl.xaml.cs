@@ -9,18 +9,20 @@ using Windows.Foundation;
 
 namespace SpatialViewer.Product.Controls;
 
-public enum ViewerMode { Select, Pan, Zoom }
+public enum ViewerMode { Select, Pan }
 
 public sealed partial class CadViewportControl : UserControl, IDisposable
 {
     private Win2DSceneRenderer? _renderer;
     private DocumentSession? _session;
     private Point? _panStart;
+    private Point2D? _panAnchorWorld;
+    private uint? _capturedPointerId;
     private bool _panMoved;
     private bool _disposed;
     public event EventHandler<SceneItem?>? SelectionChanged;
     public event EventHandler<Point2D>? PointerWorldChanged;
-    public ViewerMode Mode { get; set; } = ViewerMode.Select;
+    public ViewerMode Mode { get; set; } = ViewerMode.Pan;
     public DocumentSession? Session { get => _session; set { _session = value; Draw(); } }
 
     public CadViewportControl()
@@ -51,31 +53,63 @@ public sealed partial class CadViewportControl : UserControl, IDisposable
     {
         if (_session is null) return;
         var point = e.GetCurrentPoint(ViewportCanvas);
-        if (Mode == ViewerMode.Zoom && point.Properties.IsLeftButtonPressed)
+        if (point.Properties.IsMiddleButtonPressed || (Mode == ViewerMode.Pan && point.Properties.IsLeftButtonPressed))
         {
-            _session.Camera.ZoomAt(1.5, new Point2D(point.Position.X, point.Position.Y), Size);
-            Draw();
-            return;
+            _panStart = point.Position;
+            _panAnchorWorld = _session.Camera.ScreenToWorld(new Point2D(point.Position.X, point.Position.Y), Size);
+            _capturedPointerId = e.Pointer.PointerId;
+            _panMoved = false;
+            ViewportCanvas.CapturePointer(e.Pointer);
         }
-        if (point.Properties.IsMiddleButtonPressed || (Mode == ViewerMode.Pan && point.Properties.IsLeftButtonPressed)) { _panStart = point.Position; _panMoved = false; ViewportCanvas.CapturePointer(e.Pointer); }
-        else if (Mode == ViewerMode.Select && point.Properties.IsLeftButtonPressed) { _panStart = point.Position; _panMoved = false; ViewportCanvas.CapturePointer(e.Pointer); }
+        else if (Mode == ViewerMode.Select && point.Properties.IsLeftButtonPressed)
+        {
+            _panStart = point.Position;
+            _panAnchorWorld = null;
+            _capturedPointerId = e.Pointer.PointerId;
+            _panMoved = false;
+            ViewportCanvas.CapturePointer(e.Pointer);
+        }
     }
     private void Viewport_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (_session is null) return;
         var point = e.GetCurrentPoint(ViewportCanvas); var position = point.Position;
         PointerWorldChanged?.Invoke(this, _session.Camera.ScreenToWorld(new Point2D(position.X, position.Y), Size));
-        if (_panStart is { } start && (Mode == ViewerMode.Pan || point.Properties.IsMiddleButtonPressed) && (point.Properties.IsLeftButtonPressed || point.Properties.IsMiddleButtonPressed))
+        if (_panStart is { } start && _panAnchorWorld is { } anchor && _capturedPointerId == e.Pointer.PointerId)
         {
             var delta = new Vector2D(position.X - start.X, position.Y - start.Y);
-            if (delta.Length > .5) { _panMoved = true; _session.Camera.PanScreen(delta); _panStart = position; Draw(); }
+            if (delta.Length > .5)
+            {
+                _panMoved = true;
+                var size = Size;
+                _session.Camera.SetTarget(new Point2D(
+                    anchor.X - ((position.X - size.Width / 2) / _session.Camera.Zoom),
+                    anchor.Y + ((position.Y - size.Height / 2) / _session.Camera.Zoom)));
+                Draw();
+            }
         }
     }
     private void Viewport_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
         if (_session is null) return;
         var position = e.GetCurrentPoint(ViewportCanvas).Position;
-        if (_panStart is not null) { _panStart = null; ViewportCanvas.ReleasePointerCaptures(); if (!_panMoved && Mode == ViewerMode.Select) Select(position); }
+        if (_panStart is not null && _capturedPointerId == e.Pointer.PointerId)
+        {
+            _panStart = null;
+            _panAnchorWorld = null;
+            _capturedPointerId = null;
+            ViewportCanvas.ReleasePointerCaptures();
+            if (!_panMoved && Mode == ViewerMode.Select) Select(position);
+        }
+    }
+    private void Viewport_PointerCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        if (_capturedPointerId != e.Pointer.PointerId) return;
+        _panStart = null;
+        _panAnchorWorld = null;
+        _capturedPointerId = null;
+        _panMoved = false;
+        ViewportCanvas.ReleasePointerCaptures();
     }
     private void Select(Point position)
     {
