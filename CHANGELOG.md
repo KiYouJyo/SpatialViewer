@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1] - 2026-08-31
+
+### Fixed
+
+- Restored the Window Mica backdrop on Settings and About instead of covering it with a flat NavigationView content layer.
+- Replaced teal ordinary content cards with neutral WinUI 3 Fluent card/control surfaces matching UrbanPlanToolbox.
+- Corrected medium/compact Settings and About reflow, including action-column collapse at narrow widths.
+- Aligned toggle-switch right edges with combo-box right edges in the wide Settings layout.
+- Connected live Simplified Chinese, Japanese, English, and system-language switching while preserving v0.2 stored language values.
+- Removed the separate viewer-theme control; the viewer now follows the application theme.
+- Moved About above Settings in navigation, corrected publisher text to `Jo Kiyō`, and labels the CAD kernel as `SpatialViewer.CadCore`.
+
 ## [0.2.0] - 2026-08-31
 
 ### Added
