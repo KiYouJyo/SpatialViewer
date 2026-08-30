@@ -10,6 +10,12 @@
   <data name="Nav_ImportFolder" xml:space="preserve"><value>フォルダーを読み込む</value></data>
   <data name="Nav_About" xml:space="preserve"><value>図覧について</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>設定</value></data>
+  <data name="NavHome.Content" xml:space="preserve"><value>ホーム</value></data>
+  <data name="NavProjects.Content" xml:space="preserve"><value>プロジェクト</value></data>
+  <data name="NavFavorites.Content" xml:space="preserve"><value>お気に入り</value></data>
+  <data name="NavImportFolder.Content" xml:space="preserve"><value>フォルダーを読み込む</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>図覧について</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>外観と言語</value></data>
   <data name="Settings_Theme_Title" xml:space="preserve"><value>テーマ</value></data>
