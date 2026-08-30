@@ -20,6 +20,10 @@ public sealed class Win2DSceneRenderer : ISceneRenderer
     private bool _disposed;
     /// <summary>Raised on the UI thread after a Win2D frame completes, with elapsed milliseconds.</summary>
     public event Action<double>? FrameRendered;
+    /// <summary>Gets or sets the canvas color without recreating the scene or renderer.</summary>
+    public string CanvasColor { get; set; } = "#FAFAFA";
+    /// <summary>Gets or sets the selected-object highlight color.</summary>
+    public string SelectionColor { get; set; } = "#FFC107";
 
     public Win2DSceneRenderer(CanvasControl canvas)
     {
@@ -33,12 +37,12 @@ public sealed class Win2DSceneRenderer : ISceneRenderer
     private void Draw(CanvasControl sender, CanvasDrawEventArgs args)
     {
         var stopwatch = Stopwatch.StartNew();
-        args.DrawingSession.Clear(Color.FromArgb(255, 250, 250, 250));
+        args.DrawingSession.Clear(Parse(CanvasColor, 1));
         if (_frame is { } frame && _camera is { } camera) foreach (var command in frame.Commands) DrawCommand(args.DrawingSession, command, camera, _viewport, command.ObjectId == _selected);
         stopwatch.Stop();
         FrameRendered?.Invoke(stopwatch.Elapsed.TotalMilliseconds);
     }
-    private static void DrawCommand(CanvasDrawingSession session, RenderCommand command, Camera2D camera, Size2D viewport, bool selected)
+    private void DrawCommand(CanvasDrawingSession session, RenderCommand command, Camera2D camera, Size2D viewport, bool selected)
     {
         var stroke = Parse(command.Style.Stroke, command.Style.Opacity); var fill = command.Style.Fill is null ? (Color?)null : Parse(command.Style.Fill, command.Style.Opacity); var width = (float)Math.Max(.5, command.Style.StrokeWidth);
         Point2D Map(Point2D p) => camera.WorldToScreen(command.WorldTransform.Apply(p), viewport);
@@ -57,7 +61,7 @@ public sealed class Win2DSceneRenderer : ISceneRenderer
             case TextGeometry text: { var p = V(text.Origin); session.DrawText(text.Text, p, stroke, new CanvasTextFormat { FontSize = (float)Math.Max(8, text.Height * camera.Zoom) }); break; }
             case ImageGeometry image: DrawRectangle(session, image.GetBounds(), V, stroke, null, width); break;
         }
-        if (selected && !command.Bounds.IsEmpty) DrawRectangle(session, command.Bounds, p => { var q = camera.WorldToScreen(p, viewport); return new System.Numerics.Vector2((float)q.X, (float)q.Y); }, Color.FromArgb(255, 255, 193, 7), null, 2);
+        if (selected && !command.Bounds.IsEmpty) DrawRectangle(session, command.Bounds, p => { var q = camera.WorldToScreen(p, viewport); return new System.Numerics.Vector2((float)q.X, (float)q.Y); }, Parse(SelectionColor, 1), null, 2);
     }
     private static void DrawPolyline(CanvasDrawingSession s, IReadOnlyList<Point2D> points, bool closed, Func<Point2D, System.Numerics.Vector2> map, Color color, float width) { for (var i = 1; i < points.Count; i++) s.DrawLine(map(points[i - 1]), map(points[i]), color, width); if (closed && points.Count > 2) s.DrawLine(map(points[^1]), map(points[0]), color, width); }
     private static void DrawPolygon(CanvasDrawingSession s, IReadOnlyList<Point2D> points, Func<Point2D, System.Numerics.Vector2> map, Color stroke, Color? fill, float width) { if (points.Count < 3) return; using var path = new CanvasPathBuilder(s); path.BeginFigure(map(points[0])); for (var i = 1; i < points.Count; i++) path.AddLine(map(points[i])); path.EndFigure(CanvasFigureLoop.Closed); using var geometry = CanvasGeometry.CreatePath(path); if (fill is { } f) s.FillGeometry(geometry, f); s.DrawGeometry(geometry, stroke, width); }

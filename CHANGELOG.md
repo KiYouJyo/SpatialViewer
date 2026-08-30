@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added the foundational DXF/DWG import pipeline with isolated ACadSharp adapter, CAD document model, Scene2D translation, fixtures, diagnostics, and Debug Host file opening.
+- Added `SpatialViewer.App`, a WinUI 3 Preview product shell with Figma semantic tokens, real title bar integration, recent files, tabbed CAD sessions, Win2D CAD workspace, layer/selection/properties presentation, diagnostics, and presentation regression tests.
 
 本文件记录 Spatial Viewer 的用户可见变化与重要工程变化。
 

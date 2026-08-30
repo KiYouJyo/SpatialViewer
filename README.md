@@ -44,7 +44,7 @@ Spatial Viewer 是**看图器**，不是 AutoCAD、GIS 桌面编辑器、Revit �
 
 ## 开发状态
 
-仓库目前处于基础建设与内核开发阶段。格式兼容性、渲染完整度、性能指标与安装包发布方式将在可验证实现形成后补充，不在早期文档中预先承诺。
+仓库目前处于 Preview 阶段。除 Debug Host 外，`SpatialViewer.App` 提供正式 WinUI 3 产品壳：主页、最近文件、DWG/DXF 打开、真实 CAD 画布、多标签、图层、选择、属性与诊断。GIS、IFC 与 Rhino 仍未接入；完整边界见 [CAD 兼容矩阵](docs/compatibility/cad.md) 与 [UI Stage 1 验证](docs/verification/ui-stage1-verification.md)。
 
 ## 文档
 
@@ -58,6 +58,8 @@ Spatial Viewer 是**看图器**，不是 AutoCAD、GIS 桌面编辑器、Revit �
 - [第三方声明](THIRD-PARTY-NOTICES.md)
 - [Stage 1 架构文档](docs/architecture/core-architecture.md)
 - [CAD 兼容矩阵（Stage 2）](docs/compatibility/cad.md)
+- [UI Stage 1 Figma 实现](docs/ui/figma-implementation.md)
+- [UI Stage 1 验证](docs/verification/ui-stage1-verification.md)
 
 ## 贡献
 
