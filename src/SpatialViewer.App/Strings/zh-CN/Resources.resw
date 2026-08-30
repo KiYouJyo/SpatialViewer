@@ -63,7 +63,7 @@
   <data name="About_ReleaseNotes" xml:space="preserve"><value>发行说明</value></data>
   <data name="About_CheckUpdates" xml:space="preserve"><value>检查更新</value></data>
   <data name="About_Kernels" xml:space="preserve"><value>查看内核</value></data>
-  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD 图形内核 · GitHub 独立版本源</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD 图形内核 · SpatialViewer.CadCore</value></data>
   <data name="About_ProjectOpenSource" xml:space="preserve"><value>项目与开源</value></data>
   <data name="About_Repository" xml:space="preserve"><value>GitHub 仓库</value></data>
   <data name="About_Repository_Desc" xml:space="preserve"><value>查看源码、README 与开发进度。</value></data>
@@ -80,6 +80,16 @@
   <data name="Update_Latest" xml:space="preserve"><value>已是最新预览版</value></data>
   <data name="Update_NetworkFailed" xml:space="preserve"><value>网络检查失败</value></data>
   <data name="Update_Timeout" xml:space="preserve"><value>检查超时</value></data>
-  <data name="Update_CadNoRelease" xml:space="preserve"><value>暂无独立 Release</value></data>
-  <data name="Update_CadLoaded" xml:space="preserve"><value>已读取 SpatialViewer.CadCore</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>暂无 CadCore Release</value></data>
+  <data name="Update_CadUpToDate" xml:space="preserve"><value>已是最新版本</value></data>
+  <data name="Update_CadAvailable" xml:space="preserve"><value>发现内核更新</value></data>
+  <data name="Update_CadDownloading" xml:space="preserve"><value>正在下载内核更新…</value></data>
+  <data name="Update_CadVerifying" xml:space="preserve"><value>正在验证并准备内核更新…</value></data>
+  <data name="Update_CadReadyRestart" xml:space="preserve"><value>更新已下载，重启应用后生效</value></data>
+  <data name="Update_CadFailed" xml:space="preserve"><value>内核更新失败</value></data>
+  <data name="Update_CadMissingAsset" xml:space="preserve"><value>当前 Release 缺少可安装的 x64 内核包</value></data>
+  <data name="Update_CadCancelled" xml:space="preserve"><value>已取消内核更新</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>下载更新</value></data>
+  <data name="Update_Retry" xml:space="preserve"><value>重试</value></data>
+  <data name="Update_WaitingRestart" xml:space="preserve"><value>等待重启</value></data>
 </root>
