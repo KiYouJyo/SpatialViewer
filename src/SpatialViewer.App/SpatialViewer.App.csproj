@@ -15,11 +15,11 @@
     <AppxBundleAutoResourcePackageQualifiers>Scale|DXFeatureLevel</AppxBundleAutoResourcePackageQualifiers>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering\SpatialViewer.Rendering.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering.Windows\SpatialViewer.Rendering.Windows.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering\SpatialViewer.Rendering.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering.Windows\SpatialViewer.Rendering.Windows.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
     <ProjectReference Include="..\SpatialViewer.Presentation\SpatialViewer.Presentation.csproj" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
   </ItemGroup>
