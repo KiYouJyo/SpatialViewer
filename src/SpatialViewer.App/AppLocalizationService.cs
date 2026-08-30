@@ -1,6 +1,6 @@
 using System.Globalization;
 using Microsoft.Windows.ApplicationModel.Resources;
-using Windows.Globalization;
+using Microsoft.Windows.Globalization;
 using Windows.System.UserProfile;
 
 namespace SpatialViewer.Product;
