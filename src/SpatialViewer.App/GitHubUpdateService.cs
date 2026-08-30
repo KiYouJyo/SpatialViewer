@@ -40,7 +40,7 @@ internal static class GitHubUpdateService
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.1"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
