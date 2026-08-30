@@ -112,6 +112,11 @@ public sealed partial class AboutView : UserControl
         Grid.SetColumn(AppUpdateButtons, compact ? 0 : 1);
         AppUpdateButtons.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
         AppUpdateButtons.Margin = compact ? new Thickness(0, 4, 0, 0) : new Thickness(0);
+
+        Grid.SetRow(CadCoreButtons, compact ? 1 : 0);
+        Grid.SetColumn(CadCoreButtons, compact ? 0 : 1);
+        CadCoreButtons.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+        CadCoreButtons.Margin = compact ? new Thickness(0, 4, 0, 0) : new Thickness(0);
     }
 
     private void ConfigureMetadataGrid(AboutLayoutMode mode)
