@@ -12,7 +12,6 @@ public sealed partial class AboutView : UserControl
     private static readonly Uri ProductRepositoryUri = new("https://github.com/KiYouJyo/SpatialViewer");
     private static readonly Uri ReleasesUri = new("https://github.com/KiYouJyo/SpatialViewer/releases");
     private static readonly Uri PrivacyUri = new("https://github.com/KiYouJyo/SpatialViewer/blob/main/PRIVACY.md");
-    private readonly GitHubUpdateService _updates = new();
     private GitHubReleaseInfo? _latestProductRelease;
 
     public AboutView()
@@ -29,7 +28,7 @@ public sealed partial class AboutView : UserControl
         AppUpdateStatusText.Text = "正在检查…";
         try
         {
-            _latestProductRelease = await _updates.GetLatestReleaseAsync(ProductRepository);
+            _latestProductRelease = await GitHubUpdateService.GetLatestReleaseAsync(ProductRepository);
             if (_latestProductRelease is null)
             {
                 AvailableAppVersionText.Text = "—";
@@ -62,7 +61,7 @@ public sealed partial class AboutView : UserControl
         CadUpdateStatusText.Text = "正在检查…";
         try
         {
-            var release = await _updates.GetLatestReleaseAsync(CadCoreRepository);
+            var release = await GitHubUpdateService.GetLatestReleaseAsync(CadCoreRepository);
             if (release is null)
             {
                 CadAvailableVersionText.Text = "—";
