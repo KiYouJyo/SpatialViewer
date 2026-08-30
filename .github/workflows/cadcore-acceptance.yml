@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: spatialviewer-cadcore-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   acceptance:
     runs-on: windows-2025-vs2026
