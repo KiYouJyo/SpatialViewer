@@ -10,6 +10,12 @@
   <data name="Nav_ImportFolder" xml:space="preserve"><value>Import folder</value></data>
   <data name="Nav_About" xml:space="preserve"><value>About Spatial Viewer</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="NavHome.Content" xml:space="preserve"><value>Home</value></data>
+  <data name="NavProjects.Content" xml:space="preserve"><value>Projects</value></data>
+  <data name="NavFavorites.Content" xml:space="preserve"><value>Favorites</value></data>
+  <data name="NavImportFolder.Content" xml:space="preserve"><value>Import folder</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>About Spatial Viewer</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>Settings</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
   <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>Appearance &amp; language</value></data>
   <data name="Settings_Theme_Title" xml:space="preserve"><value>Theme</value></data>
