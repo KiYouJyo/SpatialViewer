@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using SpatialViewer.Product.Controls;
 using SpatialViewer.Core;
 using SpatialViewer.Formats.Cad;
+using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Presentation;
 
 namespace SpatialViewer.Product.Views;
@@ -10,9 +11,13 @@ namespace SpatialViewer.Product.Views;
 public sealed partial class CadViewerView : UserControl
 {
     private readonly DocumentSession _session;
+    private readonly ACadSharpCadImporter _importer = new();
     private bool _leftExpanded = true;
     private bool _rightExpanded = true;
+    private bool _initialViewportPrepared;
     private CadLayoutMode _layoutMode = CadLayoutMode.Large;
+    private FileSystemWatcher? _fileWatcher;
+    private DateTimeOffset _lastReloadRequestUtc;
 
     public CadViewerView(DocumentSession session)
     {
@@ -22,11 +27,91 @@ public sealed partial class CadViewerView : UserControl
         SetMode(ViewerMode.Pan);
         Viewport.SelectionChanged += Viewport_SelectionChanged;
         Viewport.PointerWorldChanged += (_, point) => CoordinateText.Text = $"X: {point.X:F2}   Y: {point.Y:F2}   Z: 0";
-        Loaded += (_, _) => Refresh();
+        Loaded += CadViewerView_Loaded;
+        Unloaded += CadViewerView_Unloaded;
+        CadRoot.ActualThemeChanged += (_, _) => ApplyViewerPreferences();
         KeyDown += CadViewerView_KeyDown;
     }
 
-    private void Refresh()
+    private void CadViewerView_Loaded(object sender, RoutedEventArgs e)
+    {
+        AppSettingsStore.Changed += AppSettingsStore_Changed;
+        ApplyViewerPreferences();
+        ConfigureFileWatcher();
+        Refresh();
+    }
+
+    private void CadViewerView_Unloaded(object sender, RoutedEventArgs e)
+    {
+        AppSettingsStore.Changed -= AppSettingsStore_Changed;
+        DisposeFileWatcher();
+    }
+
+    private void AppSettingsStore_Changed(object? sender, EventArgs e)
+    {
+        ApplyViewerPreferences();
+        ConfigureFileWatcher();
+    }
+
+    private void ApplyViewerPreferences()
+    {
+        var settings = AppSettingsStore.Current;
+        CadRoot.RequestedTheme = settings.ViewerTheme switch
+        {
+            ViewerThemePreference.Light => ElementTheme.Light,
+            ViewerThemePreference.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+        var lightCanvas = settings.DrawingBackground switch
+        {
+            DrawingBackgroundPreference.Light => true,
+            DrawingBackgroundPreference.Dark => false,
+            _ => CadRoot.ActualTheme == ElementTheme.Light
+        };
+        Viewport.CanvasColor = lightCanvas ? "#FFFFFF" : "#000000";
+    }
+
+    private void ConfigureFileWatcher()
+    {
+        DisposeFileWatcher();
+        if (!AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
+        var directory = Path.GetDirectoryName(_session.FilePath);
+        var fileName = Path.GetFileName(_session.FilePath);
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)) return;
+        _fileWatcher = new FileSystemWatcher(directory, fileName)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
+            EnableRaisingEvents = true
+        };
+        _fileWatcher.Changed += FileWatcher_Changed;
+        _fileWatcher.Renamed += FileWatcher_Changed;
+    }
+
+    private void DisposeFileWatcher()
+    {
+        if (_fileWatcher is null) return;
+        _fileWatcher.EnableRaisingEvents = false;
+        _fileWatcher.Changed -= FileWatcher_Changed;
+        _fileWatcher.Renamed -= FileWatcher_Changed;
+        _fileWatcher.Dispose();
+        _fileWatcher = null;
+    }
+
+    private void FileWatcher_Changed(object sender, FileSystemEventArgs e)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastReloadRequestUtc < TimeSpan.FromMilliseconds(900)) return;
+        _lastReloadRequestUtc = now;
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (!AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
+            ObjectText.Text = "检测到文件变化，正在重新读取…";
+            await _session.LoadAsync(_importer, new Progress<ImportProgress>(_ => { }));
+            Refresh(forceDraw: true);
+        });
+    }
+
+    private void Refresh(bool forceDraw = false)
     {
         if (_session.State == DocumentSessionState.Loading)
         {
@@ -43,12 +128,16 @@ public sealed partial class CadViewerView : UserControl
         ZoomText.Text = $"Zoom {_session.Camera.Zoom:G4}";
         UnitsText.Text = _session.Document is CadDocument cad ? cad.Units.ToString() : "Unitless";
         var groups = DiagnosticsPresenter.Aggregate(_session.Diagnostics.Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning));
-        // Diagnostics remain available to the session, but the property panel is
-        // reserved for the selected object rather than a raw internal-code dump.
         DiagnosticsBar.IsOpen = false;
         if (groups.Count > 0)
             ObjectText.Text = $"已跳过 {groups.Sum(group => group.Count)} 个暂不支持的对象";
-        Viewport.Fit();
+        else if (forceDraw)
+            ObjectText.Text = "文件已重新读取";
+        if (!_initialViewportPrepared)
+        {
+            if (AppSettingsStore.Current.FitToWindowOnOpen) Viewport.Fit();
+            _initialViewportPrepared = true;
+        }
         Viewport.Draw();
     }
 
