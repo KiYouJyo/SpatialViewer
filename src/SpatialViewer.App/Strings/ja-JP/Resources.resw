@@ -1,2 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<root><data name="AppName" xml:space="preserve"><value>図覧</value></data><data name="Home" xml:space="preserve"><value>ホーム</value></data><data name="OpenFile" xml:space="preserve"><value>ファイルを開く</value></data><data name="NotImplemented" xml:space="preserve"><value>未実装</value></data></root>
+<root>
+  <data name="AppName" xml:space="preserve"><value>図覧</value></data>
+  <data name="Home" xml:space="preserve"><value>ホーム</value></data>
+  <data name="OpenFile" xml:space="preserve"><value>ファイルを開く</value></data>
+  <data name="NotImplemented" xml:space="preserve"><value>未実装</value></data>
+  <data name="Nav_Home" xml:space="preserve"><value>ホーム</value></data>
+  <data name="Nav_Projects" xml:space="preserve"><value>プロジェクト</value></data>
+  <data name="Nav_Favorites" xml:space="preserve"><value>お気に入り</value></data>
+  <data name="Nav_ImportFolder" xml:space="preserve"><value>フォルダーを読み込む</value></data>
+  <data name="Nav_About" xml:space="preserve"><value>図覧について</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>外観と言語</value></data>
+  <data name="Settings_Theme_Title" xml:space="preserve"><value>テーマ</value></data>
+  <data name="Settings_Theme_Desc" xml:space="preserve"><value>ライト、ダーク、またはシステム設定を選択します。変更はすぐに反映されます。</value></data>
+  <data name="Theme_System" xml:space="preserve"><value>システム設定を使用</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>ライト</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>ダーク</value></data>
+  <data name="Settings_Language_Title" xml:space="preserve"><value>言語</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>表示言語を選択します。アプリを再起動せずにすぐ反映されます。</value></data>
+  <data name="Language_System" xml:space="preserve"><value>システム設定を使用</value></data>
+  <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
+  <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
+  <data name="Language_EnUs" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_FileSession" xml:space="preserve"><value>ファイルとセッション</value></data>
+  <data name="Settings_Restore_Title" xml:space="preserve"><value>起動時に前回のセッションを復元</value></data>
+  <data name="Settings_Restore_Desc" xml:space="preserve"><value>前回終了時にセッションに残っていた図面を再度開きます。</value></data>
+  <data name="Settings_Recent_Title" xml:space="preserve"><value>最近開いたファイルを記録</value></data>
+  <data name="Settings_Recent_Desc" xml:space="preserve"><value>最近のファイルパスをこの端末にのみ保存し、ホームからすばやく開けるようにします。</value></data>
+  <data name="Settings_Watch_Title" xml:space="preserve"><value>ファイル変更を自動確認</value></data>
+  <data name="Settings_Watch_Desc" xml:space="preserve"><value>開いている図面が外部で変更された場合に自動で再読み込みします。</value></data>
+  <data name="Settings_Viewer" xml:space="preserve"><value>ビューアー</value></data>
+  <data name="Settings_Fit_Title" xml:space="preserve"><value>ファイルを開いた後にウィンドウへフィット</value></data>
+  <data name="Settings_Fit_Desc" xml:space="preserve"><value>図面を初めて表示するときに全オブジェクトへ自動ズームします。</value></data>
+  <data name="Settings_DrawingBackground_Title" xml:space="preserve"><value>図面の背景色</value></data>
+  <data name="Settings_DrawingBackground_Desc" xml:space="preserve"><value>アプリのテーマに従うか、黒または白のキャンバスに固定します。</value></data>
+  <data name="DrawingBackground_Follow" xml:space="preserve"><value>アプリに従う</value></data>
+  <data name="DrawingBackground_Dark" xml:space="preserve"><value>黒</value></data>
+  <data name="DrawingBackground_Light" xml:space="preserve"><value>白</value></data>
+  <data name="Language_SwitchFailed" xml:space="preserve"><value>言語を切り替えられませんでした</value></data>
+  <data name="About_Title" xml:space="preserve"><value>図覧について</value></data>
+  <data name="About_Tagline" xml:space="preserve"><value>建築・都市計画・空間データの統合ビューアー</value></data>
+  <data name="About_DisplayVersion" xml:space="preserve"><value>表示バージョン</value></data>
+  <data name="About_Channel" xml:space="preserve"><value>配布チャネル</value></data>
+  <data name="About_InternalVersion" xml:space="preserve"><value>内部バージョン</value></data>
+  <data name="About_Publisher" xml:space="preserve"><value>発行者</value></data>
+  <data name="About_Architecture" xml:space="preserve"><value>アーキテクチャ</value></data>
+  <data name="About_TechStack" xml:space="preserve"><value>技術スタック</value></data>
+  <data name="About_UpdateManagement" xml:space="preserve"><value>更新管理</value></data>
+  <data name="About_AppProgram" xml:space="preserve"><value>SpatialViewer 本体</value></data>
+  <data name="About_AppUpdate" xml:space="preserve"><value>アプリ更新</value></data>
+  <data name="About_CurrentVersion" xml:space="preserve"><value>現在のバージョン</value></data>
+  <data name="About_AvailableVersion" xml:space="preserve"><value>利用可能なバージョン</value></data>
+  <data name="About_UpdateSource" xml:space="preserve"><value>更新元</value></data>
+  <data name="About_Status" xml:space="preserve"><value>状態</value></data>
+  <data name="About_ReleaseNotes" xml:space="preserve"><value>リリースノート</value></data>
+  <data name="About_CheckUpdates" xml:space="preserve"><value>更新を確認</value></data>
+  <data name="About_Kernels" xml:space="preserve"><value>ビューアーカーネル</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD グラフィックスカーネル · GitHub 独立リリース元</value></data>
+  <data name="About_ProjectOpenSource" xml:space="preserve"><value>プロジェクトとオープンソース</value></data>
+  <data name="About_Repository" xml:space="preserve"><value>GitHub リポジトリ</value></data>
+  <data name="About_Repository_Desc" xml:space="preserve"><value>ソースコード、README、開発状況を確認します。</value></data>
+  <data name="About_OpenRepository" xml:space="preserve"><value>リポジトリを開く</value></data>
+  <data name="About_Releases_Desc" xml:space="preserve"><value>過去のバージョン、インストーラー、リリースノートを確認します。</value></data>
+  <data name="About_ViewVersions" xml:space="preserve"><value>リリースを見る</value></data>
+  <data name="About_LicensePrivacy" xml:space="preserve"><value>ライセンスとプライバシー</value></data>
+  <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>第三者ライセンスとローカルファイルの取り扱いを確認します。</value></data>
+  <data name="About_ViewInfo" xml:space="preserve"><value>説明を見る</value></data>
+  <data name="Update_NotChecked" xml:space="preserve"><value>未確認</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>確認中…</value></data>
+  <data name="Update_NoRelease" xml:space="preserve"><value>GitHub Release はありません</value></data>
+  <data name="Update_NewVersion" xml:space="preserve"><value>新しいバージョンがあります</value></data>
+  <data name="Update_Latest" xml:space="preserve"><value>最新のプレビューです</value></data>
+  <data name="Update_NetworkFailed" xml:space="preserve"><value>ネットワーク確認に失敗しました</value></data>
+  <data name="Update_Timeout" xml:space="preserve"><value>更新確認がタイムアウトしました</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>独立 Release はありません</value></data>
+  <data name="Update_CadLoaded" xml:space="preserve"><value>SpatialViewer.CadCore を確認しました</value></data>
+</root>
