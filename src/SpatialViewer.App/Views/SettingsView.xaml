@@ -12,7 +12,7 @@
             <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
             <VisualState.Setters>
               <Setter Target="ThemePicker.(Grid.Row)" Value="1" /><Setter Target="ThemePicker.(Grid.Column)" Value="0" /><Setter Target="ThemePicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="ThemePicker.HorizontalAlignment" Value="Left" />
-              <Setter Target="LanguagePicker.(Grid.Row)" Value="1" /><Setter Target="LanguagePicker.(Grid.Column)" Value="0" /><Setter Target="LanguagePicker.(Grid.ColumnSpan)" Value="2" /><Setter Target="LanguagePicker.HorizontalAlignment" Value="Left" />
+              <Setter Target="LanguagePickerHost.(Grid.Row)" Value="1" /><Setter Target="LanguagePickerHost.(Grid.Column)" Value="0" /><Setter Target="LanguagePickerHost.(Grid.ColumnSpan)" Value="2" /><Setter Target="LanguagePickerHost.HorizontalAlignment" Value="Left" />
               <Setter Target="RestoreSessionToggle.(Grid.Row)" Value="1" /><Setter Target="RestoreSessionToggle.(Grid.Column)" Value="0" /><Setter Target="RestoreSessionToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="RestoreSessionToggle.HorizontalAlignment" Value="Left" />
               <Setter Target="RecentFilesToggle.(Grid.Row)" Value="1" /><Setter Target="RecentFilesToggle.(Grid.Column)" Value="0" /><Setter Target="RecentFilesToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="RecentFilesToggle.HorizontalAlignment" Value="Left" />
               <Setter Target="WatchFilesToggle.(Grid.Row)" Value="1" /><Setter Target="WatchFilesToggle.(Grid.Column)" Value="0" /><Setter Target="WatchFilesToggle.(Grid.ColumnSpan)" Value="2" /><Setter Target="WatchFilesToggle.HorizontalAlignment" Value="Left" />
@@ -24,7 +24,7 @@
             <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="720" /></VisualState.StateTriggers>
             <VisualState.Setters>
               <Setter Target="ThemePicker.(Grid.Row)" Value="0" /><Setter Target="ThemePicker.(Grid.Column)" Value="1" /><Setter Target="ThemePicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="ThemePicker.HorizontalAlignment" Value="Right" />
-              <Setter Target="LanguagePicker.(Grid.Row)" Value="0" /><Setter Target="LanguagePicker.(Grid.Column)" Value="1" /><Setter Target="LanguagePicker.(Grid.ColumnSpan)" Value="1" /><Setter Target="LanguagePicker.HorizontalAlignment" Value="Right" />
+              <Setter Target="LanguagePickerHost.(Grid.Row)" Value="0" /><Setter Target="LanguagePickerHost.(Grid.Column)" Value="1" /><Setter Target="LanguagePickerHost.(Grid.ColumnSpan)" Value="1" /><Setter Target="LanguagePickerHost.HorizontalAlignment" Value="Right" />
               <Setter Target="RestoreSessionToggle.(Grid.Row)" Value="0" /><Setter Target="RestoreSessionToggle.(Grid.Column)" Value="1" /><Setter Target="RestoreSessionToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="RestoreSessionToggle.HorizontalAlignment" Value="Right" />
               <Setter Target="RecentFilesToggle.(Grid.Row)" Value="0" /><Setter Target="RecentFilesToggle.(Grid.Column)" Value="1" /><Setter Target="RecentFilesToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="RecentFilesToggle.HorizontalAlignment" Value="Right" />
               <Setter Target="WatchFilesToggle.(Grid.Row)" Value="0" /><Setter Target="WatchFilesToggle.(Grid.Column)" Value="1" /><Setter Target="WatchFilesToggle.(Grid.ColumnSpan)" Value="1" /><Setter Target="WatchFilesToggle.HorizontalAlignment" Value="Right" />
