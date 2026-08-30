@@ -1,0 +1,3 @@
+[submodule "external/SpatialViewer.CadCore"]
+	path = external/SpatialViewer.CadCore
+	url = https://github.com/KiYouJyo/SpatialViewer.CadCore.git

@@ -42,6 +42,7 @@ jobs:
         with:
           ref: ${{ steps.version.outputs.source_ref }}
           fetch-depth: 0
+          submodules: recursive
 
       - uses: actions/setup-dotnet@v4
         with:
