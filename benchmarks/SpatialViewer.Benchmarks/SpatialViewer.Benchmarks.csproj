@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering\SpatialViewer.Rendering.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" />
-    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering\SpatialViewer.Rendering.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
     <PackageReference Include="ACadSharp" Version="3.7.1" PrivateAssets="all" />
   </ItemGroup>
 </Project>
