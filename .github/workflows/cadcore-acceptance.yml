@@ -2,7 +2,7 @@ name: CadCore Extraction Acceptance
 
 on:
   push:
-    branches: ['codex/use-extracted-cadcore']
+    branches: [main, 'codex/use-extracted-cadcore']
   workflow_dispatch:
 
 permissions:
@@ -35,18 +35,22 @@ jobs:
           if (-not (Test-Path external/SpatialViewer.CadCore/SpatialViewer.CadCore.sln)) { throw 'Extracted CadCore solution is missing.' }
           "CADCORE_SHA=$actual" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Restore, build, and test
-        shell: pwsh
-        run: |
-          dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
-          dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
-          dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
-          dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-build --verbosity normal
+      - name: Restore Release x64
+        run: dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
+
+      - name: Build Debug x64
+        run: dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
+
+      - name: Build Release x64
+        run: dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
+
+      - name: Test Release x64
+        run: dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-build --verbosity normal
 
       - name: DebugHost startup smoke
         shell: pwsh
         run: |
-          $exe = Get-ChildItem src/SpatialViewer.DebugHost/bin/Release -Recurse -Filter SpatialViewer.DebugHost.exe | Select-Object -First 1
+          $exe = Get-ChildItem src/SpatialViewer.DebugHost/bin -Recurse -Filter SpatialViewer.DebugHost.exe | Where-Object FullName -match '\\Release\\' | Select-Object -First 1
           if (-not $exe) { throw 'Release DebugHost executable was not found.' }
           $process = Start-Process -FilePath $exe.FullName -PassThru
           Start-Sleep -Seconds 5
@@ -58,6 +62,7 @@ jobs:
         run: |
           $output = Join-Path $env:RUNNER_TEMP 'SpatialViewer-Acceptance-AppPackages'
           dotnet build src/SpatialViewer.App/SpatialViewer.App.csproj -c Release -p:Platform=x64 -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false -p:AppxBundle=Always -p:AppxBundlePlatforms=x64 -p:UapAppxPackageBuildMode=SideloadOnly -p:AppxPackageDir="$output\"
+          if ($LASTEXITCODE -ne 0) { throw "MSIX build failed: $LASTEXITCODE" }
           $bundle = @(Get-ChildItem $output -Recurse -Filter '*.msixbundle') | Select-Object -First 1
           if (-not $bundle) { throw 'MSIXBundle was not produced.' }
           $assets = Join-Path $env:RUNNER_TEMP 'SpatialViewer-CadCore-Acceptance'
@@ -94,6 +99,7 @@ jobs:
         shell: pwsh
         run: |
           $zip = ./packaging/New-CadCoreAcceptancePackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $env:ASSETS_DIRECTORY -DisplayVersion '0.1.1' -PackageVersion '0.1.1.0' -SpatialViewerCommit $env:GITHUB_SHA -CadCoreCommit $env:CADCORE_SHA
+          if ($LASTEXITCODE -ne 0) { throw "Acceptance packaging failed: $LASTEXITCODE" }
           "ACCEPTANCE_ZIP=$zip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Write acceptance manifest
