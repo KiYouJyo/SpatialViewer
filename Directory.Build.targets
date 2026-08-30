@@ -1,12 +1,14 @@
 <Project>
   <!--
-    CadCore projects live outside SpatialViewer.sln during the repository-split
-    transition. Explicitly forward the active solution configuration so a
-    Release product build never consumes Debug outputs from the submodule.
+    CadCore projects are outside SpatialViewer.sln during the repository-split
+    transition. AssignProjectConfiguration consumes SetConfiguration/SetPlatform
+    metadata for out-of-solution ProjectReference items; AdditionalProperties is
+    not sufficient for solution configuration propagation.
   -->
   <ItemGroup>
     <ProjectReference Update="..\..\external\SpatialViewer.CadCore\src\**\*.csproj">
-      <AdditionalProperties>Configuration=$(Configuration);Platform=$(Platform)</AdditionalProperties>
+      <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
+      <SetPlatform>Platform=$(Platform)</SetPlatform>
     </ProjectReference>
   </ItemGroup>
 </Project>
