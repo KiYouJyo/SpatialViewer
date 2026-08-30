@@ -98,8 +98,8 @@ jobs:
       - name: Create offline 0.1.1 acceptance package
         shell: pwsh
         run: |
-          $zip = ./packaging/New-CadCoreAcceptancePackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $env:ASSETS_DIRECTORY -DisplayVersion '0.1.1' -PackageVersion '0.1.1.0' -SpatialViewerCommit $env:GITHUB_SHA -CadCoreCommit $env:CADCORE_SHA
-          if ($LASTEXITCODE -ne 0) { throw "Acceptance packaging failed: $LASTEXITCODE" }
+          $zip = ./packaging/New-CadCoreAcceptancePackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $env:ASSETS_DIRECTORY -DisplayVersion '0.1.1' -PackageVersion '0.1.1.0' -SpatialViewerCommit $env:GITHUB_SHA -CadCoreCommit $env:CADCORE_SHA | Select-Object -Last 1
+          if ([string]::IsNullOrWhiteSpace([string]$zip) -or -not (Test-Path -LiteralPath $zip -PathType Leaf)) { throw "Acceptance ZIP was not produced: $zip" }
           "ACCEPTANCE_ZIP=$zip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Write acceptance manifest
