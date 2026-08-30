@@ -76,8 +76,6 @@ internal sealed class AppLocalizationService
                 _currentLanguage = effective;
             }
 
-            // Let the native ComboBox selection transition settle before the
-            // visible text changes, matching the in-place UrbanPlanToolbox flow.
             await Task.Yield();
             LanguageChanged?.Invoke(this, new AppLanguageChangedEventArgs(previousLanguage, effective));
             return true;
@@ -122,7 +120,8 @@ internal sealed class AppLocalizationService
             _ => "zh-CN"
         };
 
-        var systemLanguage = GlobalizationPreferences.Languages.FirstOrDefault() ?? "zh-CN";
+        var languages = GlobalizationPreferences.Languages;
+        var systemLanguage = languages.Count > 0 ? languages[0] : "zh-CN";
         if (systemLanguage.StartsWith("ja", StringComparison.OrdinalIgnoreCase)) return "ja-JP";
         if (systemLanguage.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en-US";
         if (systemLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
