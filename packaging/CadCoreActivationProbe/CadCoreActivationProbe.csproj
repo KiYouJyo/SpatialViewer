@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyVersion>0.2.3.0</AssemblyVersion>
+    <FileVersion>0.2.3.0</FileVersion>
+    <Version>0.2.3</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\SpatialViewer.App\CadCoreRuntimeBootstrapper.cs" Link="CadCoreRuntimeBootstrapper.cs" />
+  </ItemGroup>
+</Project>

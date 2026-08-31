@@ -12,6 +12,7 @@ internal sealed record CadCorePackageDescriptor(
 
 internal static class CadCoreRuntimeBootstrapper
 {
+    private const string KernelRootOverrideEnvironmentVariable = "SPATIALVIEWER_CADCORE_ROOT";
     private static readonly string[] LoadOrder =
     [
         "SpatialViewer.Core",
@@ -24,11 +25,7 @@ internal static class CadCoreRuntimeBootstrapper
     private static bool _initialized;
     private static IReadOnlyDictionary<string, string> _resolverAssemblies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-    public static string KernelRoot { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SpatialViewer",
-        "Kernels",
-        "CadCore");
+    public static string KernelRoot { get; } = ResolveKernelRoot();
 
     public static string VersionsRoot => Path.Combine(KernelRoot, "versions");
     public static Version BundledVersion { get; private set; } = new(0, 0, 0);
@@ -153,13 +150,26 @@ internal static class CadCoreRuntimeBootstrapper
 
     private static Version ReadBundledVersion()
     {
-        var directPath = Path.Combine(AppContext.BaseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
+        var bootstrapAssemblyDirectory = Path.GetDirectoryName(typeof(CadCoreRuntimeBootstrapper).Assembly.Location);
+        var baseDirectory = string.IsNullOrWhiteSpace(bootstrapAssemblyDirectory) ? AppContext.BaseDirectory : bootstrapAssemblyDirectory;
+        var directPath = Path.Combine(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
         var candidate = File.Exists(directPath)
             ? directPath
-            : Directory.EnumerateFiles(AppContext.BaseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
+            : Directory.EnumerateFiles(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
         if (candidate is null) return new Version(0, 0, 0);
         var version = AssemblyName.GetAssemblyName(candidate).Version;
         return version is null ? new Version(0, 0, 0) : NormalizeVersion(version);
+    }
+
+    private static string ResolveKernelRoot()
+    {
+        var overrideRoot = Environment.GetEnvironmentVariable(KernelRootOverrideEnvironmentVariable);
+        if (!string.IsNullOrWhiteSpace(overrideRoot)) return Path.GetFullPath(overrideRoot);
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SpatialViewer",
+            "Kernels",
+            "CadCore");
     }
 
     private static string PendingStatePath => Path.Combine(KernelRoot, "pending.json");
