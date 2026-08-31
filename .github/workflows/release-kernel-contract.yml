@@ -1,0 +1,45 @@
+name: Release Kernel Contract
+
+on:
+  pull_request:
+    paths:
+      - 'release/kernel-integration.json'
+      - 'packaging/Resolve-LatestIntegratedCadCore.ps1'
+      - 'packaging/Rewrite-CadCoreMsixBundleLayout.ps1'
+      - '.github/workflows/publish-github-release.yml'
+      - '.github/workflows/release-kernel-contract.yml'
+  push:
+    branches: ['codex/**']
+    paths:
+      - 'release/kernel-integration.json'
+      - 'packaging/Resolve-LatestIntegratedCadCore.ps1'
+      - 'packaging/Rewrite-CadCoreMsixBundleLayout.ps1'
+      - '.github/workflows/publish-github-release.yml'
+      - '.github/workflows/release-kernel-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify integrated-kernel release policy
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $policy = Get-Content release/kernel-integration.json -Raw | ConvertFrom-Json
+          $complete = @($policy.kernels | Where-Object integrationStatus -eq 'complete')
+          if ($complete.Count -ne 1 -or [string]$complete[0].id -cne 'cad') { throw 'Current release policy must bundle only the completed CAD integration.' }
+          $workflow = Get-Content .github/workflows/publish-github-release.yml -Raw
+          if (-not $workflow.Contains('Resolve-LatestIntegratedCadCore.ps1')) { throw 'GitHub release workflow does not resolve the latest integrated CadCore.' }
+          if ($workflow.Contains("-BundledVersion '0.3.0'")) { throw 'GitHub release workflow must not hard-code an obsolete CadCore version.' }
+          $payload = Join-Path $env:RUNNER_TEMP 'latest-integrated-cadcore'
+          $resolved = @(./packaging/Resolve-LatestIntegratedCadCore.ps1 -OutputDirectory $payload) | Select-Object -Last 1
+          if (-not $resolved -or [version]$resolved.version -lt [version]'0.4.0') { throw "Resolved CadCore is not the current integrated stable line: $($resolved.version)" }
+          if ([string]$resolved.abiVersion -cne '1.0.0.0') { throw "Unexpected CadCore ABI: $($resolved.abiVersion)" }
+          Write-Host "Release kernel contract PASS: CadCore v$($resolved.version), ABI $($resolved.abiVersion)."
