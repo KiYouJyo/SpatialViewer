@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.2.7 浅色页面颜色修复",
-    "ja-JP": "Spatial Viewer v0.2.7 ライトモードのページ色修正",
-    "en-US": "Spatial Viewer v0.2.7 light-mode page color fix"
+    "zh-CN": "Spatial Viewer v0.2.7 浅色与深色页面主题修复",
+    "ja-JP": "Spatial Viewer v0.2.7 ライト・ダークページテーマ修正",
+    "en-US": "Spatial Viewer v0.2.7 light and dark page theme fix"
   }
 }
