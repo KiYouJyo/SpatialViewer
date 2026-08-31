@@ -10,6 +10,7 @@
     <AssemblyVersion>0.2.4.0</AssemblyVersion>
     <FileVersion>0.2.4.0</FileVersion>
     <Version>0.2.4</Version>
+    <CadCoreBundledVersion>0.3.0</CadCoreBundledVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SpatialViewer.App\CadCoreRuntimeBootstrapper.cs" Link="CadCoreRuntimeBootstrapper.cs" />
@@ -21,4 +22,19 @@
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" />
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" />
   </ItemGroup>
+
+  <Target Name="RelocateBundledCadCoreForRuntimeResolution" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Core.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Rendering.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Rendering.Windows.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Formats.Cad.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Formats.Cad.ACadSharp.dll" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_BundledCadCoreAssembly.Identity)')" Text="Cad Core probe runtime assembly is missing before relocation: %(_BundledCadCoreAssembly.Identity)" />
+    <MakeDir Directories="$(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)" />
+    <Copy SourceFiles="@(_BundledCadCoreAssembly)" DestinationFolder="$(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)" SkipUnchangedFiles="true" />
+    <Delete Files="@(_BundledCadCoreAssembly)" />
+    <Message Importance="high" Text="Relocated bundled Cad Core out of default probe path to $(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)." />
+  </Target>
 </Project>
