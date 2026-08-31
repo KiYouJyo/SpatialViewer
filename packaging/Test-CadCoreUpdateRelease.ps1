@@ -77,7 +77,7 @@ try {
         if (-not $dll) { throw "Missing required assembly: $project.dll" }
         $assemblyVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version)
         if ($assemblyVersion -ne $available) {
-            throw "Assembly version mismatch for $project.dll`: $assemblyVersion != $available"
+            throw "Assembly version mismatch for $($project).dll: $assemblyVersion != $available"
         }
     }
 
