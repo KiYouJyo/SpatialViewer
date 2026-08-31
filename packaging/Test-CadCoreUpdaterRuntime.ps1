@@ -18,13 +18,13 @@ function New-DownloadClient([bool]$UseProxy) {
     $handler.UseProxy = $UseProxy
     $client = [System.Net.Http.HttpClient]::new($handler)
     $client.Timeout = [TimeSpan]::FromMinutes(5)
-    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.2')
+    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.3')
     $client.DefaultRequestHeaders.Accept.ParseAdd('application/octet-stream')
     return $client
 }
 
 $headers = @{
-    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.2'
+    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.3'
     'Accept' = 'application/vnd.github+json'
     'X-GitHub-Api-Version' = '2022-11-28'
 }
@@ -139,6 +139,23 @@ try {
     if ([string]$pending.Version -cne $availableText) { throw "Pending-state version mismatch: $($pending.Version)" }
 
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
+
+    $appDll = Get-ChildItem src/SpatialViewer.App/bin -Recurse -Filter SpatialViewer.App.dll |
+        Where-Object { $_.FullName -match '\\Release\\' } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+    if (-not $appDll) { throw 'Release SpatialViewer.App.dll was not found for fresh-process activation.' }
+
+    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $appDll.FullName $kernelRoot $availableText
+    if ($LASTEXITCODE -ne 0) { throw "CadCore fresh-process activation probe failed: $LASTEXITCODE" }
+
+    if (Test-Path -LiteralPath $pendingPath) { throw 'pending.json still exists after fresh-process activation.' }
+    $activePath = Join-Path $kernelRoot 'active.json'
+    if (-not (Test-Path -LiteralPath $activePath -PathType Leaf)) { throw 'active.json was not created after fresh-process activation.' }
+    $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
+    if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
+
+    Write-Host "CadCore fresh-process activation contract PASS: $availableText is active"
 }
 finally {
     if ($proxyClient) { $proxyClient.Dispose() }
