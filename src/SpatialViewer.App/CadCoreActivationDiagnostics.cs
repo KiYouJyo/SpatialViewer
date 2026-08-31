@@ -25,14 +25,19 @@ internal static class CadCoreActivationDiagnostics
                 .Select(assembly =>
                 {
                     var name = assembly.GetName();
-                    return $"{name.Name}@{name.Version}:{assembly.Location}";
+                    var product = CadCoreRuntimeBootstrapper.TryReadFileProductVersion(assembly.Location, out var productVersion)
+                        ? productVersion.ToString()
+                        : "?";
+                    return $"{name.Name}@product={product},abi={name.Version}:{assembly.Location}";
                 })
                 .DefaultIfEmpty("none");
             var line = string.Join('\t',
                 DateTimeOffset.UtcNow.ToString("O"),
                 stage,
                 $"bundled={CadCoreRuntimeBootstrapper.BundledVersion}",
+                $"bundledAbi={CadCoreRuntimeBootstrapper.BundledAbiVersion}",
                 $"current={CadCoreRuntimeBootstrapper.CurrentVersion}",
+                $"currentAbi={CadCoreRuntimeBootstrapper.CurrentAbiVersion}",
                 $"external={CadCoreRuntimeBootstrapper.IsUsingExternalKernel}",
                 $"pending={CadCoreRuntimeBootstrapper.PendingVersion?.ToString() ?? "-"}",
                 $"error={Sanitize(CadCoreRuntimeBootstrapper.LastActivationError)}",
