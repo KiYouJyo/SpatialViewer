@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.2.1 设置与关于页修正版",
-    "ja-JP": "Spatial Viewer v0.2.1 設定・情報ページ修正版",
-    "en-US": "Spatial Viewer v0.2.1 settings and about corrections"
+    "zh-CN": "Spatial Viewer v0.2.1 界面修正与 CadCore 独立更新",
+    "ja-JP": "Spatial Viewer v0.2.1 UI 修正・CadCore 独立更新",
+    "en-US": "Spatial Viewer v0.2.1 UI corrections and independent CadCore updates"
   }
 }
