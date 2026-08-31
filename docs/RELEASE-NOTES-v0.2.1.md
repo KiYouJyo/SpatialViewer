@@ -1,8 +1,8 @@
 简体中文 | [日本語](RELEASE-NOTES-v0.2.1.ja.md) | [English](RELEASE-NOTES-v0.2.1.en.md)
 
-# Spatial Viewer v0.2.1 设置与关于页修正版
+# Spatial Viewer v0.2.1 界面修正与 CadCore 独立更新
 
-本版本针对 v0.2.0 设置页与关于页的实际验收反馈进行修正，不改变 CAD 内核版本。
+本版本针对 v0.2.0 设置页与关于页的实际验收反馈进行修正，并首次接入 `SpatialViewer.CadCore` 的独立更新链。主程序仍携带可随时回退的 0.2.0 内置内核；当前独立 Release 为 CadCore 0.2.1，可在应用内检查、下载并在用户手动重启图览后启用。
 
 - 页面重新使用 Windows Mica 作为底层背景，移除 NavigationView 内容层造成的纯灰色遮罩。
 - 设置页与关于页改用 WinUI 3 原生中性 Fluent Card / Control Fill 资源，不再使用青色产品强调色作为普通卡片底色。
@@ -14,7 +14,13 @@
 - 汉堡菜单中的“关于图览”调整到“设置”上方。
 - 发行者显示修正为 `Jo Kiyō`。
 - CAD 内核明确显示仓库名称 `SpatialViewer.CadCore` 并可直接打开对应仓库。
+- CadCore 更新状态改为真实版本检查：`尚未检查 → 正在检查 → 已是最新版本 / 发现内核更新`，发现新版后按钮切换为“下载更新”。
+- 内核包从 GitHub Release 下载到用户本地数据目录，不修改只读的 MSIX 安装目录；下载时校验 GitHub SHA-256，随后校验 `cadcore-release.json`、x64 架构、来源仓库、兼容范围和五个核心程序集版本。
+- 下载与验证完成后显示“更新已下载，重启应用后生效”。当前进程不热替换程序集；用户正常关闭并重新启动图览后，应用在创建 WinUI 界面前加载已暂存的新内核。
+- 主程序内置内核始终作为回退基线；以后若新版图览自带的 CadCore 版本等于或高于外置内核，会自动优先使用新的内置版本。
 
-## 当前边界
+## CadCore 0.2.1
 
-CAD ACI 完整颜色解析与圆弧抗折线化仍属于 `SpatialViewer.CadCore` 的独立内核正确性工作，不包含在本次 UI 修正版中。
+当前独立 `SpatialViewer.CadCore v0.2.1` 已正式发布，并提供 `CadCore-v0.2.1-x64.zip` 与 GitHub SHA-256 digest。该版本保留现行 CadCore 的 AutoCAD ACI 1–255、TrueColor / ByLayer / ByBlock 颜色语义修复，以及默认 0.25 px 屏幕误差容限的自适应圆弧细分。
+
+v0.2.1 主程序故意继续携带 0.2.0 回退内核，以便独立内核更新机制可以在真实环境中检测到 0.2.1、下载并在重启后切换；这不是把同一份内核重复打包成主程序更新。
