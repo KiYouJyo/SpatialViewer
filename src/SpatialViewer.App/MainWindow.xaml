@@ -6,8 +6,8 @@
   </Window.SystemBackdrop>
   <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" Loaded="LocalizationShell_Loaded" UseLayoutRounding="True">
     <!-- Title bar and navigation pane intentionally share the window Mica layer.
-         The NavigationView content plane below uses the native Fluent layer fill,
-         restoring the chrome/content separation in both light and dark themes. -->
+         The NavigationView content plane below uses a theme-specific Fluent
+         surface: opaque neutral Base in light mode, Layer fill in dark mode. -->
     <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
       <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
       <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
@@ -31,11 +31,10 @@
                     IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                     Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
       <NavigationView.Resources>
-        <!-- Do not flatten the content onto Mica. UrbanPlanToolbox leaves the
-             NavigationView content layer native; using the same Fluent resource
-             keeps title bar / hamburger pane / content visually distinct and lets
-             NavigationView own normal, hover, pressed and selected item states. -->
-        <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="LayerFillColorDefaultBrush" />
+        <!-- Do not flatten content onto Mica and do not use a full-page Layer
+             surface in light mode. ShellContentBackgroundBrush maps Light to
+             SolidBackgroundFillColorBaseBrush and Dark to LayerFillColorDefaultBrush. -->
+        <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="ShellContentBackgroundBrush" />
         <!-- The shell owns the outer edge, so only the internal layer transition
              is visible; no extra rounded SplitView frame is introduced. -->
         <Thickness x:Key="NavigationViewBorderThickness">0</Thickness>
