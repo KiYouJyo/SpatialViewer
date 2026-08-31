@@ -21,8 +21,33 @@ public sealed partial class AboutView : UserControl
     {
         InitializeComponent();
         ApplyLocalizedText();
+        Loaded += AboutView_Loaded;
+        Unloaded += AboutView_Unloaded;
         RenderProductUpdate();
         RenderCadCoreUpdate(_updates.CadCoreResult);
+    }
+
+    private void AboutView_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Exactly one observer per visible About page. The operation/state owner
+        // lives for the process, while recreated pages attach and immediately
+        // render the current state just like UrbanPlanToolbox's shared updater.
+        _updates.Changed -= Updates_Changed;
+        _updates.Changed += Updates_Changed;
+        RenderProductUpdate();
+        RenderCadCoreUpdate(_updates.CadCoreResult);
+    }
+
+    private void AboutView_Unloaded(object sender, RoutedEventArgs e) => _updates.Changed -= Updates_Changed;
+
+    private void Updates_Changed(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (XamlRoot is null) return;
+            RenderProductUpdate();
+            RenderCadCoreUpdate(_updates.CadCoreResult);
+        });
     }
 
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)
