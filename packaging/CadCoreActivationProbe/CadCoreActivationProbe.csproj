@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SpatialViewer.App\CadCoreRuntimeBootstrapper.cs" Link="CadCoreRuntimeBootstrapper.cs" />
+    <Compile Include="..\..\src\SpatialViewer.App\CadCoreActivationDiagnostics.cs" Link="CadCoreActivationDiagnostics.cs" />
     <Compile Include="..\..\src\SpatialViewer.App\CadCoreEarlyBootstrap.cs" Link="CadCoreEarlyBootstrap.cs" />
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" />
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Rendering\SpatialViewer.Rendering.csproj" />
