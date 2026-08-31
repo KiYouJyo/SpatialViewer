@@ -36,44 +36,45 @@
         <Border Style="{StaticResource SettingsSectionCardStyle}">
           <StackPanel Spacing="14">
             <TextBlock x:Name="UpdateManagementTitleText" Text="更新管理" Style="{StaticResource SectionTitleText}" />
+
+            <!-- Preserve the original Figma/table information hierarchy. The row
+                 remains a row on large/medium windows instead of becoming a tall
+                 status card; only very small windows may scroll it horizontally. -->
             <Border Style="{StaticResource SettingsInnerCardStyle}" Padding="14">
-              <Grid x:Name="AppUpdateGrid" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="10">
-                <StackPanel Spacing="4">
-                  <TextBlock x:Name="AppProgramTitleText" Text="SpatialViewer 主程序" Style="{StaticResource SettingsRowLabelStyle}" />
-                  <TextBlock x:Name="AppUpdateDescriptionText" Text="应用更新" Style="{StaticResource SettingsDescriptionStyle}" />
-                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock x:Name="CurrentVersionLabel" Text="当前版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="v0.2.1 Preview" /><TextBlock Text="·" Opacity="0.55" /><TextBlock x:Name="AvailableVersionLabel" Text="可用版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="AvailableAppVersionText" Text="—" /></StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock x:Name="UpdateSourceLabel" Text="更新来源" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="GitHub Releases" /></StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock x:Name="StatusLabel" Text="状态" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="AppUpdateStatusText" Text="尚未检查" TextWrapping="Wrap" /></StackPanel>
-                </StackPanel>
-                <StackPanel x:Name="AppUpdateButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                  <Button x:Name="ReleaseNotesButton" Content="发行说明" Click="ReleaseNotesButton_Click" />
-                  <Button x:Name="CheckAppUpdateButton" Content="检查更新" Click="CheckAppUpdateButton_Click" />
-                </StackPanel>
-              </Grid>
+              <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                <Grid x:Name="AppUpdateGrid" MinWidth="900" ColumnDefinitions="2*,110,32,110,150,130,Auto,Auto" ColumnSpacing="10" MinHeight="44">
+                  <StackPanel VerticalAlignment="Center"><TextBlock x:Name="AppProgramTitleText" Text="SpatialViewer 主程序" FontWeight="SemiBold" /><TextBlock x:Name="AppUpdateDescriptionText" Text="应用更新" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock x:Name="CurrentVersionLabel" Text="当前版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="v0.2.1 Preview" /></StackPanel>
+                  <TextBlock Grid.Column="2" Text="→" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                  <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock x:Name="AvailableVersionLabel" Text="可用版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="AvailableAppVersionText" Text="—" /></StackPanel>
+                  <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock x:Name="UpdateSourceLabel" Text="更新来源" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="GitHub Releases" /></StackPanel>
+                  <StackPanel Grid.Column="5" VerticalAlignment="Center"><TextBlock x:Name="StatusLabel" Text="状态" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="AppUpdateStatusText" Text="尚未检查" TextWrapping="Wrap" /></StackPanel>
+                  <Button x:Name="ReleaseNotesButton" Grid.Column="6" Content="发行说明" MinWidth="96" VerticalAlignment="Center" Click="ReleaseNotesButton_Click" />
+                  <Button x:Name="CheckAppUpdateButton" Grid.Column="7" Content="检查更新" MinWidth="108" VerticalAlignment="Center" Click="CheckAppUpdateButton_Click" />
+                </Grid>
+              </ScrollViewer>
             </Border>
 
             <TextBlock x:Name="KernelsTitleText" Text="查看内核" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
             <Border Style="{StaticResource SettingsInnerCardStyle}">
-              <StackPanel>
-                <Grid x:Name="CadCoreGrid" Padding="14" MinHeight="72" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="10">
-                  <StackPanel VerticalAlignment="Center" Spacing="3">
-                    <TextBlock Text="SpatialViewer.CadCore" FontWeight="SemiBold" />
-                    <TextBlock x:Name="CadCoreDescriptionText" Text="CAD 图形内核 · SpatialViewer.CadCore" Style="{StaticResource SettingsDescriptionStyle}" />
-                    <TextBlock x:Name="CadVersionSummaryText" Text="当前版本 — · 可用版本 —" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                    <TextBlock x:Name="CadUpdateStatusText" Text="尚未检查" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <StackPanel x:Name="CadCoreButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button Content="SpatialViewer.CadCore" Click="OpenCadCoreRepositoryButton_Click" />
-                    <Button x:Name="CheckCadUpdateButton" Content="检查更新" Click="CheckCadUpdateButton_Click" />
-                  </StackPanel>
+              <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                <Grid MinWidth="760" RowDefinitions="46,1,46,1,46,1,46">
+                  <Grid x:Name="CadCoreGrid" Padding="14,0" ColumnDefinitions="2*,110,110,170,140,Auto" ColumnSpacing="10">
+                    <TextBlock Text="SpatialViewer.CadCore" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" x:Name="CadCurrentVersionText" Text="—" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" x:Name="CadAvailableVersionText" Text="—" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="GitHub Releases" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" x:Name="CadUpdateStatusText" Text="尚未检查" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <Button Grid.Column="5" x:Name="CheckCadUpdateButton" Content="检查更新" MinWidth="108" VerticalAlignment="Center" Click="CheckCadUpdateButton_Click" />
+                  </Grid>
+                  <Border Grid.Row="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                  <Grid Grid.Row="2" Padding="14,0" ColumnDefinitions="2*,110,110,170,140,Auto" ColumnSpacing="10"><TextBlock Text="GIS Core" VerticalAlignment="Center" FontWeight="SemiBold" /><TextBlock Grid.Column="1" x:Uid="KernelPlanned1" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center" /><TextBlock Grid.Column="3" x:Uid="KernelSourcePlanned1" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="4" x:Uid="KernelStatusPlanned1" Text="Planned" VerticalAlignment="Center" /><Button Grid.Column="5" x:Name="DisabledCheckButton1" Content="检查更新" MinWidth="108" IsEnabled="False" VerticalAlignment="Center" /></Grid>
+                  <Border Grid.Row="3" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                  <Grid Grid.Row="4" Padding="14,0" ColumnDefinitions="2*,110,110,170,140,Auto" ColumnSpacing="10"><TextBlock Text="IFC Core" VerticalAlignment="Center" FontWeight="SemiBold" /><TextBlock Grid.Column="1" x:Uid="KernelPlanned2" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center" /><TextBlock Grid.Column="3" x:Uid="KernelSourcePlanned2" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="4" x:Uid="KernelStatusPlanned2" Text="Planned" VerticalAlignment="Center" /><Button Grid.Column="5" x:Name="DisabledCheckButton2" Content="检查更新" MinWidth="108" IsEnabled="False" VerticalAlignment="Center" /></Grid>
+                  <Border Grid.Row="5" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                  <Grid Grid.Row="6" Padding="14,0" ColumnDefinitions="2*,110,110,170,140,Auto" ColumnSpacing="10"><TextBlock Text="Rhino 3DM Core" VerticalAlignment="Center" FontWeight="SemiBold" /><TextBlock Grid.Column="1" x:Uid="KernelPlanned3" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center" /><TextBlock Grid.Column="3" x:Uid="KernelSourcePlanned3" Text="Planned" VerticalAlignment="Center" /><TextBlock Grid.Column="4" x:Uid="KernelStatusPlanned3" Text="Planned" VerticalAlignment="Center" /><Button Grid.Column="5" x:Name="DisabledCheckButton3" Content="检查更新" MinWidth="108" IsEnabled="False" VerticalAlignment="Center" /></Grid>
                 </Grid>
-                <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                <Grid Padding="14" MinHeight="56" ColumnDefinitions="*,Auto"><StackPanel><TextBlock Text="GIS Core" FontWeight="SemiBold" /><TextBlock Text="Planned" Style="{StaticResource SettingsDescriptionStyle}" /></StackPanel><Button Grid.Column="1" x:Name="DisabledCheckButton1" Content="检查更新" IsEnabled="False" /></Grid>
-                <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                <Grid Padding="14" MinHeight="56" ColumnDefinitions="*,Auto"><StackPanel><TextBlock Text="IFC Core" FontWeight="SemiBold" /><TextBlock Text="Planned" Style="{StaticResource SettingsDescriptionStyle}" /></StackPanel><Button Grid.Column="1" x:Name="DisabledCheckButton2" Content="检查更新" IsEnabled="False" /></Grid>
-                <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                <Grid Padding="14" MinHeight="56" ColumnDefinitions="*,Auto"><StackPanel><TextBlock Text="Rhino 3DM Core" FontWeight="SemiBold" /><TextBlock Text="Planned" Style="{StaticResource SettingsDescriptionStyle}" /></StackPanel><Button Grid.Column="1" x:Name="DisabledCheckButton3" Content="检查更新" IsEnabled="False" /></Grid>
-              </StackPanel>
+              </ScrollViewer>
             </Border>
           </StackPanel>
         </Border>
