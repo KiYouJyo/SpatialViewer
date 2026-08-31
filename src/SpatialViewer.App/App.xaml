@@ -7,12 +7,14 @@
         <ResourceDictionary Source="Themes/Typography.xaml" />
         <ResourceDictionary Source="Themes/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
-      <!-- Shell chrome stays on Mica. The page content keeps WinUI's native
-           Layer fill so light-mode active/inactive surfaces match UrbanPlanToolbox. -->
+      <!-- Shell chrome stays on Mica. The main content surface deliberately differs
+           by theme: light mode needs an opaque neutral base so the Mica tint does
+           not turn a full-page Layer brush into a muddy gray-green plane, while
+           dark mode keeps the existing Fluent layer fill that already reads well. -->
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
-          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="LayerFillColorDefaultBrush" />
+          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="SolidBackgroundFillColorBaseBrush" />
           <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#E5F9F9" />
           <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
         </ResourceDictionary>
