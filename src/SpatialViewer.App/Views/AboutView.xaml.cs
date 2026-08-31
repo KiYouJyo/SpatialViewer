@@ -14,70 +14,89 @@ public sealed partial class AboutView : UserControl
     private static readonly Uri ReleasesUri = new("https://github.com/KiYouJyo/SpatialViewer/releases");
     private static readonly Uri PrivacyUri = new("https://github.com/KiYouJyo/SpatialViewer/blob/main/PRIVACY.md");
     private readonly AppLocalizationService _localization = AppLocalizationService.Default;
-    private readonly CadCoreUpdateService _cadCoreUpdate = new();
-    private GitHubReleaseInfo? _latestProductRelease;
-    private CadCoreUpdateResult _cadCoreUpdateResult;
+    private readonly AboutUpdateSessionState _updates = AboutUpdateSessionState.Default;
     private AboutLayoutMode _layoutMode = AboutLayoutMode.Wide;
 
     public AboutView()
     {
-        _cadCoreUpdateResult = new CadCoreUpdateResult(CadCoreUpdateState.NotChecked, CadCoreRuntimeBootstrapper.CurrentVersion);
         InitializeComponent();
         ApplyLocalizedText();
-        RenderCadCoreUpdate(_cadCoreUpdateResult);
+        RenderProductUpdate();
+        RenderCadCoreUpdate(_updates.CadCoreResult);
     }
 
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)
     {
         CheckAppUpdateButton.IsEnabled = false;
-        AppUpdateStatusText.Text = T("Update_Checking");
+        _updates.ProductState = ProductUpdateCheckState.Checking;
+        RenderProductUpdate();
         try
         {
-            _latestProductRelease = await GitHubUpdateService.GetLatestReleaseAsync(ProductRepository);
-            if (_latestProductRelease is null)
+            var release = await GitHubUpdateService.GetLatestReleaseAsync(ProductRepository);
+            _updates.LatestProductRelease = release;
+            if (release is null)
             {
-                AvailableAppVersionText.Text = "—";
-                AppUpdateStatusText.Text = T("Update_NoRelease");
-                return;
+                _updates.ProductState = ProductUpdateCheckState.NoRelease;
             }
-
-            AvailableAppVersionText.Text = $"v{_latestProductRelease.DisplayVersion}";
-            AppUpdateStatusText.Text = GitHubUpdateService.IsNewer(_latestProductRelease.TagName, CurrentProductVersion())
-                ? T("Update_NewVersion")
-                : T("Update_Latest");
+            else
+            {
+                _updates.ProductState = GitHubUpdateService.IsNewer(release.TagName, CurrentProductVersion())
+                    ? ProductUpdateCheckState.NewVersion
+                    : ProductUpdateCheckState.Latest;
+            }
         }
         catch (HttpRequestException)
         {
-            AppUpdateStatusText.Text = T("Update_NetworkFailed");
+            _updates.ProductState = ProductUpdateCheckState.NetworkFailed;
         }
         catch (TaskCanceledException)
         {
-            AppUpdateStatusText.Text = T("Update_Timeout");
+            _updates.ProductState = ProductUpdateCheckState.Timeout;
         }
         finally
         {
+            RenderProductUpdate();
             CheckAppUpdateButton.IsEnabled = true;
         }
     }
 
+    private void RenderProductUpdate()
+    {
+        AvailableAppVersionText.Text = _updates.LatestProductRelease is null
+            ? "—"
+            : $"v{_updates.LatestProductRelease.DisplayVersion}";
+        AppUpdateStatusText.Text = _updates.ProductState switch
+        {
+            ProductUpdateCheckState.Checking => T("Update_Checking"),
+            ProductUpdateCheckState.NoRelease => T("Update_NoRelease"),
+            ProductUpdateCheckState.NewVersion => T("Update_NewVersion"),
+            ProductUpdateCheckState.Latest => T("Update_Latest"),
+            ProductUpdateCheckState.NetworkFailed => T("Update_NetworkFailed"),
+            ProductUpdateCheckState.Timeout => T("Update_Timeout"),
+            _ => T("Update_NotChecked")
+        };
+        CheckAppUpdateButton.IsEnabled = _updates.ProductState != ProductUpdateCheckState.Checking;
+    }
+
     private async void CheckCadUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_cadCoreUpdateResult.State == CadCoreUpdateState.ReadyForRestart)
+        var result = _updates.CadCoreResult;
+        if (result.State == CadCoreUpdateState.ReadyForRestart)
         {
             RestartToApplyCadCoreUpdate();
             return;
         }
-        if (_cadCoreUpdateResult.State == CadCoreUpdateState.UpdateAvailable)
+        if (result.State == CadCoreUpdateState.UpdateAvailable)
         {
             await DownloadCadCoreUpdateAsync();
             return;
         }
 
         CheckCadUpdateButton.IsEnabled = false;
-        _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Checking, ErrorCode = null, ErrorDetail = null };
-        RenderCadCoreUpdate(_cadCoreUpdateResult);
-        _cadCoreUpdateResult = await _cadCoreUpdate.CheckForUpdatesAsync();
-        RenderCadCoreUpdate(_cadCoreUpdateResult);
+        _updates.CadCoreResult = result with { State = CadCoreUpdateState.Checking, ErrorCode = null, ErrorDetail = null };
+        RenderCadCoreUpdate(_updates.CadCoreResult);
+        _updates.CadCoreResult = await _updates.CadCoreUpdateService.CheckForUpdatesAsync();
+        RenderCadCoreUpdate(_updates.CadCoreResult);
     }
 
     private async Task DownloadCadCoreUpdateAsync()
@@ -85,18 +104,18 @@ public sealed partial class AboutView : UserControl
         CheckCadUpdateButton.IsEnabled = false;
         var progress = new Progress<CadCoreUpdateProgress>(value =>
         {
-            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = value.State };
-            RenderCadCoreUpdate(_cadCoreUpdateResult, value.Fraction);
+            _updates.CadCoreResult = _updates.CadCoreResult with { State = value.State };
+            RenderCadCoreUpdate(_updates.CadCoreResult, value.Fraction);
         });
         try
         {
-            _cadCoreUpdateResult = await _cadCoreUpdate.DownloadAndStageAsync(progress);
+            _updates.CadCoreResult = await _updates.CadCoreUpdateService.DownloadAndStageAsync(progress);
         }
         catch (OperationCanceledException)
         {
-            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled", ErrorDetail = null };
+            _updates.CadCoreResult = _updates.CadCoreResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled", ErrorDetail = null };
         }
-        RenderCadCoreUpdate(_cadCoreUpdateResult);
+        RenderCadCoreUpdate(_updates.CadCoreResult);
     }
 
     private void RestartToApplyCadCoreUpdate()
@@ -105,13 +124,13 @@ public sealed partial class AboutView : UserControl
         // CadCoreRuntimeBootstrapper runs before XAML initialization in the restarted process,
         // so the staged pending kernel is activated before any static CadCore reference is touched.
         var failureReason = AppInstance.Restart(string.Empty);
-        _cadCoreUpdateResult = _cadCoreUpdateResult with
+        _updates.CadCoreResult = _updates.CadCoreResult with
         {
             State = CadCoreUpdateState.Failed,
             ErrorCode = "RestartFailed",
             ErrorDetail = $"Windows App SDK AppInstance.Restart failed: {failureReason}."
         };
-        RenderCadCoreUpdate(_cadCoreUpdateResult);
+        RenderCadCoreUpdate(_updates.CadCoreResult);
     }
 
     private void RenderCadCoreUpdate(CadCoreUpdateResult result, double? progress = null)
@@ -189,7 +208,7 @@ public sealed partial class AboutView : UserControl
     };
 
     private async void ReleaseNotesButton_Click(object sender, RoutedEventArgs e) =>
-        await Launcher.LaunchUriAsync(_latestProductRelease is { HtmlUrl.Length: > 0 } release ? new Uri(release.HtmlUrl) : ReleasesUri);
+        await Launcher.LaunchUriAsync(_updates.LatestProductRelease is { HtmlUrl.Length: > 0 } release ? new Uri(release.HtmlUrl) : ReleasesUri);
 
     private async void OpenRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(ProductRepositoryUri);
     private async void OpenCadCoreRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(CadCoreRepositoryUri);
@@ -291,7 +310,6 @@ public sealed partial class AboutView : UserControl
         LicensePrivacyTitleText.Text = T("About_LicensePrivacy");
         LicensePrivacyDescriptionText.Text = T("About_LicensePrivacy_Desc");
         OpenPrivacyButton.Content = T("About_ViewInfo");
-        AppUpdateStatusText.Text = T("Update_NotChecked");
     }
 
     private string T(string key) => _localization.GetString(key);
