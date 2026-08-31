@@ -1,12 +1,20 @@
 # Changelog
 
+## [0.2.4] - 2026-08-31
+
+### Fixed
+
+- Moved staged Cad Core activation from the `App` constructor to an assembly module initializer so a restarted WinUI process selects the external kernel before generated XAML metadata or `MainWindow` can bind static Cad Core references.
+- Replaced the overly weak fresh-process probe with one that has the same five compile-time Cad Core project references as the real application, then constructs `ACadSharpCadImporter` and verifies every Cad Core assembly is loaded from the staged version directory.
+- Closed the v0.2.3 regression where download, staging, and application restart could all succeed while the restarted application continued using the bundled Cad Core.
+
 ## [0.2.3] - 2026-08-31
 
 ### Fixed
 
 - Made the CadCore action button remain enabled after an update is downloaded; it now changes to a restart-to-update action and uses Windows App SDK `AppInstance.Restart` to relaunch the application.
-- The restarted process activates the already staged CadCore before XAML initialization, so the downloaded kernel becomes effective immediately after the user clicks restart.
-- Shortened the kernel display name to `CadCore` and changed its update-source cell to `SpatialViewer.CadCore` so the UI distinguishes the component name from the independent repository name.
+- The restarted process is expected to activate the already staged CadCore before XAML initialization; v0.2.4 corrects the activation timing defect that could still leave static references bound to the bundled version.
+- Shortened the kernel display name to `Cad Core` and changed its update-source cell to `SpatialViewer.CadCore` so the UI distinguishes the component name from the independent repository name.
 
 ## [0.2.2] - 2026-08-31
 
