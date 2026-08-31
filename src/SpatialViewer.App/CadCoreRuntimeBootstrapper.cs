@@ -12,7 +12,6 @@ internal sealed record CadCorePackageDescriptor(
 
 internal static class CadCoreRuntimeBootstrapper
 {
-    private const string KernelProduct = "SpatialViewer.CadCore";
     private static readonly string[] LoadOrder =
     [
         "SpatialViewer.Core",
