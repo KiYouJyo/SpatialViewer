@@ -15,7 +15,7 @@ internal sealed record CadCorePackageDescriptor(
 internal static class CadCoreRuntimeBootstrapper
 {
     private const string KernelRootOverrideEnvironmentVariable = "SPATIALVIEWER_CADCORE_ROOT";
-    private static readonly string[] LoadOrder =
+    private static readonly string[] CadCoreAssemblyNames =
     [
         "SpatialViewer.Core",
         "SpatialViewer.Rendering",
@@ -28,7 +28,6 @@ internal static class CadCoreRuntimeBootstrapper
     private static IReadOnlyDictionary<string, string> _resolverAssemblies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     public static string KernelRoot { get; } = ResolveKernelRoot();
-
     public static string VersionsRoot => Path.Combine(KernelRoot, "versions");
     public static Version BundledVersion { get; private set; } = new(0, 0, 0);
     public static Version BundledAbiVersion { get; private set; } = new(0, 0, 0, 0);
@@ -51,10 +50,13 @@ internal static class CadCoreRuntimeBootstrapper
         {
             if (_initialized) return;
             _initialized = true;
-            BundledVersion = ReadBundledProductVersion();
-            BundledAbiVersion = ReadBundledAbiVersion();
+
+            var bundledAssembly = FindBundledCadCoreAssembly();
+            BundledVersion = ReadBundledProductVersion(bundledAssembly);
+            BundledAbiVersion = ReadBundledAbiVersion(bundledAssembly);
             CurrentVersion = BundledVersion;
             CurrentAbiVersion = BundledAbiVersion;
+            ConfigureResolver(BuildBundledResolver(bundledAssembly));
 
             try
             {
@@ -82,7 +84,15 @@ internal static class CadCoreRuntimeBootstrapper
                     return;
                 }
 
-                ActivatePackage(package);
+                // Do not proactively LoadFromAssemblyPath here. The .NET host's
+                // deps resolver can still bind a later static ProjectReference to
+                // a bundled DLL that physically exists in the default probing
+                // directory. Release packaging therefore keeps the five CadCore
+                // assemblies only under Kernels/Bundled/<version>. Once the
+                // ordinary deps lookup misses, this Default.Resolving handler is
+                // authoritative and returns either the selected external package
+                // or the bundled fallback.
+                ConfigureResolver(package.ResolverAssemblies);
                 CurrentVersion = package.Version;
                 CurrentAbiVersion = package.AbiVersion;
                 IsUsingExternalKernel = true;
@@ -91,6 +101,10 @@ internal static class CadCoreRuntimeBootstrapper
             {
                 LastActivationError = exception.Message;
                 TryDelete(ActiveStatePath);
+                ConfigureResolver(BuildBundledResolver(bundledAssembly));
+                CurrentVersion = BundledVersion;
+                CurrentAbiVersion = BundledAbiVersion;
+                IsUsingExternalKernel = false;
             }
         }
     }
@@ -132,27 +146,11 @@ internal static class CadCoreRuntimeBootstrapper
         TryDelete(PendingStatePath);
     }
 
-    private static void ActivatePackage(CadCorePackageDescriptor package)
+    private static void ConfigureResolver(IReadOnlyDictionary<string, string> resolverAssemblies)
     {
-        _resolverAssemblies = package.ResolverAssemblies;
+        _resolverAssemblies = resolverAssemblies;
         AssemblyLoadContext.Default.Resolving -= ResolveAssembly;
         AssemblyLoadContext.Default.Resolving += ResolveAssembly;
-
-        foreach (var simpleName in LoadOrder)
-        {
-            if (!package.RequiredAssemblies.TryGetValue(simpleName, out var assemblyPath))
-                throw new InvalidDataException($"Required CadCore assembly is missing: {simpleName}");
-
-            var alreadyLoaded = AssemblyLoadContext.Default.Assemblies.FirstOrDefault(
-                assembly => string.Equals(assembly.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase));
-            if (alreadyLoaded is not null)
-            {
-                if (string.Equals(Path.GetFullPath(alreadyLoaded.Location), Path.GetFullPath(assemblyPath), StringComparison.OrdinalIgnoreCase)) continue;
-                throw new FileLoadException($"{simpleName} was loaded from '{alreadyLoaded.Location}' before the staged CadCore package could be activated.");
-            }
-
-            AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
-        }
     }
 
     private static Assembly? ResolveAssembly(AssemblyLoadContext context, AssemblyName assemblyName)
@@ -160,18 +158,31 @@ internal static class CadCoreRuntimeBootstrapper
         if (string.IsNullOrWhiteSpace(assemblyName.Name) || !_resolverAssemblies.TryGetValue(assemblyName.Name, out var path)) return null;
         var loaded = context.Assemblies.FirstOrDefault(
             assembly => string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
-        return loaded ?? context.LoadFromAssemblyPath(path);
+        if (loaded is not null) return loaded;
+        if (!File.Exists(path)) return null;
+        return context.LoadFromAssemblyPath(path);
     }
 
-    private static Version ReadBundledProductVersion()
+    private static IReadOnlyDictionary<string, string> BuildBundledResolver(string? bundledAssembly)
     {
-        var candidate = FindBundledCadCoreAssembly();
-        return candidate is not null && TryReadFileProductVersion(candidate, out var version) ? version : new Version(0, 0, 0);
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(bundledAssembly)) return map;
+        var directory = Path.GetDirectoryName(bundledAssembly);
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) return map;
+
+        foreach (var dll in Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
+        {
+            var simpleName = Path.GetFileNameWithoutExtension(dll);
+            map.TryAdd(simpleName, Path.GetFullPath(dll));
+        }
+        return map;
     }
 
-    private static Version ReadBundledAbiVersion()
+    private static Version ReadBundledProductVersion(string? candidate) =>
+        candidate is not null && TryReadFileProductVersion(candidate, out var version) ? version : new Version(0, 0, 0);
+
+    private static Version ReadBundledAbiVersion(string? candidate)
     {
-        var candidate = FindBundledCadCoreAssembly();
         var version = candidate is null ? null : AssemblyName.GetAssemblyName(candidate).Version;
         return version ?? new Version(0, 0, 0, 0);
     }
@@ -180,10 +191,25 @@ internal static class CadCoreRuntimeBootstrapper
     {
         var bootstrapAssemblyDirectory = Path.GetDirectoryName(typeof(CadCoreRuntimeBootstrapper).Assembly.Location);
         var baseDirectory = string.IsNullOrWhiteSpace(bootstrapAssemblyDirectory) ? AppContext.BaseDirectory : bootstrapAssemblyDirectory;
+
+        // Release packages intentionally relocate CadCore away from the root
+        // probing directory so Default.Resolving can choose the active kernel.
+        var bundledRoot = Path.Combine(baseDirectory, "Kernels", "Bundled");
+        if (Directory.Exists(bundledRoot))
+        {
+            var relocated = Directory.EnumerateFiles(
+                    bundledRoot,
+                    "SpatialViewer.Formats.Cad.ACadSharp.dll",
+                    SearchOption.AllDirectories)
+                .FirstOrDefault();
+            if (relocated is not null) return relocated;
+        }
+
+        // Debug/development fallback. Release acceptance explicitly asserts that
+        // this direct path does not exist in the distributable output.
         var directPath = Path.Combine(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
-        return File.Exists(directPath)
-            ? directPath
-            : Directory.EnumerateFiles(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
+        if (File.Exists(directPath)) return directPath;
+        return Directory.EnumerateFiles(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
     }
 
     internal static bool TryReadFileProductVersion(string assemblyPath, out Version version)
