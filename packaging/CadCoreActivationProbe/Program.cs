@@ -18,37 +18,43 @@ expectedVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(expectedVersion);
 
 try
 {
-    // CadCoreEarlyBootstrap has already executed as a module initializer before
-    // this Main method (and therefore before these statically referenced types)
-    // can be JIT-bound to the bundled project-reference assemblies.
     var bundledVersion = CadCoreRuntimeBootstrapper.BundledVersion;
+    var bundledAbi = CadCoreRuntimeBootstrapper.BundledAbiVersion;
     var currentVersion = CadCoreRuntimeBootstrapper.CurrentVersion;
+    var currentAbi = CadCoreRuntimeBootstrapper.CurrentAbiVersion;
     var isExternal = CadCoreRuntimeBootstrapper.IsUsingExternalKernel;
     var activationError = CadCoreRuntimeBootstrapper.LastActivationError;
     var pendingVersion = CadCoreRuntimeBootstrapper.PendingVersion;
 
     Console.WriteLine($"BundledVersion={bundledVersion}");
+    Console.WriteLine($"BundledAbiVersion={bundledAbi}");
     Console.WriteLine($"CurrentVersion={currentVersion}");
+    Console.WriteLine($"CurrentAbiVersion={currentAbi}");
     Console.WriteLine($"IsUsingExternalKernel={isExternal}");
     Console.WriteLine($"PendingVersion={pendingVersion}");
     Console.WriteLine($"LastActivationError={activationError ?? "-"}");
 
     if (currentVersion != expectedVersion)
-        throw new InvalidOperationException($"Activation version mismatch: expected={expectedVersion} actual={currentVersion} bundled={bundledVersion} error={activationError ?? "-"}");
+        throw new InvalidOperationException($"Activation product-version mismatch: expected={expectedVersion} actual={currentVersion} bundled={bundledVersion} error={activationError ?? "-"}");
     if (!isExternal)
         throw new InvalidOperationException("Cad Core bootstrapper did not report an external kernel after activation.");
     if (pendingVersion is not null)
         throw new InvalidOperationException($"pending.json was not consumed after activation: {pendingVersion}");
+    if (bundledAbi != currentAbi)
+        throw new InvalidOperationException($"Cad Core ABI changed across update: bundled={bundledAbi} current={currentAbi}");
 
-    // Exercise a real compile-time Cad Core reference. If the default ALC still
-    // bound to the bundled version, constructing this type or inspecting its
-    // assembly will expose the mismatch immediately.
+    // Exercise a real compile-time Cad Core reference. Static references were
+    // compiled against the bundled product, while the module initializer must
+    // have preloaded the newer product with the same CLR assembly identity.
     var importer = new ACadSharpCadImporter();
     if (!importer.CanImport("probe.dwg"))
         throw new InvalidOperationException("The activated ACadSharp importer is not functional.");
-    var importerVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(typeof(ACadSharpCadImporter).Assembly.GetName().Version ?? new Version(0, 0, 0));
-    if (importerVersion != expectedVersion)
-        throw new InvalidOperationException($"Static importer binding mismatch: {importerVersion} != {expectedVersion}");
+    var importerAssembly = typeof(ACadSharpCadImporter).Assembly;
+    var importerAbi = importerAssembly.GetName().Version ?? new Version(0, 0, 0, 0);
+    if (importerAbi != currentAbi)
+        throw new InvalidOperationException($"Static importer ABI mismatch: {importerAbi} != {currentAbi}");
+    if (!CadCoreRuntimeBootstrapper.TryReadFileProductVersion(importerAssembly.Location, out var importerProductVersion) || importerProductVersion != expectedVersion)
+        throw new InvalidOperationException($"Static importer product-version mismatch: {importerProductVersion} != {expectedVersion}");
 
     var activePath = Path.Combine(CadCoreRuntimeBootstrapper.KernelRoot, "active.json");
     if (!File.Exists(activePath)) throw new InvalidOperationException("active.json was not created.");
@@ -70,18 +76,23 @@ try
         .ToArray();
     if (loaded.Length != requiredNames.Count)
         throw new InvalidOperationException($"Expected {requiredNames.Count} loaded Cad Core assemblies, found {loaded.Length}.");
+
+    var externalRoot = CadCoreRuntimeBootstrapper.GetVersionDirectory(expectedVersion);
     foreach (var assembly in loaded)
     {
         var name = assembly.GetName();
-        var version = CadCoreRuntimeBootstrapper.NormalizeVersion(name.Version ?? new Version(0, 0, 0));
-        Console.WriteLine($"Loaded={name.Name} {version} @ {assembly.Location}");
-        if (version != expectedVersion)
-            throw new InvalidOperationException($"Loaded assembly version mismatch: {name.Name}={version}, expected={expectedVersion}");
-        if (!assembly.Location.StartsWith(CadCoreRuntimeBootstrapper.GetVersionDirectory(expectedVersion), StringComparison.OrdinalIgnoreCase))
+        var abiVersion = name.Version ?? new Version(0, 0, 0, 0);
+        var hasProductVersion = CadCoreRuntimeBootstrapper.TryReadFileProductVersion(assembly.Location, out var productVersion);
+        Console.WriteLine($"Loaded={name.Name} product={productVersion} ABI={abiVersion} @ {assembly.Location}");
+        if (abiVersion != currentAbi)
+            throw new InvalidOperationException($"Loaded assembly ABI mismatch: {name.Name}={abiVersion}, expected={currentAbi}");
+        if (!hasProductVersion || productVersion != expectedVersion)
+            throw new InvalidOperationException($"Loaded assembly product-version mismatch: {name.Name}={productVersion}, expected={expectedVersion}");
+        if (!assembly.Location.StartsWith(externalRoot, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"Loaded assembly came from bundled path instead of staged Cad Core: {assembly.Location}");
     }
 
-    Console.WriteLine($"Cad Core early static-binding activation PASS: {CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)}");
+    Console.WriteLine($"Cad Core early static-binding activation PASS: product={CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)} ABI={currentAbi}");
     return 0;
 }
 catch (Exception exception)
