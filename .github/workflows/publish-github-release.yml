@@ -2,7 +2,10 @@ name: Publish GitHub Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*.*.*']
+    paths:
+      - 'release/release.json'
   workflow_dispatch:
     inputs:
       version:
@@ -27,22 +30,56 @@ jobs:
     runs-on: windows-2025-vs2026
     timeout-minutes: 45
     steps:
-      - name: Resolve version and source ref
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Resolve release version
         id: version
         shell: pwsh
         run: |
-          $version = if ('${{ github.event_name }}' -eq 'push') { '${{ github.ref_name }}'.Substring(1) } else { '${{ inputs.version }}' }
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+          }
+          elseif ('${{ github.ref }}'.StartsWith('refs/tags/')) {
+            $version = '${{ github.ref_name }}'.Substring(1)
+          }
+          else {
+            $metadata = Get-Content release/release.json -Raw | ConvertFrom-Json
+            $version = [string]$metadata.product.version
+          }
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid release version: $version" }
           "version=$version" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "package_version=$version.0" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_ref=refs/tags/v$version" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "dry_run=${{ inputs.dry_run || 'false' }}" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.version.outputs.source_ref }}
-          fetch-depth: 0
-          submodules: recursive
+      - name: Checkout requested release tag for manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          git fetch --tags --force
+          git checkout --force '${{ steps.version.outputs.source_ref }}'
+          git submodule update --init --recursive
+
+      - name: Ensure immutable release tag for main release metadata push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v${{ steps.version.outputs.version }}'
+          $existing = git rev-list -n 1 "refs/tags/$tag" 2>$null
+          if (-not [string]::IsNullOrWhiteSpace($existing)) {
+            if ($existing -ne (git rev-parse HEAD)) { throw "Release tag $tag already points to a different commit: $existing" }
+            Write-Host "$tag already points to this release commit."
+            exit 0
+          }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a $tag -m "Spatial Viewer $tag"
+          git push origin "refs/tags/$tag"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -76,6 +113,21 @@ jobs:
           dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
           dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
 
+      - name: Resolve latest integrated CadCore
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $payload = Join-Path $env:RUNNER_TEMP 'SpatialViewer-LatestIntegratedCadCore'
+          $resolved = @(./packaging/Resolve-LatestIntegratedCadCore.ps1 -OutputDirectory $payload) | Select-Object -Last 1
+          if (-not $resolved -or [string]::IsNullOrWhiteSpace([string]$resolved.version)) { throw 'Latest integrated CadCore resolution failed.' }
+          "CADCORE_PAYLOAD=$payload" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_VERSION=$($resolved.version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_ABI=$($resolved.abiVersion)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_COMMIT=$($resolved.commit)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_RELEASE_URL=$($resolved.releaseUrl)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Release will embed SpatialViewer.CadCore v$($resolved.version) from $($resolved.releaseUrl)."
+
       - name: Build and rewrite unsigned x64 MSIX bundle
         shell: pwsh
         run: |
@@ -88,11 +140,34 @@ jobs:
           $bundleName = "SpatialViewer_${{ steps.version.outputs.package_version }}_x64.msixbundle"
           $finalBundle = Join-Path $assets $bundleName
           Copy-Item -LiteralPath $bundle.FullName -Destination $finalBundle -Force
-          ./packaging/Rewrite-CadCoreMsixBundleLayout.ps1 -BundlePath $finalBundle -BundledVersion '0.3.0'
+          ./packaging/Rewrite-CadCoreMsixBundleLayout.ps1 -BundlePath $finalBundle -BundledVersion $env:CADCORE_VERSION -PayloadDirectory $env:CADCORE_PAYLOAD
           if ($LASTEXITCODE -ne 0) { throw "Cad Core MSIX layout rewrite failed: $LASTEXITCODE" }
           "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "BUNDLE_NAME=$bundleName" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify bundled latest integrated CadCore
+        shell: pwsh
+        run: |
+          $makeappx = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter makeappx.exe | Where-Object FullName -match '\\x64\\makeappx.exe$' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $makeappx) { throw 'x64 makeappx.exe was not found.' }
+          $unbundle = Join-Path $env:RUNNER_TEMP 'SpatialViewer-release-unbundle'
+          $unpack = Join-Path $env:RUNNER_TEMP 'SpatialViewer-release-unpack'
+          Remove-Item $unbundle, $unpack -Recurse -Force -ErrorAction SilentlyContinue
+          & $makeappx.FullName unbundle /p $env:BUNDLE_PATH /d $unbundle /o | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unbundle failed: $LASTEXITCODE" }
+          $inner = @(Get-ChildItem $unbundle -Filter '*.msix' -File) | Select-Object -First 1
+          if (-not $inner) { throw 'Inner x64 MSIX was not found.' }
+          & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
+          foreach ($name in @('SpatialViewer.Core.dll','SpatialViewer.Rendering.dll','SpatialViewer.Rendering.Windows.dll','SpatialViewer.Formats.Cad.dll','SpatialViewer.Formats.Cad.ACadSharp.dll')) {
+            if (Test-Path -LiteralPath (Join-Path $unpack $name) -PathType Leaf) { throw "CadCore resolver isolation failed; root copy still packaged: $name" }
+            $source = Join-Path $env:CADCORE_PAYLOAD $name
+            $bundled = Join-Path $unpack "Kernels\Bundled\$env:CADCORE_VERSION\$name"
+            if (-not (Test-Path -LiteralPath $bundled -PathType Leaf)) { throw "Bundled latest CadCore payload missing: $bundled" }
+            if ((Get-FileHash $source -Algorithm SHA256).Hash -cne (Get-FileHash $bundled -Algorithm SHA256).Hash) { throw "Bundled CadCore payload differs from resolved latest release: $name" }
+          }
+          Write-Host "Bundled latest integrated CadCore verification PASS: v$env:CADCORE_VERSION ABI $env:CADCORE_ABI."
 
       - name: Sign bundle and export public certificate
         shell: pwsh
@@ -135,7 +210,9 @@ jobs:
           $files = @((Join-Path $env:ASSETS_DIRECTORY "SpatialViewer-v${{ steps.version.outputs.version }}-x64-one-click.zip"), $env:BUNDLE_PATH)
           $lines = foreach ($file in $files) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
-          ./packaging/New-GitHubReleaseBody.ps1 -Version '${{ steps.version.outputs.version }}' -OutputPath (Join-Path $env:RUNNER_TEMP 'release-body.md')
+          $bodyPath = Join-Path $env:RUNNER_TEMP 'release-body.md'
+          ./packaging/New-GitHubReleaseBody.ps1 -Version '${{ steps.version.outputs.version }}' -OutputPath $bodyPath
+          Add-Content -LiteralPath $bodyPath -Value "`n### 随包内核`n- SpatialViewer.CadCore v$env:CADCORE_VERSION（ABI $env:CADCORE_ABI，commit `$env:CADCORE_COMMIT`）`n- 发布包始终解析并嵌入已完成应用接入的最新稳定内核版本。" -Encoding utf8
 
       - name: Publish and verify GitHub Release
         if: steps.version.outputs.dry_run != 'true'
@@ -145,6 +222,7 @@ jobs:
         run: |
           $tag = 'v${{ steps.version.outputs.version }}'
           $expected = @($env:BUNDLE_NAME, "SpatialViewer-v${{ steps.version.outputs.version }}-x64-one-click.zip", 'SHA256SUMS.txt')
+          if (gh release view $tag 2>$null) { throw "GitHub Release already exists: $tag" }
           gh release create $tag --verify-tag --title "Spatial Viewer $tag" --notes-file (Join-Path $env:RUNNER_TEMP 'release-body.md') 2>$null
           if ($LASTEXITCODE -ne 0) { throw 'GitHub Release creation failed.' }
           foreach ($name in $expected) { gh release upload $tag (Join-Path $env:ASSETS_DIRECTORY $name); if ($LASTEXITCODE -ne 0) { throw "Asset upload failed: $name" } }
@@ -160,4 +238,5 @@ jobs:
             ${{ env.ASSETS_DIRECTORY }}/SpatialViewer-v${{ steps.version.outputs.version }}-x64-one-click.zip
             ${{ env.ASSETS_DIRECTORY }}/*.msixbundle
             ${{ env.ASSETS_DIRECTORY }}/SHA256SUMS.txt
+            ${{ env.CADCORE_PAYLOAD }}/cadcore-resolution.json
           if-no-files-found: error

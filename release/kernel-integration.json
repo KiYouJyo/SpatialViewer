@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "releasePolicy": "Every SpatialViewer release embeds the latest stable release of each kernel whose application integration is marked complete. Kernels not yet integrated must not be bundled.",
+  "kernels": [
+    {
+      "id": "cad",
+      "product": "SpatialViewer.CadCore",
+      "repository": "KiYouJyo/SpatialViewer.CadCore",
+      "integrationStatus": "complete",
+      "track": "latest-stable",
+      "runtime": "x64",
+      "requiredAbiVersion": "1.0.0.0",
+      "compatibility": "SpatialViewer 0.2.x",
+      "assetNameTemplate": "CadCore-v{version}-x64.zip"
+    }
+  ]
+}
