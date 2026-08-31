@@ -16,6 +16,33 @@
   <data name="NavImportFolder.Content" xml:space="preserve"><value>フォルダーを読み込む</value></data>
   <data name="NavAbout.Content" xml:space="preserve"><value>図覧について</value></data>
   <data name="NavSettings.Content" xml:space="preserve"><value>設定</value></data>
+  <data name="Shell_NewHomeTab" xml:space="preserve"><value>新しいホームタブ</value></data>
+
+  <data name="HomeTitle.Text" xml:space="preserve"><value>図覧</value></data>
+  <data name="HomeOpenFile.Text" xml:space="preserve"><value>ファイルを開く</value></data>
+  <data name="HomeQuickOpen.Text" xml:space="preserve"><value>クイックオープン</value></data>
+  <data name="HomeDropZone.Text" xml:space="preserve"><value>図面、空間データ、またはモデルをここにドロップ</value></data>
+  <data name="HomeSupportedWorkflows.Text" xml:space="preserve"><value>対応ワークフロー</value></data>
+  <data name="HomeRecent.Text" xml:space="preserve"><value>最近開いたファイル</value></data>
+  <data name="HomeRecentCompact.Text" xml:space="preserve"><value>最近開いたファイル</value></data>
+  <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>最近のファイルを検索</value></data>
+  <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>最近のファイルを検索</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>まだ図面を開いていません。上のボタンまたはドロップ領域から DWG / DXF を開いてください。</value></data>
+  <data name="Home_Filter_All" xml:space="preserve"><value>すべて</value></data>
+  <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>CAD ファイルを開く</value></data>
+  <data name="Home_Workflow_Planned" xml:space="preserve"><value>開発中</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>DWG または DXF ファイルを開く</value></data>
+  <data name="Home_Date_Today" xml:space="preserve"><value>今日 {0:HH:mm}</value></data>
+  <data name="Home_Date_Yesterday" xml:space="preserve"><value>昨日</value></data>
+  <data name="Home_Date_Format" xml:space="preserve"><value>M月d日</value></data>
+
+  <data name="Placeholder_Projects_Title" xml:space="preserve"><value>プロジェクト</value></data>
+  <data name="Placeholder_Projects_Message" xml:space="preserve"><value>プロジェクトのワークフローは今後のバージョンで提供します。</value></data>
+  <data name="Placeholder_Favorites_Title" xml:space="preserve"><value>お気に入り</value></data>
+  <data name="Placeholder_Favorites_Message" xml:space="preserve"><value>お気に入り機能は今後のバージョンで提供します。</value></data>
+  <data name="Placeholder_ImportFolder_Title" xml:space="preserve"><value>フォルダーを読み込む</value></data>
+  <data name="Placeholder_ImportFolder_Message" xml:space="preserve"><value>フォルダー読み込みは今後のバージョンで提供します。</value></data>
+
   <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>外観と言語</value></data>
   <data name="Settings_Theme_Title" xml:space="preserve"><value>テーマ</value></data>
@@ -24,7 +51,7 @@
   <data name="Theme_Light" xml:space="preserve"><value>ライト</value></data>
   <data name="Theme_Dark" xml:space="preserve"><value>ダーク</value></data>
   <data name="Settings_Language_Title" xml:space="preserve"><value>言語</value></data>
-  <data name="Settings_Language_Desc" xml:space="preserve"><value>表示言語を選択します。アプリを再起動せずにすぐ反映されます。</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>表示言語を選択します。現在の画面を再構築して位置を復元するため、アプリの再起動は不要です。</value></data>
   <data name="Language_System" xml:space="preserve"><value>システム設定を使用</value></data>
   <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
   <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
@@ -45,6 +72,32 @@
   <data name="DrawingBackground_Dark" xml:space="preserve"><value>黒</value></data>
   <data name="DrawingBackground_Light" xml:space="preserve"><value>白</value></data>
   <data name="Language_SwitchFailed" xml:space="preserve"><value>言語を切り替えられませんでした</value></data>
+
+  <data name="CadLayersTitle.Text" xml:space="preserve"><value>レイヤー</value></data>
+  <data name="CadPropertiesTitle.Text" xml:space="preserve"><value>プロパティ</value></data>
+  <data name="CadPropertiesEmptyOverlay.Text" xml:space="preserve"><value>オブジェクトを選択すると CAD プロパティを表示します。</value></data>
+  <data name="CadLayersButton.Label" xml:space="preserve"><value>レイヤー</value></data>
+  <data name="CadSelectButton.Label" xml:space="preserve"><value>選択</value></data>
+  <data name="CadPanButton.Label" xml:space="preserve"><value>パン</value></data>
+  <data name="CadFitButton.Label" xml:space="preserve"><value>全体表示</value></data>
+  <data name="CadDistanceButton.Label" xml:space="preserve"><value>距離</value></data>
+  <data name="CadAreaButton.Label" xml:space="preserve"><value>面積</value></data>
+  <data name="CadCoordinateButton.Label" xml:space="preserve"><value>座標</value></data>
+  <data name="CadDisplayButton.Label" xml:space="preserve"><value>表示</value></data>
+  <data name="CadPropertiesButton.Label" xml:space="preserve"><value>プロパティ</value></data>
+  <data name="CadLayerSegment.Content" xml:space="preserve"><value>レイヤー</value></data>
+  <data name="CadLayoutSegment.Content" xml:space="preserve"><value>レイアウト（未対応）</value></data>
+  <data name="CadPropertiesPanelTitle.Text" xml:space="preserve"><value>プロパティ</value></data>
+  <data name="CadPropertiesEmpty.Text" xml:space="preserve"><value>オブジェクトを選択すると CAD プロパティを表示します。</value></data>
+  <data name="CadDiagnosticsBar.Title" xml:space="preserve"><value>図面に未対応のオブジェクトがあります</value></data>
+  <data name="Cad_Status_FileChanged" xml:space="preserve"><value>ファイルの変更を検出しました。再読み込み中…</value></data>
+  <data name="Cad_Status_OpeningFile" xml:space="preserve"><value>{0} を開いています…</value></data>
+  <data name="Cad_Status_OpenFailed" xml:space="preserve"><value>このファイルを開けませんでした。</value></data>
+  <data name="Cad_Status_Zoom" xml:space="preserve"><value>ズーム {0:G4}</value></data>
+  <data name="Cad_Unitless" xml:space="preserve"><value>単位なし</value></data>
+  <data name="Cad_Status_SkippedObjects" xml:space="preserve"><value>未対応のオブジェクト {0} 件をスキップしました</value></data>
+  <data name="Cad_Status_FileReloaded" xml:space="preserve"><value>ファイルを再読み込みしました</value></data>
+
   <data name="About_Title" xml:space="preserve"><value>図覧について</value></data>
   <data name="About_Tagline" xml:space="preserve"><value>建築・都市計画・空間データの統合ビューアー</value></data>
   <data name="About_DisplayVersion" xml:space="preserve"><value>表示バージョン</value></data>
@@ -73,6 +126,17 @@
   <data name="About_LicensePrivacy" xml:space="preserve"><value>ライセンスとプライバシー</value></data>
   <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>第三者ライセンスとローカルファイルの取り扱いを確認します。</value></data>
   <data name="About_ViewInfo" xml:space="preserve"><value>説明を見る</value></data>
+
+  <data name="KernelPlanned1.Text" xml:space="preserve"><value>計画中</value></data>
+  <data name="KernelPlanned2.Text" xml:space="preserve"><value>計画中</value></data>
+  <data name="KernelPlanned3.Text" xml:space="preserve"><value>計画中</value></data>
+  <data name="KernelSourcePlanned1.Text" xml:space="preserve"><value>独立ソース予定</value></data>
+  <data name="KernelSourcePlanned2.Text" xml:space="preserve"><value>独立ソース予定</value></data>
+  <data name="KernelSourcePlanned3.Text" xml:space="preserve"><value>独立ソース予定</value></data>
+  <data name="KernelStatusPlanned1.Text" xml:space="preserve"><value>未接続</value></data>
+  <data name="KernelStatusPlanned2.Text" xml:space="preserve"><value>未接続</value></data>
+  <data name="KernelStatusPlanned3.Text" xml:space="preserve"><value>未接続</value></data>
+
   <data name="Update_NotChecked" xml:space="preserve"><value>未確認</value></data>
   <data name="Update_Checking" xml:space="preserve"><value>確認中…</value></data>
   <data name="Update_NoRelease" xml:space="preserve"><value>GitHub Release はありません</value></data>
