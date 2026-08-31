@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.4] - 2026-08-31
+
+### Fixed
+
+- Moved staged Cad Core activation from the WinUI `App` constructor to a CLR `ModuleInitializer`, so the selected kernel is loaded before `Microsoft.UI.Xaml.Application` construction and XAML initialization can bind bundled assemblies.
+- Fixed the packaged-app case where restart-to-update promoted `pending.json` but real product code still remained bound to the bundled Cad Core.
+- Added a static-binding startup acceptance that compiles against a known older Cad Core baseline, stages the latest online release, and requires a real `ACadSharpCadImporter` reference to resolve to the active online version before `Main`.
+- Restores the product's actual Cad Core submodule commit after the acceptance probe so the signed MSIX always uses the intended bundled baseline.
+
 ## [0.2.3] - 2026-08-31
 
 ### Fixed
