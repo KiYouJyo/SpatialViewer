@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -6,6 +7,7 @@ namespace SpatialViewer.Product;
 
 internal sealed record CadCorePackageDescriptor(
     Version Version,
+    Version AbiVersion,
     string DirectoryPath,
     IReadOnlyDictionary<string, string> RequiredAssemblies,
     IReadOnlyDictionary<string, string> ResolverAssemblies);
@@ -29,7 +31,9 @@ internal static class CadCoreRuntimeBootstrapper
 
     public static string VersionsRoot => Path.Combine(KernelRoot, "versions");
     public static Version BundledVersion { get; private set; } = new(0, 0, 0);
+    public static Version BundledAbiVersion { get; private set; } = new(0, 0, 0, 0);
     public static Version CurrentVersion { get; private set; } = new(0, 0, 0);
+    public static Version CurrentAbiVersion { get; private set; } = new(0, 0, 0, 0);
     public static bool IsUsingExternalKernel { get; private set; }
     public static string? LastActivationError { get; private set; }
     public static Version? PendingVersion
@@ -47,8 +51,10 @@ internal static class CadCoreRuntimeBootstrapper
         {
             if (_initialized) return;
             _initialized = true;
-            BundledVersion = ReadBundledVersion();
+            BundledVersion = ReadBundledProductVersion();
+            BundledAbiVersion = ReadBundledAbiVersion();
             CurrentVersion = BundledVersion;
+            CurrentAbiVersion = BundledAbiVersion;
 
             try
             {
@@ -69,9 +75,16 @@ internal static class CadCoreRuntimeBootstrapper
                     TryDelete(ActiveStatePath);
                     return;
                 }
+                if (package.AbiVersion != BundledAbiVersion)
+                {
+                    LastActivationError = $"CadCore ABI mismatch: bundled={BundledAbiVersion}; staged={package.AbiVersion}.";
+                    TryDelete(ActiveStatePath);
+                    return;
+                }
 
                 ActivatePackage(package);
                 CurrentVersion = package.Version;
+                CurrentAbiVersion = package.AbiVersion;
                 IsUsingExternalKernel = true;
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or FileLoadException or BadImageFormatException)
@@ -89,6 +102,8 @@ internal static class CadCoreRuntimeBootstrapper
         var directory = GetVersionDirectory(version);
         if (!CadCorePackageValidator.TryValidate(directory, out var package, out var error) || package is null || package.Version != version)
             throw new InvalidDataException(error ?? "The CadCore package cannot be staged.");
+        if (package.AbiVersion != BundledAbiVersion)
+            throw new InvalidDataException($"The CadCore package ABI {package.AbiVersion} is incompatible with bundled ABI {BundledAbiVersion}.");
         WriteState(PendingStatePath, new CadCoreActivationState(FormatVersion(version)));
     }
 
@@ -107,7 +122,7 @@ internal static class CadCoreRuntimeBootstrapper
         }
 
         var directory = GetVersionDirectory(version);
-        if (!CadCorePackageValidator.TryValidate(directory, out var package, out _) || package is null || package.Version != version)
+        if (!CadCorePackageValidator.TryValidate(directory, out var package, out _) || package is null || package.Version != version || package.AbiVersion != BundledAbiVersion)
         {
             TryDelete(PendingStatePath);
             return;
@@ -132,8 +147,8 @@ internal static class CadCoreRuntimeBootstrapper
                 assembly => string.Equals(assembly.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase));
             if (alreadyLoaded is not null)
             {
-                if (alreadyLoaded.GetName().Version is { } loadedVersion && loadedVersion >= package.Version) continue;
-                throw new FileLoadException($"{simpleName} was loaded before the staged CadCore package could be activated.");
+                if (string.Equals(Path.GetFullPath(alreadyLoaded.Location), Path.GetFullPath(assemblyPath), StringComparison.OrdinalIgnoreCase)) continue;
+                throw new FileLoadException($"{simpleName} was loaded from '{alreadyLoaded.Location}' before the staged CadCore package could be activated.");
             }
 
             AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
@@ -148,17 +163,36 @@ internal static class CadCoreRuntimeBootstrapper
         return loaded ?? context.LoadFromAssemblyPath(path);
     }
 
-    private static Version ReadBundledVersion()
+    private static Version ReadBundledProductVersion()
+    {
+        var candidate = FindBundledCadCoreAssembly();
+        return candidate is not null && TryReadFileProductVersion(candidate, out var version) ? version : new Version(0, 0, 0);
+    }
+
+    private static Version ReadBundledAbiVersion()
+    {
+        var candidate = FindBundledCadCoreAssembly();
+        var version = candidate is null ? null : AssemblyName.GetAssemblyName(candidate).Version;
+        return version ?? new Version(0, 0, 0, 0);
+    }
+
+    private static string? FindBundledCadCoreAssembly()
     {
         var bootstrapAssemblyDirectory = Path.GetDirectoryName(typeof(CadCoreRuntimeBootstrapper).Assembly.Location);
         var baseDirectory = string.IsNullOrWhiteSpace(bootstrapAssemblyDirectory) ? AppContext.BaseDirectory : bootstrapAssemblyDirectory;
         var directPath = Path.Combine(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
-        var candidate = File.Exists(directPath)
+        return File.Exists(directPath)
             ? directPath
             : Directory.EnumerateFiles(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
-        if (candidate is null) return new Version(0, 0, 0);
-        var version = AssemblyName.GetAssemblyName(candidate).Version;
-        return version is null ? new Version(0, 0, 0) : NormalizeVersion(version);
+    }
+
+    internal static bool TryReadFileProductVersion(string assemblyPath, out Version version)
+    {
+        version = new Version(0, 0, 0);
+        var fileVersion = FileVersionInfo.GetVersionInfo(assemblyPath).FileVersion;
+        if (!Version.TryParse(fileVersion, out var parsed) || parsed is null) return false;
+        version = NormalizeVersion(parsed);
+        return true;
     }
 
     private static string ResolveKernelRoot()
@@ -261,6 +295,9 @@ internal static class CadCorePackageValidator
             if (!TryReadString(root, "version", out var versionText) || !Version.TryParse(versionText, out var parsedVersion) || parsedVersion is null)
                 return Fail("The CadCore package version is invalid.", out error);
             var version = CadCoreRuntimeBootstrapper.NormalizeVersion(parsedVersion);
+            if (!TryReadString(root, "abiVersion", out var abiVersionText) || !Version.TryParse(abiVersionText, out var parsedAbiVersion) || parsedAbiVersion is null)
+                return Fail("The CadCore package ABI version is invalid.", out error);
+            var abiVersion = parsedAbiVersion;
             if (!TryReadString(root, "runtime", out var runtime) || !string.Equals(runtime, "x64", StringComparison.OrdinalIgnoreCase))
                 return Fail("The CadCore package runtime is not x64.", out error);
             if (!TryReadString(root, "sourceRepository", out var repository) || !string.Equals(repository, "KiYouJyo/SpatialViewer.CadCore", StringComparison.OrdinalIgnoreCase))
@@ -275,9 +312,12 @@ internal static class CadCorePackageValidator
                 if (!Directory.Exists(projectRoot)) return Fail($"Required CadCore project payload is missing: {pair.Value}", out error);
                 var assemblyPath = Directory.EnumerateFiles(projectRoot, $"{pair.Key}.dll", SearchOption.AllDirectories).FirstOrDefault();
                 if (assemblyPath is null) return Fail($"Required CadCore assembly is missing: {pair.Key}.dll", out error);
+
                 var assemblyVersion = AssemblyName.GetAssemblyName(assemblyPath).Version;
-                if (assemblyVersion is null || CadCoreRuntimeBootstrapper.NormalizeVersion(assemblyVersion) != version)
-                    return Fail($"CadCore assembly version does not match the release manifest: {pair.Key}.dll", out error);
+                if (assemblyVersion is null || assemblyVersion != abiVersion)
+                    return Fail($"CadCore ABI version does not match the release manifest: {pair.Key}.dll", out error);
+                if (!CadCoreRuntimeBootstrapper.TryReadFileProductVersion(assemblyPath, out var fileProductVersion) || fileProductVersion != version)
+                    return Fail($"CadCore file product version does not match the release manifest: {pair.Key}.dll", out error);
                 requiredAssemblies[pair.Key] = Path.GetFullPath(assemblyPath);
             }
 
@@ -289,7 +329,7 @@ internal static class CadCorePackageValidator
             }
             foreach (var pair in requiredAssemblies) resolverAssemblies[pair.Key] = pair.Value;
 
-            package = new CadCorePackageDescriptor(version, fullDirectory, requiredAssemblies, resolverAssemblies);
+            package = new CadCorePackageDescriptor(version, abiVersion, fullDirectory, requiredAssemblies, resolverAssemblies);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or BadImageFormatException)
