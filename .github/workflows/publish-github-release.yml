@@ -76,7 +76,7 @@ jobs:
           dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
           dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
 
-      - name: Build unsigned x64 MSIX bundle
+      - name: Build and rewrite unsigned x64 MSIX bundle
         shell: pwsh
         run: |
           $output = Join-Path $env:RUNNER_TEMP 'SpatialViewer-AppPackages'
@@ -88,6 +88,8 @@ jobs:
           $bundleName = "SpatialViewer_${{ steps.version.outputs.package_version }}_x64.msixbundle"
           $finalBundle = Join-Path $assets $bundleName
           Copy-Item -LiteralPath $bundle.FullName -Destination $finalBundle -Force
+          ./packaging/Rewrite-CadCoreMsixBundleLayout.ps1 -BundlePath $finalBundle -BundledVersion '0.3.0'
+          if ($LASTEXITCODE -ne 0) { throw "Cad Core MSIX layout rewrite failed: $LASTEXITCODE" }
           "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "BUNDLE_NAME=$bundleName" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
