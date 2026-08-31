@@ -20,7 +20,8 @@ internal sealed record CadCoreUpdateResult(
     CadCoreUpdateState State,
     Version CurrentVersion,
     Version? AvailableVersion = null,
-    string? ErrorCode = null);
+    string? ErrorCode = null,
+    string? ErrorDetail = null);
 
 internal sealed class CadCoreUpdateService
 {
@@ -37,9 +38,9 @@ internal sealed class CadCoreUpdateService
         try
         {
             var release = await GitHubUpdateService.GetLatestReleaseAsync(Repository, cancellationToken).ConfigureAwait(false);
-            if (release is null) return new(CadCoreUpdateState.Failed, current, ErrorCode: "NoRelease");
+            if (release is null) return Fail(current, null, "NoRelease");
             if (!GitHubUpdateService.TryParseVersionTag(release.TagName, out var parsedVersion))
-                return new(CadCoreUpdateState.Failed, current, ErrorCode: "InvalidVersion");
+                return Fail(current, null, "InvalidVersion", release.TagName);
 
             var available = CadCoreRuntimeBootstrapper.NormalizeVersion(parsedVersion);
             _pendingRelease = release;
@@ -47,18 +48,18 @@ internal sealed class CadCoreUpdateService
             _pendingAsset = FindKernelAsset(release);
 
             if (available <= current) return new(CadCoreUpdateState.UpToDate, current, available);
-            if (_pendingAsset is null) return new(CadCoreUpdateState.Failed, current, available, "MissingAsset");
+            if (_pendingAsset is null) return Fail(current, available, "MissingAsset");
             if (CadCoreRuntimeBootstrapper.IsPendingVersion(available))
                 return new(CadCoreUpdateState.ReadyForRestart, current, available);
             return new(CadCoreUpdateState.UpdateAvailable, current, available);
         }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            return new(CadCoreUpdateState.Failed, current, ErrorCode: "Timeout");
+            return Fail(current, null, "Timeout", exception.Message);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException exception)
         {
-            return new(CadCoreUpdateState.Failed, current, ErrorCode: "Network");
+            return Fail(current, null, "Network", exception.Message);
         }
     }
 
@@ -68,7 +69,7 @@ internal sealed class CadCoreUpdateService
     {
         var current = CurrentVersion;
         if (_pendingRelease is null || _pendingAsset is null || _pendingVersion is null)
-            return new(CadCoreUpdateState.Failed, current, ErrorCode: "NoPendingUpdate");
+            return Fail(current, null, "NoPendingUpdate");
 
         var available = _pendingVersion;
         if (available <= current) return new(CadCoreUpdateState.UpToDate, current, available);
@@ -88,13 +89,14 @@ internal sealed class CadCoreUpdateService
             Directory.CreateDirectory(temporaryDirectory);
             ExtractSafely(archivePath, temporaryDirectory, cancellationToken);
             if (!CadCorePackageValidator.TryValidate(temporaryDirectory, out var package, out var validationError) || package is null)
-                return new(CadCoreUpdateState.Failed, current, available, validationError ?? "InvalidPackage");
+                return Fail(current, available, "PackageValidation", validationError);
             if (package.Version != available)
-                return new(CadCoreUpdateState.Failed, current, available, "VersionMismatch");
+                return Fail(current, available, "VersionMismatch", $"Package={package.Version}; Release={available}");
 
             if (Directory.Exists(finalDirectory)) Directory.Delete(finalDirectory, recursive: true);
             Directory.Move(temporaryDirectory, finalDirectory);
             CadCoreRuntimeBootstrapper.StageForNextLaunch(available);
+            CadCoreUpdateDiagnostics.Write("ready", null, $"v{CadCoreRuntimeBootstrapper.FormatVersion(available)} staged for next launch.");
             progress?.Report(new(CadCoreUpdateState.ReadyForRestart, 1d));
             return new(CadCoreUpdateState.ReadyForRestart, current, available);
         }
@@ -102,15 +104,37 @@ internal sealed class CadCoreUpdateService
         {
             throw;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or HttpRequestException)
+        catch (GitHubAssetDownloadException exception)
         {
-            return new(CadCoreUpdateState.Failed, current, available, exception.Message);
+            return Fail(current, available, exception.Code, exception.Message);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Fail(current, available, "StorageAccess", exception.Message);
+        }
+        catch (IOException exception)
+        {
+            return Fail(current, available, "StorageIo", exception.Message);
+        }
+        catch (InvalidDataException exception)
+        {
+            return Fail(current, available, "PackageInvalid", exception.Message);
+        }
+        catch (HttpRequestException exception)
+        {
+            return Fail(current, available, "DownloadNetwork", exception.Message);
         }
         finally
         {
             TryDeleteDirectory(temporaryDirectory);
             TryDeleteFile(archivePath);
         }
+    }
+
+    private static CadCoreUpdateResult Fail(Version current, Version? available, string code, string? detail = null)
+    {
+        CadCoreUpdateDiagnostics.Write("failed", code, detail);
+        return new(CadCoreUpdateState.Failed, current, available, code, detail);
     }
 
     private static GitHubReleaseAsset? FindKernelAsset(GitHubReleaseInfo release)
@@ -153,6 +177,7 @@ internal sealed class CadCoreUpdateService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            CadCoreUpdateDiagnostics.Write("cleanup", "CleanupDirectory", exception.Message);
         }
     }
 
@@ -164,6 +189,33 @@ internal sealed class CadCoreUpdateService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            CadCoreUpdateDiagnostics.Write("cleanup", "CleanupFile", exception.Message);
         }
     }
+}
+
+internal static class CadCoreUpdateDiagnostics
+{
+    private static readonly object Gate = new();
+    public static string LogPath => Path.Combine(CadCoreRuntimeBootstrapper.KernelRoot, "update.log");
+
+    public static void Write(string stage, string? code, string? detail)
+    {
+        try
+        {
+            lock (Gate)
+            {
+                Directory.CreateDirectory(CadCoreRuntimeBootstrapper.KernelRoot);
+                var line = $"{DateTimeOffset.UtcNow:O}\t{stage}\t{code ?? "-"}\t{Sanitize(detail)}{Environment.NewLine}";
+                File.AppendAllText(LogPath, line);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string Sanitize(string? value) => string.IsNullOrWhiteSpace(value)
+        ? "-"
+        : value.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
 }
