@@ -7,14 +7,14 @@
         <ResourceDictionary Source="Themes/Typography.xaml" />
         <ResourceDictionary Source="Themes/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
-      <!-- Shell chrome stays on Mica. The main content surface deliberately differs
-           by theme: light mode needs an opaque neutral base so the Mica tint does
-           not turn a full-page Layer brush into a muddy gray-green plane, while
-           dark mode keeps the existing Fluent layer fill that already reads well. -->
+      <!-- Shell chrome stays on Mica. Keep the existing shell/navigation resources intact.
+           In light mode the page content now uses the same translucent Fluent Layer surface
+           as the native NavigationView hierarchy, allowing active/inactive Mica response
+           to remain visible instead of being covered by an opaque Base fill. -->
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
-          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="SolidBackgroundFillColorBaseBrush" />
+          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="LayerFillColorDefaultBrush" />
           <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#E5F9F9" />
           <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
         </ResourceDictionary>
