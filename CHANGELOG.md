@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3] - 2026-08-31
+
+### Fixed
+
+- Made the CadCore action button remain enabled after an update is downloaded; it now changes to a restart-to-update action and uses Windows App SDK `AppInstance.Restart` to relaunch the application.
+- The restarted process activates the already staged CadCore before XAML initialization, so the downloaded kernel becomes effective immediately after the user clicks restart.
+- Shortened the kernel display name to `CadCore` and changed its update-source cell to `SpatialViewer.CadCore` so the UI distinguishes the component name from the independent repository name.
+
 ## [0.2.2] - 2026-08-31
 
 ### Fixed
