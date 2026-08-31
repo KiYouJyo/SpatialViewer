@@ -30,9 +30,9 @@
                     IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                     Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
       <NavigationView.Resources>
-        <!-- Do not override NavigationViewContentBackground here. WinUI defines that
-             resource in its own Light/Dark/HighContrast theme dictionaries, so it
-             re-resolves correctly when RequestedTheme changes after InitializeComponent. -->
+        <!-- NavigationViewContentBackground is intentionally absent. WinUI owns it
+             inside NavigationView's Light/Dark/HighContrast theme dictionaries,
+             matching UrbanPlanToolbox and keeping live RequestedTheme changes safe. -->
         <!-- The shell owns the outer edge, so only the internal layer transition
              is visible; no extra rounded SplitView frame is introduced. -->
         <Thickness x:Key="NavigationViewBorderThickness">0</Thickness>
