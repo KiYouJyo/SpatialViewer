@@ -18,10 +18,17 @@ internal sealed record GitHubReleaseInfo(
     public string DisplayVersion => TagName.TrimStart('v', 'V');
 }
 
+internal sealed class GitHubAssetDownloadException(string code, string message, Exception? innerException = null)
+    : Exception(message, innerException)
+{
+    public string Code { get; } = code;
+}
+
 internal static class GitHubUpdateService
 {
     private static readonly HttpClient Client = CreateApiClient(TimeSpan.FromSeconds(15));
-    private static readonly HttpClient DownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5));
+    private static readonly HttpClient DownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: true);
+    private static readonly HttpClient DirectDownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: false);
 
     public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
     {
@@ -63,45 +70,108 @@ internal static class GitHubUpdateService
         ArgumentNullException.ThrowIfNull(asset);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         if (!Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri) || downloadUri.Scheme != Uri.UriSchemeHttps)
-            throw new InvalidDataException("The release asset URL is invalid.");
+            throw new GitHubAssetDownloadException("InvalidAssetUrl", "The release asset URL is invalid.");
         if (!TryGetSha256Digest(asset.Digest, out var expectedDigest))
-            throw new InvalidDataException("The release asset does not provide a SHA-256 digest.");
+            throw new GitHubAssetDownloadException("MissingDigest", "The release asset does not provide a SHA-256 digest.");
 
-        var directory = Path.GetDirectoryName(destinationPath) ?? throw new InvalidDataException("The destination directory is invalid.");
+        var directory = Path.GetDirectoryName(destinationPath) ?? throw new GitHubAssetDownloadException("StoragePath", "The destination directory is invalid.");
         Directory.CreateDirectory(directory);
         var temporaryPath = $"{destinationPath}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
+        Exception? lastFailure = null;
+        var digestMismatch = false;
         try
         {
-            using var response = await DownloadClient.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            var expectedLength = response.Content.Headers.ContentLength ?? asset.Size;
-            await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
-            await using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            var clients = new[] { DownloadClient, DownloadClient, DirectDownloadClient };
+            for (var attempt = 0; attempt < clients.Length; attempt++)
             {
-                var buffer = new byte[81920];
-                long total = 0;
-                while (true)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+                try
                 {
-                    var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-                    if (read == 0) break;
-                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                    total += read;
-                    if (expectedLength > 0) progress?.Report(Math.Clamp(total / (double)expectedLength, 0d, 1d));
+                    await DownloadToTemporaryFileAsync(clients[attempt], downloadUri, temporaryPath, asset.Size, progress, cancellationToken).ConfigureAwait(false);
+                    if (!await VerifyDigestAsync(temporaryPath, expectedDigest, cancellationToken).ConfigureAwait(false))
+                    {
+                        digestMismatch = true;
+                        lastFailure = new InvalidDataException("The release asset SHA-256 digest does not match GitHub metadata.");
+                        if (attempt < clients.Length - 1)
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
+                            continue;
+                        }
+                        break;
+                    }
+
+                    lastFailure = null;
+                    digestMismatch = false;
+                    break;
+                }
+                catch (HttpRequestException exception) when (attempt < clients.Length - 1)
+                {
+                    lastFailure = exception;
+                    await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested && attempt < clients.Length - 1)
+                {
+                    lastFailure = exception;
+                    await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
                 }
             }
 
-            await using var verificationStream = File.OpenRead(temporaryPath);
-            var actualDigest = await SHA256.HashDataAsync(verificationStream, cancellationToken).ConfigureAwait(false);
-            if (!CryptographicOperations.FixedTimeEquals(actualDigest, expectedDigest))
-                throw new InvalidDataException("The release asset SHA-256 digest does not match GitHub metadata.");
+            if (digestMismatch)
+                throw new GitHubAssetDownloadException("DigestMismatch", "The CadCore release asset failed SHA-256 verification through both the system proxy and a direct connection.", lastFailure);
+            if (!File.Exists(temporaryPath))
+                throw new GitHubAssetDownloadException("DownloadNetwork", "The CadCore release asset could not be downloaded through either the system proxy or a direct connection.", lastFailure);
 
             File.Move(temporaryPath, destinationPath, overwrite: true);
             progress?.Report(1d);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new GitHubAssetDownloadException("DownloadNetwork", exception.Message, exception);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new GitHubAssetDownloadException("DownloadTimeout", exception.Message, exception);
         }
         finally
         {
             if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
         }
+    }
+
+    private static async Task DownloadToTemporaryFileAsync(
+        HttpClient client,
+        Uri downloadUri,
+        string temporaryPath,
+        long declaredSize,
+        IProgress<double>? progress,
+        CancellationToken cancellationToken)
+    {
+        using var response = await client.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var expectedLength = response.Content.Headers.ContentLength ?? declaredSize;
+        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            total += read;
+            if (expectedLength > 0) progress?.Report(Math.Clamp(total / (double)expectedLength, 0d, 1d));
+        }
+
+        if (declaredSize > 0 && total != declaredSize)
+            throw new HttpRequestException($"The release asset length is incomplete: expected {declaredSize} bytes, received {total} bytes.");
+    }
+
+    private static async Task<bool> VerifyDigestAsync(string path, byte[] expectedDigest, CancellationToken cancellationToken)
+    {
+        await using var verificationStream = File.OpenRead(path);
+        var actualDigest = await SHA256.HashDataAsync(verificationStream, cancellationToken).ConfigureAwait(false);
+        return CryptographicOperations.FixedTimeEquals(actualDigest, expectedDigest);
     }
 
     private static GitHubReleaseAsset? ParseAsset(JsonElement asset)
@@ -132,16 +202,23 @@ internal static class GitHubUpdateService
     private static HttpClient CreateApiClient(TimeSpan timeout)
     {
         var client = new HttpClient { Timeout = timeout };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.1"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.2"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
     }
 
-    private static HttpClient CreateDownloadClient(TimeSpan timeout)
+    private static HttpClient CreateDownloadClient(TimeSpan timeout, bool useProxy)
     {
-        var client = new HttpClient { Timeout = timeout };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.1"));
+        var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            AutomaticDecompression = DecompressionMethods.All,
+            UseProxy = useProxy
+        };
+        var client = new HttpClient(handler) { Timeout = timeout };
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.2"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
         return client;
     }
 }

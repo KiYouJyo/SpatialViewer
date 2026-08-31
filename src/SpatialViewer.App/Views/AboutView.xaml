@@ -24,8 +24,8 @@
 
             <Border Style="{StaticResource SettingsInnerCardStyle}" Padding="14">
               <Grid x:Name="MetadataGrid" ColumnSpacing="24" RowSpacing="14" ColumnDefinitions="*,*,*">
-                <StackPanel x:Name="MetadataColumn0" Spacing="10"><StackPanel><TextBlock x:Name="DisplayVersionLabel" Text="显示版本" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="v0.2.1 Preview" /></StackPanel><StackPanel><TextBlock x:Name="ChannelLabel" Text="发布渠道" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="Preview" /></StackPanel></StackPanel>
-                <StackPanel x:Name="MetadataColumn1" Grid.Column="1" Spacing="10"><StackPanel><TextBlock x:Name="InternalVersionLabel" Text="内部版本" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="0.2.1-preview" /></StackPanel><StackPanel><TextBlock x:Name="PublisherLabel" Text="发行者" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="Jo Kiyō" /></StackPanel></StackPanel>
+                <StackPanel x:Name="MetadataColumn0" Spacing="10"><StackPanel><TextBlock x:Name="DisplayVersionLabel" Text="显示版本" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="v0.2.2 Preview" /></StackPanel><StackPanel><TextBlock x:Name="ChannelLabel" Text="发布渠道" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="Preview" /></StackPanel></StackPanel>
+                <StackPanel x:Name="MetadataColumn1" Grid.Column="1" Spacing="10"><StackPanel><TextBlock x:Name="InternalVersionLabel" Text="内部版本" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="0.2.2-preview" /></StackPanel><StackPanel><TextBlock x:Name="PublisherLabel" Text="发行者" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="Jo Kiyō" /></StackPanel></StackPanel>
                 <StackPanel x:Name="MetadataColumn2" Grid.Column="2" Spacing="10"><StackPanel><TextBlock x:Name="ArchitectureLabel" Text="当前架构" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="X64" /></StackPanel><StackPanel><TextBlock x:Name="TechStackLabel" Text="技术栈" Style="{StaticResource SettingsDescriptionStyle}" /><TextBlock Text="C# · WinUI 3 · Windows App SDK" TextWrapping="Wrap" /></StackPanel></StackPanel>
               </Grid>
             </Border>
@@ -36,15 +36,11 @@
         <Border Style="{StaticResource SettingsSectionCardStyle}">
           <StackPanel Spacing="14">
             <TextBlock x:Name="UpdateManagementTitleText" Text="更新管理" Style="{StaticResource SectionTitleText}" />
-
-            <!-- Preserve the original Figma/table information hierarchy. The row
-                 remains a row on large/medium windows instead of becoming a tall
-                 status card; only very small windows may scroll it horizontally. -->
             <Border Style="{StaticResource SettingsInnerCardStyle}" Padding="14">
               <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
                 <Grid x:Name="AppUpdateGrid" MinWidth="900" ColumnDefinitions="2*,110,32,110,150,130,Auto,Auto" ColumnSpacing="10" MinHeight="44">
                   <StackPanel VerticalAlignment="Center"><TextBlock x:Name="AppProgramTitleText" Text="SpatialViewer 主程序" FontWeight="SemiBold" /><TextBlock x:Name="AppUpdateDescriptionText" Text="应用更新" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
-                  <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock x:Name="CurrentVersionLabel" Text="当前版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="v0.2.1 Preview" /></StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock x:Name="CurrentVersionLabel" Text="当前版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="v0.2.2 Preview" /></StackPanel>
                   <TextBlock Grid.Column="2" Text="→" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                   <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock x:Name="AvailableVersionLabel" Text="可用版本" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="AvailableAppVersionText" Text="—" /></StackPanel>
                   <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock x:Name="UpdateSourceLabel" Text="更新来源" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="GitHub Releases" /></StackPanel>
