@@ -41,6 +41,17 @@ try {
     & $makeappx.FullName unbundle /p $bundle /d $unbundle /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx unbundle failed: $LASTEXITCODE" }
 
+    $bundleManifestPath = Join-Path $unbundle 'AppxMetadata\AppxBundleManifest.xml'
+    if (-not (Test-Path -LiteralPath $bundleManifestPath -PathType Leaf)) {
+        throw 'AppxBundleManifest.xml was not found after unbundling.'
+    }
+    [xml]$bundleManifest = Get-Content -LiteralPath $bundleManifestPath -Raw
+    $bundleIdentity = $bundleManifest.SelectSingleNode("/*[local-name()='Bundle']/*[local-name()='Identity']")
+    $bundleVersion = if ($bundleIdentity) { [string]$bundleIdentity.Version } else { '' }
+    if ($bundleVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+        throw "Original bundle version is invalid: $bundleVersion"
+    }
+
     $innerPackages = @(Get-ChildItem -LiteralPath $unbundle -Filter '*.msix' -File)
     if ($innerPackages.Count -ne 1) {
         throw "Expected exactly one inner x64 MSIX, found $($innerPackages.Count)."
@@ -49,6 +60,20 @@ try {
 
     & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
+
+    $packageManifestPath = Join-Path $unpack 'AppxManifest.xml'
+    if (-not (Test-Path -LiteralPath $packageManifestPath -PathType Leaf)) {
+        throw 'AppxManifest.xml was not found after unpacking the inner MSIX.'
+    }
+    [xml]$packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw
+    $packageIdentity = $packageManifest.SelectSingleNode("/*[local-name()='Package']/*[local-name()='Identity']")
+    $packageVersion = if ($packageIdentity) { [string]$packageIdentity.Version } else { '' }
+    if ($packageVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+        throw "Inner package version is invalid: $packageVersion"
+    }
+    if ($packageVersion -ne $bundleVersion) {
+        throw "Bundle/package version mismatch before rewrite: bundle=$bundleVersion package=$packageVersion"
+    }
 
     $fallback = Join-Path $unpack "Kernels\Bundled\$BundledVersion"
     New-Item -ItemType Directory -Force -Path $fallback | Out-Null
@@ -74,12 +99,14 @@ try {
     $innerInput = Join-Path $bundleInputs $inner.Name
     Copy-Item -LiteralPath $repackedInner -Destination $innerInput -Force
 
-    & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /o | Out-Host
+    # MakeAppx otherwise synthesizes a date/time bundle version. Preserve the
+    # immutable four-part package identity from the original bundle explicitly.
+    & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /bv $bundleVersion /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed: $LASTEXITCODE" }
 
     Move-Item -LiteralPath $repackedBundle -Destination $bundle -Force
 
-    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion."
+    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; version=$bundleVersion."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
