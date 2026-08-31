@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: ./packaging/Test-LocalizationCompleteness.ps1
 
-      - name: Verify v0.2.7 version and light-page surface contract
+      - name: Verify v0.2.7 version and dynamic theme-surface contract
         shell: pwsh
         run: |
           $project = Get-Content src/SpatialViewer.App/SpatialViewer.App.csproj -Raw
@@ -38,17 +38,25 @@ jobs:
           $release = Get-Content release/release.json -Raw
           $appXaml = Get-Content src/SpatialViewer.App/App.xaml -Raw
           $shell = Get-Content src/SpatialViewer.App/MainWindow.xaml -Raw
+          $shellCode = Get-Content src/SpatialViewer.App/MainWindow.xaml.cs -Raw
+          $settingsCode = Get-Content src/SpatialViewer.App/Views/SettingsView.xaml.cs -Raw
+          $controls = Get-Content src/SpatialViewer.App/Themes/Controls.xaml -Raw
           foreach ($required in @('<Version>0.2.7</Version>', '<AssemblyVersion>0.2.7.0</AssemblyVersion>', '<FileVersion>0.2.7.0</FileVersion>', '<InformationalVersion>0.2.7</InformationalVersion>')) {
             if (-not $project.Contains($required)) { throw "v0.2.7 project metadata missing: $required" }
           }
           if (-not $manifest.Contains('Version="0.2.7.0"')) { throw 'MSIX manifest is not 0.2.7.0.' }
           if (-not $release.Contains('"version": "0.2.7"') -or -not $release.Contains('"packageVersion": "0.2.7.0"')) { throw 'Release metadata is not v0.2.7.' }
-          if ($appXaml.Contains('x:Key="ShellContentBackgroundBrush" ResourceKey="SolidBackgroundFillColorBaseBrush"')) { throw 'Light page surface regressed to the opaque Base fill.' }
-          $layerCount = ([regex]::Matches($appXaml, 'x:Key="ShellContentBackgroundBrush" ResourceKey="LayerFillColorDefaultBrush"')).Count
-          if ($layerCount -lt 2) { throw "Expected light and dark LayerFillColorDefaultBrush mappings; found $layerCount." }
-          if (-not $appXaml.Contains('x:Key="ShellContentBackgroundBrush" ResourceKey="SystemColorWindowBrush"')) { throw 'High contrast shell content surface mapping is missing.' }
-          if (-not $shell.Contains('x:Key="NavigationViewContentBackground" ResourceKey="ShellContentBackgroundBrush"')) { throw 'NavigationView content is not routed through ShellContentBackgroundBrush.' }
-          Write-Host 'v0.2.7 UI contract PASS: light page uses native Fluent Layer surface; shell routing remains unchanged.'
+          if ($appXaml.Contains('ShellContentBackgroundBrush')) { throw 'App-level shell content brush alias must not exist; it can freeze the construction-time theme.' }
+          if ($shell.Contains('x:Key="NavigationViewContentBackground"')) { throw 'NavigationViewContentBackground must remain native so WinUI can re-resolve Light/Dark/HighContrast resources.' }
+          if (-not $shell.Contains('x:Key="NavigationViewDefaultPaneBackground" ResourceKey="ShellNavigationPaneBackgroundBrush"')) { throw 'Navigation pane chrome override changed unexpectedly.' }
+          $initializeIndex = $shellCode.IndexOf('InitializeComponent();')
+          $requestedThemeIndex = $shellCode.IndexOf('RootGrid.RequestedTheme = ThemePreferenceStore.Load();')
+          if ($initializeIndex -lt 0 -or $requestedThemeIndex -lt 0 -or $requestedThemeIndex -lt $initializeIndex) { throw 'Expected persisted RequestedTheme to be applied after XAML construction.' }
+          if (-not $settingsCode.Contains('root.RequestedTheme = theme;')) { throw 'Live theme switching contract is missing.' }
+          foreach ($required in @('CardBackgroundFillColorDefaultBrush', 'ControlFillColorDefaultBrush')) {
+            if (-not $controls.Contains($required)) { throw "Theme-aware settings card resource missing: $required" }
+          }
+          Write-Host 'v0.2.7 UI contract PASS: native NavigationView theme dictionaries own the content surface; live light/dark switching cannot pin a stale brush.'
 
       - name: Verify extracted kernel checkout
         shell: pwsh
@@ -173,14 +181,16 @@ jobs:
           $lines = foreach ($file in @($env:BUNDLE_PATH, $env:ACCEPTANCE_ZIP)) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
           @(
-            'SpatialViewer v0.2.7 light-mode page color acceptance',
+            'SpatialViewer v0.2.7 dynamic light/dark page-surface acceptance',
             "SpatialViewer commit: $env:GITHUB_SHA",
             "Bundled CadCore commit: $env:CADCORE_SHA",
             'Package version: 0.2.7.0',
             'Configuration: Release x64',
-            'Light page uses LayerFillColorDefaultBrush: PASS',
-            'Opaque light Base fill removed: PASS',
-            'Shell NavigationView content routing unchanged: PASS',
+            'Native NavigationView content theme dictionaries retained: PASS',
+            'No app-level ShellContentBackgroundBrush alias: PASS',
+            'No local static NavigationViewContentBackground override: PASS',
+            'Live RequestedTheme switching contract: PASS',
+            'Title bar/navigation pane override scope unchanged: PASS',
             'Trilingual localization contract: PASS',
             'Debug build: PASS',
             'Release build: PASS',
