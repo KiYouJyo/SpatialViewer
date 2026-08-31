@@ -90,7 +90,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: ./packaging/Test-CadCoreUpdaterRuntime.ps1 -MinimumVersion '0.3.1' -Compatibility 'SpatialViewer 0.2.x'
 
-      - name: Build unsigned 0.2.4 x64 MSIX bundle
+      - name: Build and rewrite unsigned 0.2.4 x64 MSIX bundle
         shell: pwsh
         run: |
           $output = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v0.2.4-AppPackages'
@@ -102,6 +102,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path $assets | Out-Null
           $finalBundle = Join-Path $assets 'SpatialViewer_0.2.4.0_Acceptance_x64.msixbundle'
           Copy-Item -LiteralPath $bundle.FullName -Destination $finalBundle -Force
+          ./packaging/Rewrite-CadCoreMsixBundleLayout.ps1 -BundlePath $finalBundle -BundledVersion '0.3.0'
+          if ($LASTEXITCODE -ne 0) { throw "Cad Core MSIX layout rewrite failed: $LASTEXITCODE" }
           "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
@@ -178,7 +180,7 @@ jobs:
             'Live CadCore release/product-version/ABI contract: PASS',
             'CadCore download/staging/stable-ABI restart activation: PASS',
             'MSIX resolver-isolated bundled Cad Core layout: PASS',
-            'MSIX bundle: PASS',
+            'MSIX bundle rewrite: PASS',
             'Authenticode signing (CN=AppPublisher): PASS',
             'Offline acceptance ZIP validation: PASS'
           ) | Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'ACCEPTANCE.txt') -Encoding utf8
