@@ -2,7 +2,8 @@
 param(
     [string]$Repository = 'KiYouJyo/SpatialViewer.CadCore',
     [string]$MinimumVersion = '0.2.1',
-    [string]$Compatibility = 'SpatialViewer 0.2.x'
+    [string]$Compatibility = 'SpatialViewer 0.2.x',
+    [string]$BaselineCommit = '417a581b01360d2a5fa9aaf81e80bcd6996179d8'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,6 +29,9 @@ $versionsRoot = Join-Path $kernelRoot 'versions'
 New-Item -ItemType Directory -Force -Path $expanded, $versionsRoot | Out-Null
 
 $previousRoot = $env:SPATIALVIEWER_CADCORE_ROOT
+$originalCadCoreCommit = (git -C external/SpatialViewer.CadCore rev-parse HEAD).Trim()
+if ([string]::IsNullOrWhiteSpace($originalCadCoreCommit)) { throw 'Unable to resolve the original Cad Core submodule commit.' }
+
 try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $headers
     if (-not $release -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)) {
@@ -72,8 +76,33 @@ try {
     Move-Item -LiteralPath $expanded -Destination $finalDirectory
     @{ Version = $availableText } | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $kernelRoot 'pending.json') -Encoding utf8
 
+    # The product itself keeps its current Cad Core gitlink. Only the probe is
+    # compiled against a known older bundled baseline so the test actually
+    # exercises the same old-static-reference -> new-staged-version race that
+    # occurred in the packaged WinUI application.
+    git -C external/SpatialViewer.CadCore checkout --force $BaselineCommit
+    if ($LASTEXITCODE -ne 0) { throw "Unable to checkout Cad Core baseline $BaselineCommit." }
+
+    $baselineProps = Get-Content -LiteralPath external/SpatialViewer.CadCore/Directory.Build.props -Raw
+    if ($baselineProps -notmatch '<Version>([^<]+)</Version>') { throw 'Unable to read Cad Core baseline version.' }
+    $baselineVersion = Normalize-Version ([version]::Parse($Matches[1]))
+    if ($baselineVersion -ge $available) {
+        throw "Static-binding probe requires an older baseline: baseline=$baselineVersion available=$available"
+    }
+    Write-Host "Cad Core static-binding baseline: $baselineVersion ($BaselineCommit) -> online $available"
+
+    Remove-Item -LiteralPath packaging/CadCoreActivationProbe/bin -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath packaging/CadCoreActivationProbe/obj -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem external/SpatialViewer.CadCore/src -Directory | ForEach-Object {
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'bin') -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'obj') -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    dotnet build packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -t:Rebuild
+    if ($LASTEXITCODE -ne 0) { throw "Cad Core static-binding probe build failed: $LASTEXITCODE" }
+
     $env:SPATIALVIEWER_CADCORE_ROOT = $kernelRoot
-    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $availableText
+    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release --no-build -- $availableText
     if ($LASTEXITCODE -ne 0) { throw "Cad Core static-binding activation probe failed: $LASTEXITCODE" }
 
     $pendingPath = Join-Path $kernelRoot 'pending.json'
@@ -83,9 +112,11 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "Cad Core static-binding startup contract PASS: bundled project reference -> active $availableText"
+    Write-Host "Cad Core static-binding startup contract PASS: bundled $baselineVersion -> active $availableText before Main"
 }
 finally {
     $env:SPATIALVIEWER_CADCORE_ROOT = $previousRoot
+    git -C external/SpatialViewer.CadCore checkout --force $originalCadCoreCommit | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Warning "Failed to restore Cad Core submodule to $originalCadCoreCommit" }
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
