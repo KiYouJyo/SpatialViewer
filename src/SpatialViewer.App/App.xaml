@@ -7,26 +7,23 @@
         <ResourceDictionary Source="Themes/Typography.xaml" />
         <ResourceDictionary Source="Themes/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
-      <!-- Shell chrome stays on Mica. Keep the existing shell/navigation resources intact.
-           In light mode the page content now uses the same translucent Fluent Layer surface
-           as the native NavigationView hierarchy, allowing active/inactive Mica response
-           to remain visible instead of being covered by an opaque Base fill. -->
+      <!-- Shell chrome resources only. Do not alias NavigationViewContentBackground here:
+           WinUI owns that resource inside its Light/Dark/HighContrast theme dictionaries.
+           Keeping the content surface native allows live RequestedTheme changes to resolve
+           the correct brush instead of freezing the construction-time theme. -->
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
-          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="LayerFillColorDefaultBrush" />
           <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#E5F9F9" />
           <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="Transparent" />
-          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="LayerFillColorDefaultBrush" />
           <SolidColorBrush x:Key="AppTransientSurfaceBrush" Color="#1A2323" />
           <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
           <SolidColorBrush x:Key="ShellNavigationPaneBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
-          <StaticResource x:Key="ShellContentBackgroundBrush" ResourceKey="SystemColorWindowBrush" />
           <StaticResource x:Key="AppTransientSurfaceBrush" ResourceKey="SystemColorWindowBrush" />
           <StaticResource x:Key="AppTransientSurfaceBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
         </ResourceDictionary>
