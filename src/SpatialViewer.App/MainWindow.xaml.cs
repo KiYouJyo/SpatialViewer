@@ -186,7 +186,7 @@ public sealed partial class MainWindow : Window
     private string CreateHomeTab(bool select)
     {
         var id = $"home:{Guid.NewGuid():N}";
-        _homeTabs.Add(id, CreateTabVisual(id, "主页", Symbol.Home, 220));
+        _homeTabs.Add(id, CreateTabVisual(id, T("Nav_Home"), Symbol.Home, 220));
         _homeViews.Add(id, CreateHomeView());
         if (select) ShowHome(id);
         return id;
@@ -411,9 +411,9 @@ public sealed partial class MainWindow : Window
         switch (tag)
         {
             case "Home": ShowHome(); break;
-            case "Projects": ShowPlaceholder("项目", "项目工作流将在后续版本提供。"); break;
-            case "Favorites": ShowPlaceholder("收藏", "收藏夹将在后续版本提供。"); break;
-            case "ImportFolder": ShowPlaceholder("导入文件夹", "文件夹导入将在后续版本提供。"); break;
+            case "Projects": ShowPlaceholder(T("Placeholder_Projects_Title"), T("Placeholder_Projects_Message")); break;
+            case "Favorites": ShowPlaceholder(T("Placeholder_Favorites_Title"), T("Placeholder_Favorites_Message")); break;
+            case "ImportFolder": ShowPlaceholder(T("Placeholder_ImportFolder_Title"), T("Placeholder_ImportFolder_Message")); break;
             case "Settings": ShowSettings(); break;
             case "About": ShowAbout(); break;
         }
@@ -453,7 +453,7 @@ public sealed partial class MainWindow : Window
 
     private async Task ShowInfoAsync(string message)
     {
-        var dialog = new ContentDialog { Title = "Spatial Viewer Preview", Content = message, CloseButtonText = "关闭", XamlRoot = Content.XamlRoot };
+        var dialog = new ContentDialog { Title = "Spatial Viewer Preview", Content = message, CloseButtonText = "OK", XamlRoot = Content.XamlRoot };
         await dialog.ShowAsync();
     }
 
