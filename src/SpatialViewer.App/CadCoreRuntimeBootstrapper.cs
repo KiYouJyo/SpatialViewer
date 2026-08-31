@@ -35,6 +35,14 @@ internal static class CadCoreRuntimeBootstrapper
     public static Version CurrentVersion { get; private set; } = new(0, 0, 0);
     public static bool IsUsingExternalKernel { get; private set; }
     public static string? LastActivationError { get; private set; }
+    public static Version? PendingVersion
+    {
+        get
+        {
+            var pending = ReadState(PendingStatePath);
+            return pending is not null && TryGetVersion(pending.Version, out var version) ? version : null;
+        }
+    }
 
     public static void Initialize()
     {
@@ -77,11 +85,7 @@ internal static class CadCoreRuntimeBootstrapper
         }
     }
 
-    public static bool IsPendingVersion(Version version)
-    {
-        var pending = ReadState(PendingStatePath);
-        return pending is not null && TryGetVersion(pending.Version, out var pendingVersion) && pendingVersion == version;
-    }
+    public static bool IsPendingVersion(Version version) => PendingVersion == version;
 
     public static void StageForNextLaunch(Version version)
     {
