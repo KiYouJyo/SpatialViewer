@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: ./packaging/Test-LocalizationCompleteness.ps1
 
-      - name: Verify CadCore restart-to-update UI contract
+      - name: Verify Cad Core restart-to-update UI contract
         shell: pwsh
         run: |
           $code = Get-Content src/SpatialViewer.App/Views/AboutView.xaml.cs -Raw
@@ -38,8 +38,8 @@ jobs:
           foreach ($required in @('Microsoft.Windows.AppLifecycle', 'AppInstance.Restart(string.Empty)', 'RestartToApplyCadCoreUpdate()', 'CheckCadUpdateButton.IsEnabled = true')) {
             if (-not $code.Contains($required)) { throw "Missing restart-to-update contract: $required" }
           }
-          if (-not $xaml.Contains('Text="CadCore"')) { throw 'CadCore display name is not the short UI name.' }
-          if (-not $xaml.Contains('Text="SpatialViewer.CadCore"')) { throw 'CadCore update source does not identify the independent repository.' }
+          if (-not $xaml.Contains('Text="Cad Core"')) { throw 'Cad Core display name does not match the format-style label.' }
+          if (-not $xaml.Contains('Text="SpatialViewer.CadCore"')) { throw 'Cad Core update source does not identify the independent repository.' }
 
       - name: Verify extracted kernel checkout
         shell: pwsh
@@ -78,7 +78,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: ./packaging/Test-CadCoreUpdateRelease.ps1 -MinimumVersion '0.2.1' -Compatibility 'SpatialViewer 0.2.x'
 
-      - name: Verify CadCore updater download and staging runtime
+      - name: Verify CadCore download, staging, and fresh-process activation
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -135,19 +135,19 @@ jobs:
           $lines = foreach ($file in @($env:BUNDLE_PATH, $env:ACCEPTANCE_ZIP)) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
           @(
-            'SpatialViewer v0.2.3 CadCore restart-to-update interaction acceptance',
+            'SpatialViewer v0.2.3 Cad Core restart-to-update interaction acceptance',
             "SpatialViewer commit: $env:GITHUB_SHA",
             "Bundled CadCore commit: $env:CADCORE_SHA",
             'Package version: 0.2.3.0',
             'Configuration: Release x64',
             'Trilingual localization contract: PASS',
-            'CadCore restart-to-update UI contract: PASS',
+            'Cad Core restart-to-update UI contract: PASS',
             'Debug build: PASS',
             'Release build: PASS',
             'Tests: PASS',
             'DebugHost startup smoke: PASS',
             'Live CadCore updater release contract: PASS',
-            'CadCore updater download/staging runtime: PASS',
+            'CadCore download/staging/fresh-process activation: PASS',
             'MSIX bundle: PASS',
             'Authenticode signing (CN=AppPublisher): PASS',
             'Offline acceptance ZIP validation: PASS'
