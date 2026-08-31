@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2] - 2026-08-31
+
+### Fixed
+
+- Hardened `SpatialViewer.CadCore` downloads with retry through the system proxy followed by a direct-connection fallback while retaining mandatory GitHub SHA-256 verification.
+- Preserved structured CadCore update failure stages instead of collapsing every runtime failure into the generic “kernel update failed” status; detailed diagnostics are written to the local kernel update log and exposed as a tooltip.
+- Added updater-specific acceptance gates so signed packages are not produced unless the live CadCore release can be downloaded and validated end to end.
+
 ## [0.2.1] - 2026-08-31
 
 ### Added
