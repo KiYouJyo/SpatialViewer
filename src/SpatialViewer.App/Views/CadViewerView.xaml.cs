@@ -5,6 +5,7 @@ using SpatialViewer.Core;
 using SpatialViewer.Formats.Cad;
 using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Presentation;
+using System.Globalization;
 
 namespace SpatialViewer.Product.Views;
 
@@ -12,6 +13,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
 {
     private readonly DocumentSession _session;
     private readonly ACadSharpCadImporter _importer = new();
+    private readonly AppLocalizationService _localization = AppLocalizationService.Default;
     private bool _leftExpanded = true;
     private bool _rightExpanded = true;
     private bool _initialViewportPrepared;
@@ -114,7 +116,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         DispatcherQueue.TryEnqueue(async () =>
         {
             if (_disposed || !AppSettingsStore.Current.AutoCheckFileChanges || !File.Exists(_session.FilePath)) return;
-            ObjectText.Text = "检测到文件变化，正在重新读取…";
+            ObjectText.Text = T("Cad_Status_FileChanged");
             await _session.LoadAsync(_importer, new Progress<ImportProgress>(_ => { }));
             Refresh(forceDraw: true);
         });
@@ -125,24 +127,24 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         if (_disposed) return;
         if (_session.State == DocumentSessionState.Loading)
         {
-            PropertiesEmpty.Text = $"正在打开 {_session.DisplayName}…";
+            PropertiesEmpty.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_OpeningFile"), _session.DisplayName);
             return;
         }
         if (_session.State != DocumentSessionState.Ready || _session.Document is null)
         {
-            PropertiesEmpty.Text = _session.ErrorMessage ?? "无法打开此文件。";
+            PropertiesEmpty.Text = _session.ErrorMessage ?? T("Cad_Status_OpenFailed");
             return;
         }
         LayerList.ItemsSource = _session.Layers;
         OverlayLayerList.ItemsSource = _session.Layers;
-        ZoomText.Text = $"Zoom {_session.Camera.Zoom:G4}";
-        UnitsText.Text = _session.Document is CadDocument cad ? cad.Units.ToString() : "Unitless";
+        ZoomText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_Zoom"), _session.Camera.Zoom);
+        UnitsText.Text = _session.Document is CadDocument cad ? cad.Units.ToString() : T("Cad_Unitless");
         var groups = DiagnosticsPresenter.Aggregate(_session.Diagnostics.Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning));
         DiagnosticsBar.IsOpen = false;
         if (groups.Count > 0)
-            ObjectText.Text = $"已跳过 {groups.Sum(group => group.Count)} 个暂不支持的对象";
+            ObjectText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_SkippedObjects"), groups.Sum(group => group.Count));
         else if (forceDraw)
-            ObjectText.Text = "文件已重新读取";
+            ObjectText.Text = T("Cad_Status_FileReloaded");
         if (!_initialViewportPrepared)
         {
             if (AppSettingsStore.Current.FitToWindowOnOpen) Viewport.Fit();
@@ -161,7 +163,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         ObjectText.Text = item is { } selected ? $"{selected.Metadata.GetValueOrDefault("CadType", selected.Geometry.GetType().Name)} · {selected.Layer.Name}" : string.Empty;
         OverlayPropertiesEmpty.Visibility = PropertiesEmpty.Visibility;
         if (item is { } selectedItem) LayerList.SelectedItem = selectedItem.Layer;
-        ZoomText.Text = $"Zoom {_session.Camera.Zoom:G4}";
+        ZoomText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_Zoom"), _session.Camera.Zoom);
     }
 
     private void Layer_Click(object sender, RoutedEventArgs e) => Viewport.Draw();
@@ -169,24 +171,28 @@ public sealed partial class CadViewerView : UserControl, IDisposable
     private void Fit_Click(object sender, RoutedEventArgs e) => Viewport.Fit();
     private void SelectTool_Click(object sender, RoutedEventArgs e) => SetMode(ViewerMode.Select);
     private void PanTool_Click(object sender, RoutedEventArgs e) => SetMode(ViewerMode.Pan);
+
     private void SetMode(ViewerMode mode)
     {
         Viewport.Mode = mode;
         SelectTool.IsChecked = mode == ViewerMode.Select;
         PanTool.IsChecked = mode == ViewerMode.Pan;
     }
+
     private void ToggleLeft_Click(object sender, RoutedEventArgs e)
     {
         if (_layoutMode == CadLayoutMode.Small) { LayersFlyout.ShowAt((FrameworkElement)sender); return; }
         _leftExpanded = !_leftExpanded;
         LeftPaneHost.IsPaneOpen = _leftExpanded;
     }
+
     private void ToggleRight_Click(object sender, RoutedEventArgs e)
     {
         if (_layoutMode != CadLayoutMode.Large) { PropertiesFlyout.ShowAt((FrameworkElement)sender); return; }
         _rightExpanded = !_rightExpanded;
         RightPaneHost.IsPaneOpen = _rightExpanded;
     }
+
     private void CadRoot_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         var mode = e.NewSize.Width >= 1280 ? CadLayoutMode.Large : e.NewSize.Width >= 800 ? CadLayoutMode.Medium : CadLayoutMode.Small;
@@ -194,6 +200,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         _layoutMode = mode;
         ApplyLayout();
     }
+
     private void ApplyLayout()
     {
         CadRoot.RowDefinitions[0].Height = new GridLength(64);
@@ -218,11 +225,14 @@ public sealed partial class CadViewerView : UserControl, IDisposable
             RightPaneHost.IsPaneOpen = false;
         }
     }
+
     private void CadViewerView_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
     {
         if (e.Key == Windows.System.VirtualKey.Escape) { _session.Selection = null; Viewport.Draw(); PropertiesEmpty.Visibility = Visibility.Visible; PropertiesList.ItemsSource = null; }
         if (e.Key == Windows.System.VirtualKey.F) Viewport.Fit();
     }
+
+    private string T(string key) => _localization.GetString(key);
 
     public void Dispose()
     {
