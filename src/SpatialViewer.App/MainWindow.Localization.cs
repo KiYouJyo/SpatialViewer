@@ -61,8 +61,8 @@ public sealed partial class MainWindow
         // Home pages are cached per tab. Recreating every cached page is the
         // equivalent of UrbanPlanToolbox re-navigating MainPage after a language
         // switch: every x:Uid and constructor-localized value is resolved again.
-        foreach (var homeId in _homeTabs.Keys.ToArray())
-            _homeViews[homeId] = CreateHomeView();
+        foreach (var cachedHomeId in _homeTabs.Keys.ToArray())
+            _homeViews[cachedHomeId] = CreateHomeView();
 
         ApplyLocalizedShellText();
 
@@ -72,9 +72,9 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (visibleSurface == LocalizedSurface.Home && selectedTab is string homeId && _homeTabs.ContainsKey(homeId))
+        if (visibleSurface == LocalizedSurface.Home && selectedTab is string selectedHomeId && _homeTabs.ContainsKey(selectedHomeId))
         {
-            ShowHome(homeId);
+            ShowHome(selectedHomeId);
             return;
         }
 
