@@ -1,55 +1,46 @@
 using System.Runtime.Loader;
 using System.Text.Json;
+using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Product;
 
-if (args.Length != 3)
+if (args.Length != 1)
 {
-    Console.Error.WriteLine("Usage: CadCoreActivationProbe <bundled-acadsharp-dll> <kernel-root> <expected-version>");
+    Console.Error.WriteLine("Usage: CadCoreActivationProbe <expected-version>");
     return 64;
 }
-
-var bundledAssemblyPath = Path.GetFullPath(args[0]);
-var kernelRoot = Path.GetFullPath(args[1]);
-if (!Version.TryParse(args[2], out var expectedVersion) || expectedVersion is null)
+if (!Version.TryParse(args[0], out var expectedVersion) || expectedVersion is null)
 {
-    Console.Error.WriteLine($"Invalid expected version: {args[2]}");
+    Console.Error.WriteLine($"Invalid expected version: {args[0]}");
     return 65;
 }
 expectedVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(expectedVersion);
 
-if (!File.Exists(bundledAssemblyPath))
-{
-    Console.Error.WriteLine($"Bundled Cad Core assembly not found: {bundledAssemblyPath}");
-    return 66;
-}
-if (!Directory.Exists(kernelRoot))
-{
-    Console.Error.WriteLine($"Kernel root not found: {kernelRoot}");
-    return 67;
-}
-
-Environment.SetEnvironmentVariable("SPATIALVIEWER_CADCORE_ROOT", kernelRoot);
-var bundledProbePath = Path.Combine(AppContext.BaseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
-File.Copy(bundledAssemblyPath, bundledProbePath, overwrite: true);
-
 try
 {
-    CadCoreRuntimeBootstrapper.Initialize();
-
+    var kernelRoot = CadCoreRuntimeBootstrapper.KernelRoot;
     var bundledVersion = CadCoreRuntimeBootstrapper.BundledVersion;
     var currentVersion = CadCoreRuntimeBootstrapper.CurrentVersion;
     var isExternal = CadCoreRuntimeBootstrapper.IsUsingExternalKernel;
     var activationError = CadCoreRuntimeBootstrapper.LastActivationError;
     var pendingVersion = CadCoreRuntimeBootstrapper.PendingVersion;
 
+    // This is a compile-time/static reference to the bundled Cad Core project.
+    // If startup preloading is too late, this resolves to the bundled version.
+    var staticallyReferencedVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(
+        typeof(ACadSharpCadImporter).Assembly.GetName().Version ?? new Version(0, 0, 0));
+
+    Console.WriteLine($"KernelRoot={kernelRoot}");
     Console.WriteLine($"BundledVersion={bundledVersion}");
     Console.WriteLine($"CurrentVersion={currentVersion}");
+    Console.WriteLine($"StaticReferenceVersion={staticallyReferencedVersion}");
     Console.WriteLine($"IsUsingExternalKernel={isExternal}");
     Console.WriteLine($"PendingVersion={pendingVersion}");
     Console.WriteLine($"LastActivationError={activationError ?? "-"}");
 
     if (currentVersion != expectedVersion)
         throw new InvalidOperationException($"Activation version mismatch: expected={expectedVersion} actual={currentVersion} bundled={bundledVersion} error={activationError ?? "-"}");
+    if (staticallyReferencedVersion != expectedVersion)
+        throw new InvalidOperationException($"Static Cad Core reference remained bound to the bundled version: static={staticallyReferencedVersion} expected={expectedVersion}");
     if (!isExternal)
         throw new InvalidOperationException("Cad Core bootstrapper did not report an external kernel after activation.");
     if (pendingVersion is not null)
@@ -83,15 +74,11 @@ try
             throw new InvalidOperationException($"Loaded assembly version mismatch: {name.Name}={version}, expected={expectedVersion}");
     }
 
-    Console.WriteLine($"Cad Core fresh-process activation PASS: {CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)}");
+    Console.WriteLine($"Cad Core static-binding activation PASS: {CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)}");
     return 0;
 }
 catch (Exception exception)
 {
     Console.Error.WriteLine(exception);
     return 1;
-}
-finally
-{
-    try { if (File.Exists(bundledProbePath)) File.Delete(bundledProbePath); } catch { }
 }
