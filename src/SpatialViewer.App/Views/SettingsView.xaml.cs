@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace SpatialViewer.Product.Views;
 
@@ -82,27 +81,25 @@ public sealed partial class SettingsView : UserControl
         LanguageStatusText.Visibility = Visibility.Collapsed;
         var switched = await _localization.SwitchLanguageAsync(preference);
         LanguagePicker.IsEnabled = true;
-        if (!switched)
-        {
-            LanguageStatusText.Text = _localization.GetString("Language_SwitchFailed");
-            LanguageStatusText.Visibility = Visibility.Visible;
-            _isSynchronizing = true;
-            try
-            {
-                LanguagePicker.SelectedIndex = AppSettingsStore.Current.Language switch
-                {
-                    AppLanguagePreference.SimplifiedChinese => 1,
-                    AppLanguagePreference.Japanese => 2,
-                    AppLanguagePreference.English => 3,
-                    _ => 0
-                };
-            }
-            finally { _isSynchronizing = false; }
-            return;
-        }
+        if (switched) return;
 
-        ApplyLocalizedText();
-        ApplyLocalizedNavigation();
+        LanguageStatusText.Text = _localization.GetString("Language_SwitchFailed");
+        LanguageStatusText.Visibility = Visibility.Visible;
+        _isSynchronizing = true;
+        try
+        {
+            LanguagePicker.SelectedIndex = AppSettingsStore.Current.Language switch
+            {
+                AppLanguagePreference.SimplifiedChinese => 1,
+                AppLanguagePreference.Japanese => 2,
+                AppLanguagePreference.English => 3,
+                _ => 0
+            };
+        }
+        finally
+        {
+            _isSynchronizing = false;
+        }
     }
 
     private void RestoreSessionToggle_Toggled(object sender, RoutedEventArgs e)
@@ -168,37 +165,5 @@ public sealed partial class SettingsView : UserControl
         DrawingBackgroundFollowItem.Content = T("DrawingBackground_Follow");
         DrawingBackgroundDarkItem.Content = T("DrawingBackground_Dark");
         DrawingBackgroundLightItem.Content = T("DrawingBackground_Light");
-    }
-
-    private void ApplyLocalizedNavigation()
-    {
-        if (XamlRoot?.Content is not DependencyObject root) return;
-        var navigation = FindDescendant<NavigationView>(root);
-        if (navigation is null) return;
-        foreach (var candidate in navigation.MenuItems.Concat(navigation.FooterMenuItems).OfType<NavigationViewItem>())
-        {
-            if (candidate.Tag is not string tag) continue;
-            candidate.Content = tag switch
-            {
-                "Home" => _localization.GetString("Nav_Home"),
-                "Projects" => _localization.GetString("Nav_Projects"),
-                "Favorites" => _localization.GetString("Nav_Favorites"),
-                "ImportFolder" => _localization.GetString("Nav_ImportFolder"),
-                "About" => _localization.GetString("Nav_About"),
-                "Settings" => _localization.GetString("Nav_Settings"),
-                _ => candidate.Content
-            };
-        }
-    }
-
-    private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            if (child is T match) return match;
-            if (FindDescendant<T>(child) is { } descendant) return descendant;
-        }
-        return null;
     }
 }
