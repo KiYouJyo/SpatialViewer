@@ -42,6 +42,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         AppSettingsStore.Changed += AppSettingsStore_Changed;
         ApplyViewerPreferences();
         ConfigureFileWatcher();
+        ApplyLayout();
         Refresh();
     }
 
@@ -136,7 +137,6 @@ public sealed partial class CadViewerView : UserControl, IDisposable
             return;
         }
         LayerList.ItemsSource = _session.Layers;
-        OverlayLayerList.ItemsSource = _session.Layers;
         ZoomText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_Zoom"), _session.Camera.Zoom);
         UnitsText.Text = _session.Document is CadDocument cad ? cad.Units.ToString() : T("Cad_Unitless");
         var groups = DiagnosticsPresenter.Aggregate(_session.Diagnostics.Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning));
@@ -159,9 +159,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         PropertiesEmpty.Visibility = sections.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var rows = sections.SelectMany(section => section.Rows.Select(row => new PropertyRow($"{section.Name} · {row.Label}", row.Value))).ToArray();
         PropertiesList.ItemsSource = rows;
-        OverlayPropertiesList.ItemsSource = rows;
         ObjectText.Text = item is { } selected ? $"{selected.Metadata.GetValueOrDefault("CadType", selected.Geometry.GetType().Name)} · {selected.Layer.Name}" : string.Empty;
-        OverlayPropertiesEmpty.Visibility = PropertiesEmpty.Visibility;
         if (item is { } selectedItem) LayerList.SelectedItem = selectedItem.Layer;
         ZoomText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_Zoom"), _session.Camera.Zoom);
     }
@@ -181,14 +179,12 @@ public sealed partial class CadViewerView : UserControl, IDisposable
 
     private void ToggleLeft_Click(object sender, RoutedEventArgs e)
     {
-        if (_layoutMode == CadLayoutMode.Small) { LayersFlyout.ShowAt((FrameworkElement)sender); return; }
         _leftExpanded = !_leftExpanded;
         LeftPaneHost.IsPaneOpen = _leftExpanded;
     }
 
     private void ToggleRight_Click(object sender, RoutedEventArgs e)
     {
-        if (_layoutMode != CadLayoutMode.Large) { PropertiesFlyout.ShowAt((FrameworkElement)sender); return; }
         _rightExpanded = !_rightExpanded;
         RightPaneHost.IsPaneOpen = _rightExpanded;
     }
@@ -203,27 +199,24 @@ public sealed partial class CadViewerView : UserControl, IDisposable
 
     private void ApplyLayout()
     {
-        CadRoot.RowDefinitions[0].Height = new GridLength(64);
+        // Left and right panes deliberately follow the same responsive contract.
+        // Narrow widths change only pane length; neither side is replaced by a
+        // Flyout, so properties never cover the drawing as a floating surface.
         ViewerToolbar.Visibility = Visibility.Visible;
-        if (_layoutMode == CadLayoutMode.Large)
+        CadRoot.RowDefinitions[0].Height = new GridLength(64);
+
+        var paneLength = _layoutMode switch
         {
-            LeftPaneHost.OpenPaneLength = 300;
-            LeftPaneHost.IsPaneOpen = _leftExpanded;
-            RightPaneHost.IsPaneOpen = _rightExpanded;
-        }
-        else if (_layoutMode == CadLayoutMode.Medium)
-        {
-            LeftPaneHost.OpenPaneLength = 240;
-            LeftPaneHost.IsPaneOpen = _leftExpanded;
-            RightPaneHost.IsPaneOpen = false;
-        }
-        else
-        {
-            CadRoot.RowDefinitions[0].Height = new GridLength(0);
-            ViewerToolbar.Visibility = Visibility.Collapsed;
-            LeftPaneHost.IsPaneOpen = false;
-            RightPaneHost.IsPaneOpen = false;
-        }
+            CadLayoutMode.Large => 300d,
+            CadLayoutMode.Medium => 240d,
+            _ => 220d
+        };
+        LeftPaneHost.OpenPaneLength = paneLength;
+        RightPaneHost.OpenPaneLength = paneLength;
+        LeftPaneHost.DisplayMode = SplitViewDisplayMode.Inline;
+        RightPaneHost.DisplayMode = SplitViewDisplayMode.Inline;
+        LeftPaneHost.IsPaneOpen = _leftExpanded;
+        RightPaneHost.IsPaneOpen = _rightExpanded;
     }
 
     private void CadViewerView_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)

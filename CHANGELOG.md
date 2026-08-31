@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.5] - 2026-08-31
+
+### Fixed
+
+- Restored the native Fluent shell hierarchy: title bar and hamburger navigation remain on Mica while the NavigationView content plane uses `LayerFillColorDefaultBrush` in light and dark themes.
+- Returned normal, hover, pressed, and selected navigation-item treatment to the native WinUI NavigationView template instead of flattening chrome and content onto one transparent layer.
+- Moved SpatialViewer and Cad Core update-check results into a process-lifetime About update session, matching UrbanPlanToolbox's shared update-view-model lifetime so navigation no longer resets the displayed result.
+- Retained the Cad Core updater service with the session state so an `UpdateAvailable` result can still proceed to download/staging after leaving and returning to About.
+- Replaced the medium/small CAD properties Flyout with the same inline SplitView sidebar model as the layers pane; responsive pane widths are now 300 / 240 / 220 DIP.
+- Kept the CAD toolbar available at narrow widths with horizontal scrolling so pane toggles remain reachable without floating over the drawing.
+
 ## [0.2.4] - 2026-08-31
 
 ### Fixed
@@ -77,17 +88,3 @@
 本文件记录 Spatial Viewer 的用户可见变化与重要工程变化。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本规划遵循语义化版本的基本原则；在首个可验证版本形成前，变化集中记录于 `Unreleased`。
-
-## [Unreleased]
-
-### Added
-
-- 初始化项目中、日、英三语 README。
-- 增加贡献指南、安全政策与行为准则。
-- 增加路线图、支持说明、隐私说明和第三方声明。
-- 增加 GitHub Issue 与 Pull Request 基础模板。
-
-### Notes
-
-- 项目仍处于早期开发阶段。
-- README 与路线图中列出的格式属于计划覆盖范围，不应解读为当前版本已经完整支持。
