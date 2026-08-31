@@ -49,7 +49,7 @@ if ($payloadRoot) {
         }
         $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($source).FileVersion
         if ([string]::IsNullOrWhiteSpace($fileVersion) -or -not $fileVersion.StartsWith("$BundledVersion.")) {
-            throw "Resolved Cad Core payload version mismatch for $name: $fileVersion does not match $BundledVersion"
+            throw "Resolved Cad Core payload version mismatch for ${name}: $fileVersion does not match $BundledVersion"
         }
     }
 }
