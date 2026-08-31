@@ -29,7 +29,7 @@ internal sealed class CadCoreUpdateService
     private GitHubReleaseAsset? _pendingAsset;
     private Version? _pendingVersion;
 
-    public Version CurrentVersion => CadCoreRuntimeBootstrapper.CurrentVersion;
+    private static Version CurrentVersion => CadCoreRuntimeBootstrapper.CurrentVersion;
 
     public async Task<CadCoreUpdateResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
