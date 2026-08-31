@@ -69,7 +69,7 @@ public sealed partial class AboutView : UserControl
         }
 
         CheckCadUpdateButton.IsEnabled = false;
-        _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Checking, ErrorCode = null };
+        _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Checking, ErrorCode = null, ErrorDetail = null };
         RenderCadCoreUpdate(_cadCoreUpdateResult);
         _cadCoreUpdateResult = await _cadCoreUpdate.CheckForUpdatesAsync();
         RenderCadCoreUpdate(_cadCoreUpdateResult);
@@ -89,13 +89,14 @@ public sealed partial class AboutView : UserControl
         }
         catch (OperationCanceledException)
         {
-            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled" };
+            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled", ErrorDetail = null };
         }
         RenderCadCoreUpdate(_cadCoreUpdateResult);
     }
 
     private void RenderCadCoreUpdate(CadCoreUpdateResult result, double? progress = null)
     {
+        ToolTipService.SetToolTip(CadUpdateStatusText, null);
         CadCurrentVersionText.Text = $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.CurrentVersion)}";
         CadAvailableVersionText.Text = result.AvailableVersion is null
             ? "—"
@@ -142,6 +143,7 @@ public sealed partial class AboutView : UserControl
                 break;
             case CadCoreUpdateState.Failed:
                 CadUpdateStatusText.Text = ResolveCadUpdateError(result.ErrorCode);
+                if (!string.IsNullOrWhiteSpace(result.ErrorDetail)) ToolTipService.SetToolTip(CadUpdateStatusText, result.ErrorDetail);
                 CheckCadUpdateButton.Content = T("Update_Retry");
                 CheckCadUpdateButton.IsEnabled = true;
                 break;
@@ -151,11 +153,12 @@ public sealed partial class AboutView : UserControl
     private string ResolveCadUpdateError(string? errorCode) => errorCode switch
     {
         "NoRelease" => T("Update_CadNoRelease"),
-        "Timeout" => T("Update_Timeout"),
-        "Network" => T("Update_NetworkFailed"),
+        "Timeout" or "DownloadTimeout" => T("Update_Timeout"),
+        "Network" or "DownloadNetwork" => T("Update_NetworkFailed"),
         "MissingAsset" => T("Update_CadMissingAsset"),
         "Cancelled" => T("Update_CadCancelled"),
-        _ => T("Update_CadFailed")
+        null or "" => T("Update_CadFailed"),
+        _ => $"{T("Update_CadFailed")} · {errorCode}"
     };
 
     private async void ReleaseNotesButton_Click(object sender, RoutedEventArgs e) =>
@@ -176,9 +179,6 @@ public sealed partial class AboutView : UserControl
 
     private void ApplyResponsiveLayout()
     {
-        // The update rows intentionally retain the original table hierarchy.
-        // Their nested ScrollViewers handle genuinely narrow windows without
-        // converting the design into a different card layout.
         ConfigureMetadataGrid(_layoutMode);
         ConfigureProjectGrid(_layoutMode);
     }
