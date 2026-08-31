@@ -57,6 +57,12 @@ jobs:
           if ($process.HasExited) { throw "DebugHost exited during smoke test with code $($process.ExitCode)." }
           Stop-Process -Id $process.Id -Force
 
+      - name: Verify live CadCore updater release contract
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./packaging/Test-CadCoreUpdateRelease.ps1 -MinimumVersion '0.2.1' -Compatibility 'SpatialViewer 0.2.x'
+
       - name: Build unsigned 0.2.1 x64 MSIX bundle
         shell: pwsh
         run: |
@@ -108,15 +114,16 @@ jobs:
           $lines = foreach ($file in @($env:BUNDLE_PATH, $env:ACCEPTANCE_ZIP)) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
           @(
-            'SpatialViewer v0.2.1 Settings/About UI correction acceptance',
+            'SpatialViewer v0.2.1 Settings/About and CadCore updater acceptance',
             "SpatialViewer commit: $env:GITHUB_SHA",
-            "CadCore commit: $env:CADCORE_SHA",
+            "Bundled CadCore commit: $env:CADCORE_SHA",
             'Package version: 0.2.1.0',
             'Configuration: Release x64',
             'Debug build: PASS',
             'Release build: PASS',
             'Tests: PASS',
             'DebugHost startup smoke: PASS',
+            'Live CadCore updater release contract: PASS',
             'MSIX bundle: PASS',
             'Authenticode signing (CN=AppPublisher): PASS',
             'Offline acceptance ZIP validation: PASS'
