@@ -20,8 +20,8 @@ internal sealed record GitHubReleaseInfo(
 
 internal static class GitHubUpdateService
 {
-    private static readonly HttpClient Client = CreateClient(TimeSpan.FromSeconds(15));
-    private static readonly HttpClient DownloadClient = CreateClient(TimeSpan.FromMinutes(5));
+    private static readonly HttpClient Client = CreateApiClient(TimeSpan.FromSeconds(15));
+    private static readonly HttpClient DownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5));
 
     public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
     {
@@ -129,12 +129,19 @@ internal static class GitHubUpdateService
         }
     }
 
-    private static HttpClient CreateClient(TimeSpan timeout)
+    private static HttpClient CreateApiClient(TimeSpan timeout)
     {
         var client = new HttpClient { Timeout = timeout };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.1"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+        return client;
+    }
+
+    private static HttpClient CreateDownloadClient(TimeSpan timeout)
+    {
+        var client = new HttpClient { Timeout = timeout };
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.1"));
         return client;
     }
 }
