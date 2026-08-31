@@ -32,6 +32,7 @@ $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("SpatialViewer-CadCore-Rewrite
 $unbundle = Join-Path $tempRoot 'bundle'
 $unpack = Join-Path $tempRoot 'package'
 $bundleInputs = Join-Path $tempRoot 'bundle-inputs'
+$verifyBundle = Join-Path $tempRoot 'verify-bundle'
 $repackedInner = Join-Path $tempRoot 'repacked.msix'
 $repackedBundle = Join-Path $tempRoot 'repacked.msixbundle'
 
@@ -103,6 +104,18 @@ try {
     # immutable four-part package identity from the original bundle explicitly.
     & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /bv $bundleVersion /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed: $LASTEXITCODE" }
+
+    # Verify the generated outer identity before replacing the caller's bundle.
+    New-Item -ItemType Directory -Force -Path $verifyBundle | Out-Null
+    & $makeappx.FullName unbundle /p $repackedBundle /d $verifyBundle /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx verification unbundle failed: $LASTEXITCODE" }
+    $verifyManifestPath = Join-Path $verifyBundle 'AppxMetadata\AppxBundleManifest.xml'
+    [xml]$verifyManifest = Get-Content -LiteralPath $verifyManifestPath -Raw
+    $verifyIdentity = $verifyManifest.SelectSingleNode("/*[local-name()='Bundle']/*[local-name()='Identity']")
+    $rewrittenVersion = if ($verifyIdentity) { [string]$verifyIdentity.Version } else { '' }
+    if ($rewrittenVersion -ne $bundleVersion -or $rewrittenVersion -ne $packageVersion) {
+        throw "Rewritten bundle version mismatch: rewritten=$rewrittenVersion original=$bundleVersion package=$packageVersion"
+    }
 
     Move-Item -LiteralPath $repackedBundle -Destination $bundle -Force
 
