@@ -15,7 +15,7 @@
                 <TextBlock Text="◇" FontSize="34" FontWeight="Light" HorizontalAlignment="Center" VerticalAlignment="Center" />
               </Border>
               <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="图览" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="ProductNameText" Text="图览" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="TaglineText" Text="建筑、规划与空间数据统一查看器" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                 <TextBlock Text="CAD · GIS · BIM · Rhino Viewer" Style="{StaticResource MetadataText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
               </StackPanel>
