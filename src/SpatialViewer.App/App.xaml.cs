@@ -8,11 +8,8 @@ public partial class App : Application
 
     public App()
     {
-        // A downloaded CadCore is activated only at process start. This runs
-        // before XAML or MainWindow can touch any statically referenced kernel
-        // type, so the default AssemblyLoadContext can bind to the staged newer
-        // assembly version without modifying the read-only MSIX install folder.
-        CadCoreRuntimeBootstrapper.Initialize();
+        // CadCoreEarlyBootstrap runs as a module initializer before WinUI/XAML
+        // can materialize any type that statically references the bundled kernel.
         AppLocalizationService.Default.ApplyPersistedLanguage(AppSettingsStore.Current);
         InitializeComponent();
     }

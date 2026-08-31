@@ -1,0 +1,126 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$BundlePath,
+
+    [string]$BundledVersion = '0.3.0'
+)
+
+$ErrorActionPreference = 'Stop'
+
+$bundle = [IO.Path]::GetFullPath($BundlePath)
+if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) {
+    throw "MSIXBundle was not found: $bundle"
+}
+
+$makeappx = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter makeappx.exe |
+    Where-Object FullName -match '\\x64\\makeappx.exe$' |
+    Sort-Object FullName -Descending |
+    Select-Object -First 1
+if (-not $makeappx) {
+    throw 'x64 makeappx.exe was not found.'
+}
+
+$cadCoreNames = @(
+    'SpatialViewer.Core.dll',
+    'SpatialViewer.Rendering.dll',
+    'SpatialViewer.Rendering.Windows.dll',
+    'SpatialViewer.Formats.Cad.dll',
+    'SpatialViewer.Formats.Cad.ACadSharp.dll'
+)
+
+$tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("SpatialViewer-CadCore-Rewrite-" + [Guid]::NewGuid().ToString('N'))
+$unbundle = Join-Path $tempRoot 'bundle'
+$unpack = Join-Path $tempRoot 'package'
+$bundleInputs = Join-Path $tempRoot 'bundle-inputs'
+$verifyBundle = Join-Path $tempRoot 'verify-bundle'
+$repackedInner = Join-Path $tempRoot 'repacked.msix'
+$repackedBundle = Join-Path $tempRoot 'repacked.msixbundle'
+
+try {
+    New-Item -ItemType Directory -Force -Path $unbundle, $unpack, $bundleInputs | Out-Null
+
+    & $makeappx.FullName unbundle /p $bundle /d $unbundle /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx unbundle failed: $LASTEXITCODE" }
+
+    $bundleManifestPath = Join-Path $unbundle 'AppxMetadata\AppxBundleManifest.xml'
+    if (-not (Test-Path -LiteralPath $bundleManifestPath -PathType Leaf)) {
+        throw 'AppxBundleManifest.xml was not found after unbundling.'
+    }
+    [xml]$bundleManifest = Get-Content -LiteralPath $bundleManifestPath -Raw
+    $bundleIdentity = $bundleManifest.SelectSingleNode("/*[local-name()='Bundle']/*[local-name()='Identity']")
+    $bundleVersion = if ($bundleIdentity) { [string]$bundleIdentity.Version } else { '' }
+    if ($bundleVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+        throw "Original bundle version is invalid: $bundleVersion"
+    }
+
+    $innerPackages = @(Get-ChildItem -LiteralPath $unbundle -Filter '*.msix' -File)
+    if ($innerPackages.Count -ne 1) {
+        throw "Expected exactly one inner x64 MSIX, found $($innerPackages.Count)."
+    }
+    $inner = $innerPackages[0]
+
+    & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
+
+    $packageManifestPath = Join-Path $unpack 'AppxManifest.xml'
+    if (-not (Test-Path -LiteralPath $packageManifestPath -PathType Leaf)) {
+        throw 'AppxManifest.xml was not found after unpacking the inner MSIX.'
+    }
+    [xml]$packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw
+    $packageIdentity = $packageManifest.SelectSingleNode("/*[local-name()='Package']/*[local-name()='Identity']")
+    $packageVersion = if ($packageIdentity) { [string]$packageIdentity.Version } else { '' }
+    if ($packageVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+        throw "Inner package version is invalid: $packageVersion"
+    }
+    if ($packageVersion -ne $bundleVersion) {
+        throw "Bundle/package version mismatch before rewrite: bundle=$bundleVersion package=$packageVersion"
+    }
+
+    $fallback = Join-Path $unpack "Kernels\Bundled\$BundledVersion"
+    New-Item -ItemType Directory -Force -Path $fallback | Out-Null
+
+    foreach ($name in $cadCoreNames) {
+        $rootCopy = Join-Path $unpack $name
+        if (-not (Test-Path -LiteralPath $rootCopy -PathType Leaf)) {
+            throw "Cad Core root payload was not found before rewrite: $name"
+        }
+        $destination = Join-Path $fallback $name
+        Move-Item -LiteralPath $rootCopy -Destination $destination -Force
+    }
+
+    # MakeAppx regenerates package footprint files. They must not be fed back
+    # into the pack operation from the unpacked source directory.
+    foreach ($footprint in @('AppxBlockMap.xml', 'AppxSignature.p7x', '[Content_Types].xml')) {
+        Remove-Item -LiteralPath (Join-Path $unpack $footprint) -Force -ErrorAction SilentlyContinue
+    }
+
+    & $makeappx.FullName pack /d $unpack /p $repackedInner /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx pack failed: $LASTEXITCODE" }
+
+    $innerInput = Join-Path $bundleInputs $inner.Name
+    Copy-Item -LiteralPath $repackedInner -Destination $innerInput -Force
+
+    # MakeAppx otherwise synthesizes a date/time bundle version. Preserve the
+    # immutable four-part package identity from the original bundle explicitly.
+    & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /bv $bundleVersion /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed: $LASTEXITCODE" }
+
+    # Verify the generated outer identity before replacing the caller's bundle.
+    New-Item -ItemType Directory -Force -Path $verifyBundle | Out-Null
+    & $makeappx.FullName unbundle /p $repackedBundle /d $verifyBundle /o | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "makeappx verification unbundle failed: $LASTEXITCODE" }
+    $verifyManifestPath = Join-Path $verifyBundle 'AppxMetadata\AppxBundleManifest.xml'
+    [xml]$verifyManifest = Get-Content -LiteralPath $verifyManifestPath -Raw
+    $verifyIdentity = $verifyManifest.SelectSingleNode("/*[local-name()='Bundle']/*[local-name()='Identity']")
+    $rewrittenVersion = if ($verifyIdentity) { [string]$verifyIdentity.Version } else { '' }
+    if ($rewrittenVersion -ne $bundleVersion -or $rewrittenVersion -ne $packageVersion) {
+        throw "Rewritten bundle version mismatch: rewritten=$rewrittenVersion original=$bundleVersion package=$packageVersion"
+    }
+
+    Move-Item -LiteralPath $repackedBundle -Destination $bundle -Force
+
+    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; version=$bundleVersion."
+}
+finally {
+    Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+}

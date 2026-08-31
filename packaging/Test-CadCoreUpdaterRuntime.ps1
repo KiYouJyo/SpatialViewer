@@ -1,8 +1,10 @@
 [CmdletBinding()]
 param(
     [string]$Repository = 'KiYouJyo/SpatialViewer.CadCore',
-    [string]$MinimumVersion = '0.2.1',
-    [string]$Compatibility = 'SpatialViewer 0.2.x'
+    [string]$MinimumVersion = '0.3.1',
+    [string]$Compatibility = 'SpatialViewer 0.2.x',
+    [string]$BaselineCommit = 'a597a46fcf920ac15cbbf172b4af34972a4b2ca0',
+    [string]$BaselineVersion = '0.3.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,13 +20,22 @@ function New-DownloadClient([bool]$UseProxy) {
     $handler.UseProxy = $UseProxy
     $client = [System.Net.Http.HttpClient]::new($handler)
     $client.Timeout = [TimeSpan]::FromMinutes(5)
-    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.3')
+    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.4')
     $client.DefaultRequestHeaders.Accept.ParseAdd('application/octet-stream')
     return $client
 }
 
+function Remove-CadCoreBuildOutputs([string]$CadCoreRoot) {
+    Get-ChildItem -LiteralPath (Join-Path $CadCoreRoot 'src') -Directory | ForEach-Object {
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'bin') -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'obj') -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -LiteralPath 'packaging/CadCoreActivationProbe/bin' -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath 'packaging/CadCoreActivationProbe/obj' -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $headers = @{
-    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.3'
+    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.4'
     'Accept' = 'application/vnd.github+json'
     'X-GitHub-Api-Version' = '2022-11-28'
 }
@@ -37,10 +48,15 @@ $archive = Join-Path $temp 'CadCore.zip'
 $expanded = Join-Path $temp 'expanded'
 $kernelRoot = Join-Path $temp 'LocalState/Kernels/CadCore'
 $versionsRoot = Join-Path $kernelRoot 'versions'
+$cadCoreRepo = (Resolve-Path 'external/SpatialViewer.CadCore').Path
 New-Item -ItemType Directory -Force -Path $expanded, $versionsRoot | Out-Null
 
 $proxyClient = $null
 $directClient = $null
+$oldRootOverride = $env:SPATIALVIEWER_CADCORE_ROOT
+$originalCadCoreSha = (git -C $cadCoreRepo rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($originalCadCoreSha)) { throw 'Unable to determine the checked-out Cad Core gitlink.' }
+$baselineCheckedOut = $false
 try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $headers
     if (-not $release -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)) {
@@ -50,7 +66,9 @@ try {
     $availableText = ([string]$release.tag_name).TrimStart('v', 'V')
     $available = Normalize-Version ([version]::Parse($availableText))
     $minimum = Normalize-Version ([version]::Parse($MinimumVersion))
+    $baseline = Normalize-Version ([version]::Parse($BaselineVersion))
     if ($available -lt $minimum) { throw "Latest CadCore version $available is older than required $minimum." }
+    if ($baseline -ge $available) { throw "Pinned activation baseline must be older than latest: baseline=$baseline latest=$available" }
 
     $assetName = "CadCore-v$availableText-x64.zip"
     $asset = @($release.assets) | Where-Object { $_.name -eq $assetName } | Select-Object -First 1
@@ -110,6 +128,8 @@ try {
     if ($manifest.runtime -cne 'x64') { throw "Unsupported CadCore runtime: $($manifest.runtime)" }
     if ($manifest.sourceRepository -cne $Repository) { throw "Unexpected source repository: $($manifest.sourceRepository)" }
     if ($manifest.compatibility -cne $Compatibility) { throw "Unexpected compatibility contract: $($manifest.compatibility)" }
+    if ([string]::IsNullOrWhiteSpace([string]$manifest.abiVersion)) { throw 'Manifest abiVersion is missing.' }
+    $availableAbi = [version]::Parse([string]$manifest.abiVersion)
 
     $projects = @(
         'SpatialViewer.Core',
@@ -122,8 +142,12 @@ try {
         $projectRoot = Join-Path (Join-Path $expanded 'bin') $project
         $dll = Get-ChildItem -LiteralPath $projectRoot -Recurse -Filter "$project.dll" | Select-Object -First 1
         if (-not $dll) { throw "Missing required assembly: $($project).dll" }
-        $assemblyVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version)
-        if ($assemblyVersion -ne $available) { throw "Assembly version mismatch for $($project).dll: $assemblyVersion != $available" }
+        $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version
+        if ($assemblyVersion -ne $availableAbi) { throw "ABI mismatch for $($project).dll: $assemblyVersion != $availableAbi" }
+        $fileVersionText = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll.FullName).FileVersion
+        if ([string]::IsNullOrWhiteSpace($fileVersionText)) { throw "FileVersion is missing for $($project).dll" }
+        $fileVersion = Normalize-Version ([version]::Parse($fileVersionText))
+        if ($fileVersion -ne $available) { throw "Product version mismatch for $($project).dll: $fileVersion != $available" }
     }
 
     $finalDirectory = Join-Path $versionsRoot $availableText
@@ -137,20 +161,27 @@ try {
     Move-Item -LiteralPath $pendingTemp -Destination $pendingPath -Force
     $pending = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json
     if ([string]$pending.Version -cne $availableText) { throw "Pending-state version mismatch: $($pending.Version)" }
-
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
 
-    $bundledDll = Get-ChildItem src/SpatialViewer.App/bin -Recurse -Filter SpatialViewer.Formats.Cad.ACadSharp.dll |
-        Where-Object { $_.FullName -match '\\Release\\' } |
-        Sort-Object LastWriteTimeUtc -Descending |
-        Select-Object -First 1
-    if (-not $bundledDll) { throw 'Bundled Release SpatialViewer.Formats.Cad.ACadSharp.dll was not found for fresh-process activation.' }
-    $bundledVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($bundledDll.FullName).Version)
-    if ($bundledVersion -ge $available) { throw "Activation probe requires an older bundled Cad Core: bundled=$bundledVersion available=$available" }
-    Write-Host "CadCore activation baseline: bundled=$bundledVersion available=$available"
+    git -C $cadCoreRepo fetch origin $BaselineCommit --depth=1
+    if ($LASTEXITCODE -ne 0) { throw "Unable to fetch pinned Cad Core baseline $BaselineCommit" }
+    git -C $cadCoreRepo checkout --detach $BaselineCommit
+    if ($LASTEXITCODE -ne 0) { throw "Unable to checkout pinned Cad Core baseline $BaselineCommit" }
+    $baselineCheckedOut = $true
+    Remove-CadCoreBuildOutputs $cadCoreRepo
 
-    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $bundledDll.FullName $kernelRoot $availableText
-    if ($LASTEXITCODE -ne 0) { throw "CadCore fresh-process activation probe failed: $LASTEXITCODE" }
+    $propsPath = Join-Path $cadCoreRepo 'Directory.Build.props'
+    [xml]$baselineProps = Get-Content -LiteralPath $propsPath
+    $checkedOutBaselineText = [string]$baselineProps.Project.PropertyGroup.Version
+    $checkedOutBaseline = Normalize-Version ([version]::Parse($checkedOutBaselineText))
+    if ($checkedOutBaseline -ne $baseline) { throw "Pinned Cad Core baseline metadata mismatch: expected=$baseline actual=$checkedOutBaseline" }
+    $baselineAbi = [version]::Parse([string]$baselineProps.Project.PropertyGroup.AbiVersion)
+    if ($baselineAbi -ne $availableAbi) { throw "Pinned Cad Core baseline ABI mismatch: baseline=$baselineAbi online=$availableAbi" }
+    Write-Host "CadCore activation regression baseline: product=$baseline ABI=$baselineAbi @ $BaselineCommit; online target=$available"
+
+    $env:SPATIALVIEWER_CADCORE_ROOT = $kernelRoot
+    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -p:Platform=x64 -- $availableText
+    if ($LASTEXITCODE -ne 0) { throw "CadCore early-binding fresh-process activation probe failed: $LASTEXITCODE" }
 
     if (Test-Path -LiteralPath $pendingPath) { throw 'pending.json still exists after fresh-process activation.' }
     $activePath = Join-Path $kernelRoot 'active.json'
@@ -158,9 +189,15 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "CadCore fresh-process activation contract PASS: $availableText is active over bundled $bundledVersion"
+    Write-Host "CadCore stable-ABI restart activation PASS: bundled product=$baseline -> online product=$available; ABI=$availableAbi"
 }
 finally {
+    $env:SPATIALVIEWER_CADCORE_ROOT = $oldRootOverride
+    if ($baselineCheckedOut) {
+        git -C $cadCoreRepo checkout --detach $originalCadCoreSha | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Failed to restore Cad Core gitlink to $originalCadCoreSha" }
+        Remove-CadCoreBuildOutputs $cadCoreRepo
+    }
     if ($proxyClient) { $proxyClient.Dispose() }
     if ($directClient) { $directClient.Dispose() }
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue

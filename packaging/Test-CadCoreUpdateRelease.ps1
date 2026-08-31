@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Repository = 'KiYouJyo/SpatialViewer.CadCore',
-    [string]$MinimumVersion = '0.2.1',
+    [string]$MinimumVersion = '0.3.1',
     [string]$Compatibility = 'SpatialViewer 0.2.x'
 )
 
@@ -12,7 +12,7 @@ function Normalize-Version([version]$Version) {
 }
 
 $headers = @{
-    'User-Agent' = 'SpatialViewer-Acceptance/0.2.1'
+    'User-Agent' = 'SpatialViewer-Acceptance/0.2.4'
     'Accept' = 'application/vnd.github+json'
     'X-GitHub-Api-Version' = '2022-11-28'
 }
@@ -45,7 +45,7 @@ try {
         throw "$assetName does not expose a GitHub SHA-256 digest."
     }
 
-    Invoke-WebRequest -Uri ([string]$asset.browser_download_url) -Headers @{ 'User-Agent' = 'SpatialViewer-Acceptance/0.2.1' } -OutFile $archive
+    Invoke-WebRequest -Uri ([string]$asset.browser_download_url) -Headers @{ 'User-Agent' = 'SpatialViewer-Acceptance/0.2.4' } -OutFile $archive
     $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     $expectedHash = ([string]$asset.digest).Substring(7).ToLowerInvariant()
     if ($actualHash -cne $expectedHash) {
@@ -62,6 +62,8 @@ try {
     if ($manifest.runtime -cne 'x64') { throw "Unsupported CadCore runtime: $($manifest.runtime)" }
     if ($manifest.sourceRepository -cne $Repository) { throw "Unexpected source repository: $($manifest.sourceRepository)" }
     if ($manifest.compatibility -cne $Compatibility) { throw "Unexpected compatibility contract: $($manifest.compatibility)" }
+    if ([string]::IsNullOrWhiteSpace([string]$manifest.abiVersion)) { throw 'Manifest abiVersion is missing.' }
+    $abiVersion = [version]::Parse([string]$manifest.abiVersion)
 
     $projects = @(
         'SpatialViewer.Core',
@@ -75,13 +77,20 @@ try {
         if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) { throw "Missing project payload: $project" }
         $dll = Get-ChildItem -LiteralPath $projectRoot -Recurse -Filter "$project.dll" | Select-Object -First 1
         if (-not $dll) { throw "Missing required assembly: $project.dll" }
-        $assemblyVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version)
-        if ($assemblyVersion -ne $available) {
-            throw "Assembly version mismatch for $($project).dll: $assemblyVersion != $available"
+
+        $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version
+        if ($assemblyVersion -ne $abiVersion) {
+            throw "ABI mismatch for $($project).dll: $assemblyVersion != $abiVersion"
+        }
+        $fileVersionText = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll.FullName).FileVersion
+        if ([string]::IsNullOrWhiteSpace($fileVersionText)) { throw "FileVersion is missing for $($project).dll" }
+        $fileVersion = Normalize-Version ([version]::Parse($fileVersionText))
+        if ($fileVersion -ne $available) {
+            throw "Product version mismatch for $($project).dll: $fileVersion != $available"
         }
     }
 
-    Write-Host "CadCore updater release contract PASS: v$availableText / $assetName / sha256:$actualHash"
+    Write-Host "CadCore updater release contract PASS: product=v$availableText ABI=$abiVersion / $assetName / sha256:$actualHash"
 }
 finally {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
