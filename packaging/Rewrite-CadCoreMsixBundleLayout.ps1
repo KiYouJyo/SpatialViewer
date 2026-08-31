@@ -2,14 +2,27 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$BundlePath,
 
-    [string]$BundledVersion = '0.3.0'
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$BundledVersion,
+
+    [string]$PayloadDirectory
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $bundle = [IO.Path]::GetFullPath($BundlePath)
 if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) {
     throw "MSIXBundle was not found: $bundle"
+}
+
+$payloadRoot = $null
+if (-not [string]::IsNullOrWhiteSpace($PayloadDirectory)) {
+    $payloadRoot = [IO.Path]::GetFullPath($PayloadDirectory)
+    if (-not (Test-Path -LiteralPath $payloadRoot -PathType Container)) {
+        throw "Cad Core payload directory was not found: $payloadRoot"
+    }
 }
 
 $makeappx = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter makeappx.exe |
@@ -27,6 +40,19 @@ $cadCoreNames = @(
     'SpatialViewer.Formats.Cad.dll',
     'SpatialViewer.Formats.Cad.ACadSharp.dll'
 )
+
+if ($payloadRoot) {
+    foreach ($name in $cadCoreNames) {
+        $source = Join-Path $payloadRoot $name
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            throw "Resolved Cad Core payload is missing: $source"
+        }
+        $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($source).FileVersion
+        if ([string]::IsNullOrWhiteSpace($fileVersion) -or -not $fileVersion.StartsWith("$BundledVersion.")) {
+            throw "Resolved Cad Core payload version mismatch for $name: $fileVersion does not match $BundledVersion"
+        }
+    }
+}
 
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("SpatialViewer-CadCore-Rewrite-" + [Guid]::NewGuid().ToString('N'))
 $unbundle = Join-Path $tempRoot 'bundle'
@@ -81,15 +107,19 @@ try {
 
     foreach ($name in $cadCoreNames) {
         $rootCopy = Join-Path $unpack $name
-        if (-not (Test-Path -LiteralPath $rootCopy -PathType Leaf)) {
-            throw "Cad Core root payload was not found before rewrite: $name"
-        }
         $destination = Join-Path $fallback $name
-        Move-Item -LiteralPath $rootCopy -Destination $destination -Force
+        if ($payloadRoot) {
+            Remove-Item -LiteralPath $rootCopy -Force -ErrorAction SilentlyContinue
+            Copy-Item -LiteralPath (Join-Path $payloadRoot $name) -Destination $destination -Force
+        }
+        else {
+            if (-not (Test-Path -LiteralPath $rootCopy -PathType Leaf)) {
+                throw "Cad Core root payload was not found before rewrite: $name"
+            }
+            Move-Item -LiteralPath $rootCopy -Destination $destination -Force
+        }
     }
 
-    # MakeAppx regenerates package footprint files. They must not be fed back
-    # into the pack operation from the unpacked source directory.
     foreach ($footprint in @('AppxBlockMap.xml', 'AppxSignature.p7x', '[Content_Types].xml')) {
         Remove-Item -LiteralPath (Join-Path $unpack $footprint) -Force -ErrorAction SilentlyContinue
     }
@@ -99,13 +129,9 @@ try {
 
     $innerInput = Join-Path $bundleInputs $inner.Name
     Copy-Item -LiteralPath $repackedInner -Destination $innerInput -Force
-
-    # MakeAppx otherwise synthesizes a date/time bundle version. Preserve the
-    # immutable four-part package identity from the original bundle explicitly.
     & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /bv $bundleVersion /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed: $LASTEXITCODE" }
 
-    # Verify the generated outer identity before replacing the caller's bundle.
     New-Item -ItemType Directory -Force -Path $verifyBundle | Out-Null
     & $makeappx.FullName unbundle /p $repackedBundle /d $verifyBundle /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx verification unbundle failed: $LASTEXITCODE" }
@@ -118,8 +144,8 @@ try {
     }
 
     Move-Item -LiteralPath $repackedBundle -Destination $bundle -Force
-
-    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; version=$bundleVersion."
+    $sourceLabel = if ($payloadRoot) { 'resolved latest integrated release' } else { 'build output' }
+    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; source=$sourceLabel; package=$bundleVersion."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
