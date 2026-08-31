@@ -56,7 +56,7 @@
               <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
                 <Grid MinWidth="760" RowDefinitions="46,1,46,1,46,1,46">
                   <Grid x:Name="CadCoreGrid" Padding="14,0" ColumnDefinitions="2*,110,110,170,140,Auto" ColumnSpacing="10">
-                    <TextBlock Text="CadCore" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock Text="Cad Core" VerticalAlignment="Center" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="1" x:Name="CadCurrentVersionText" Text="—" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" x:Name="CadAvailableVersionText" Text="—" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="3" Text="SpatialViewer.CadCore" VerticalAlignment="Center" />
