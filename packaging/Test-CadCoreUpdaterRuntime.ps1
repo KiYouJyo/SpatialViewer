@@ -1,10 +1,10 @@
 [CmdletBinding()]
 param(
     [string]$Repository = 'KiYouJyo/SpatialViewer.CadCore',
-    [string]$MinimumVersion = '0.2.1',
+    [string]$MinimumVersion = '0.3.1',
     [string]$Compatibility = 'SpatialViewer 0.2.x',
-    [string]$BaselineCommit = '417a581b01360d2a5fa9aaf81e80bcd6996179d8',
-    [string]$BaselineVersion = '0.2.0'
+    [string]$BaselineCommit = 'a597a46fcf920ac15cbbf172b4af34972a4b2ca0',
+    [string]$BaselineVersion = '0.3.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -128,6 +128,8 @@ try {
     if ($manifest.runtime -cne 'x64') { throw "Unsupported CadCore runtime: $($manifest.runtime)" }
     if ($manifest.sourceRepository -cne $Repository) { throw "Unexpected source repository: $($manifest.sourceRepository)" }
     if ($manifest.compatibility -cne $Compatibility) { throw "Unexpected compatibility contract: $($manifest.compatibility)" }
+    if ([string]::IsNullOrWhiteSpace([string]$manifest.abiVersion)) { throw 'Manifest abiVersion is missing.' }
+    $availableAbi = [version]::Parse([string]$manifest.abiVersion)
 
     $projects = @(
         'SpatialViewer.Core',
@@ -140,8 +142,12 @@ try {
         $projectRoot = Join-Path (Join-Path $expanded 'bin') $project
         $dll = Get-ChildItem -LiteralPath $projectRoot -Recurse -Filter "$project.dll" | Select-Object -First 1
         if (-not $dll) { throw "Missing required assembly: $($project).dll" }
-        $assemblyVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version)
-        if ($assemblyVersion -ne $available) { throw "Assembly version mismatch for $($project).dll: $assemblyVersion != $available" }
+        $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version
+        if ($assemblyVersion -ne $availableAbi) { throw "ABI mismatch for $($project).dll: $assemblyVersion != $availableAbi" }
+        $fileVersionText = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll.FullName).FileVersion
+        if ([string]::IsNullOrWhiteSpace($fileVersionText)) { throw "FileVersion is missing for $($project).dll" }
+        $fileVersion = Normalize-Version ([version]::Parse($fileVersionText))
+        if ($fileVersion -ne $available) { throw "Product version mismatch for $($project).dll: $fileVersion != $available" }
     }
 
     $finalDirectory = Join-Path $versionsRoot $availableText
@@ -157,9 +163,6 @@ try {
     if ([string]$pending.Version -cne $availableText) { throw "Pending-state version mismatch: $($pending.Version)" }
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
 
-    # The product may already bundle the current latest Cad Core. For a stable
-    # regression test, temporarily compile the probe against the known v0.2.0
-    # release commit, then restore the product gitlink before packaging.
     git -C $cadCoreRepo fetch origin $BaselineCommit --depth=1
     if ($LASTEXITCODE -ne 0) { throw "Unable to fetch pinned Cad Core baseline $BaselineCommit" }
     git -C $cadCoreRepo checkout --detach $BaselineCommit
@@ -172,11 +175,10 @@ try {
     $checkedOutBaselineText = [string]$baselineProps.Project.PropertyGroup.Version
     $checkedOutBaseline = Normalize-Version ([version]::Parse($checkedOutBaselineText))
     if ($checkedOutBaseline -ne $baseline) { throw "Pinned Cad Core baseline metadata mismatch: expected=$baseline actual=$checkedOutBaseline" }
-    Write-Host "CadCore activation regression baseline: $baseline @ $BaselineCommit; online target=$available"
+    $baselineAbi = [version]::Parse([string]$baselineProps.Project.PropertyGroup.AbiVersion)
+    if ($baselineAbi -ne $availableAbi) { throw "Pinned Cad Core baseline ABI mismatch: baseline=$baselineAbi online=$availableAbi" }
+    Write-Host "CadCore activation regression baseline: product=$baseline ABI=$baselineAbi @ $BaselineCommit; online target=$available"
 
-    # Environment is inherited by the fresh process. ModuleInitializer executes
-    # before Main and must preload the online target into the default ALC before
-    # the probe's compile-time v0.2.0 Cad Core references are bound.
     $env:SPATIALVIEWER_CADCORE_ROOT = $kernelRoot
     dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -p:Platform=x64 -- $availableText
     if ($LASTEXITCODE -ne 0) { throw "CadCore early-binding fresh-process activation probe failed: $LASTEXITCODE" }
@@ -187,7 +189,7 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "CadCore early static-binding activation contract PASS: online $available is active over compiled baseline $baseline"
+    Write-Host "CadCore stable-ABI restart activation PASS: bundled product=$baseline -> online product=$available; ABI=$availableAbi"
 }
 finally {
     $env:SPATIALVIEWER_CADCORE_ROOT = $oldRootOverride
