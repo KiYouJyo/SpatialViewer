@@ -4,7 +4,8 @@ namespace SpatialViewer.Product;
 /// Process-lifetime update state shared by every AboutView instance.
 /// This mirrors UrbanPlanToolbox's default UpdateViewModel session: navigating
 /// away from About and returning must render the last check instead of resetting
-/// the card to NotChecked.
+/// the card to NotChecked. The CadCore service itself also belongs to this
+/// session so an UpdateAvailable result can still be downloaded after navigation.
 /// </summary>
 internal sealed class AboutUpdateSessionState
 {
@@ -19,6 +20,7 @@ internal sealed class AboutUpdateSessionState
 
     public ProductUpdateCheckState ProductState { get; set; } = ProductUpdateCheckState.NotChecked;
     public GitHubReleaseInfo? LatestProductRelease { get; set; }
+    public CadCoreUpdateService CadCoreUpdateService { get; } = new();
     public CadCoreUpdateResult CadCoreResult { get; set; }
 }
 
