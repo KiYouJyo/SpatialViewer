@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.2.5",
-    "packageVersion": "0.2.5.0"
+    "version": "0.2.6",
+    "packageVersion": "0.2.6.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.2.5 界面层级与响应式边栏修复",
-    "ja-JP": "Spatial Viewer v0.2.5 UI 階層とレスポンシブサイドバーの修正",
-    "en-US": "Spatial Viewer v0.2.5 shell hierarchy and responsive sidebar fixes"
+    "zh-CN": "Spatial Viewer v0.2.6 浅色主题表面层级修复",
+    "ja-JP": "Spatial Viewer v0.2.6 ライトテーマ表面階層の修正",
+    "en-US": "Spatial Viewer v0.2.6 light-theme surface hierarchy fix"
   }
 }
