@@ -77,7 +77,8 @@ internal static class GitHubUpdateService
         var directory = Path.GetDirectoryName(destinationPath) ?? throw new GitHubAssetDownloadException("StoragePath", "The destination directory is invalid.");
         Directory.CreateDirectory(directory);
         var temporaryPath = $"{destinationPath}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
-        Exception? lastNetworkException = null;
+        Exception? lastFailure = null;
+        var digestMismatch = false;
         try
         {
             var clients = new[] { DownloadClient, DownloadClient, DirectDownloadClient };
@@ -88,28 +89,38 @@ internal static class GitHubUpdateService
                 try
                 {
                     await DownloadToTemporaryFileAsync(clients[attempt], downloadUri, temporaryPath, asset.Size, progress, cancellationToken).ConfigureAwait(false);
-                    lastNetworkException = null;
+                    if (!await VerifyDigestAsync(temporaryPath, expectedDigest, cancellationToken).ConfigureAwait(false))
+                    {
+                        digestMismatch = true;
+                        lastFailure = new InvalidDataException("The release asset SHA-256 digest does not match GitHub metadata.");
+                        if (attempt < clients.Length - 1)
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
+                            continue;
+                        }
+                        break;
+                    }
+
+                    lastFailure = null;
+                    digestMismatch = false;
                     break;
                 }
                 catch (HttpRequestException exception) when (attempt < clients.Length - 1)
                 {
-                    lastNetworkException = exception;
+                    lastFailure = exception;
                     await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested && attempt < clients.Length - 1)
                 {
-                    lastNetworkException = exception;
+                    lastFailure = exception;
                     await Task.Delay(TimeSpan.FromMilliseconds(350 * (attempt + 1)), cancellationToken).ConfigureAwait(false);
                 }
             }
 
+            if (digestMismatch)
+                throw new GitHubAssetDownloadException("DigestMismatch", "The CadCore release asset failed SHA-256 verification through both the system proxy and a direct connection.", lastFailure);
             if (!File.Exists(temporaryPath))
-                throw new GitHubAssetDownloadException("DownloadNetwork", "The CadCore release asset could not be downloaded through either the system proxy or a direct connection.", lastNetworkException);
-
-            await using var verificationStream = File.OpenRead(temporaryPath);
-            var actualDigest = await SHA256.HashDataAsync(verificationStream, cancellationToken).ConfigureAwait(false);
-            if (!CryptographicOperations.FixedTimeEquals(actualDigest, expectedDigest))
-                throw new GitHubAssetDownloadException("DigestMismatch", "The release asset SHA-256 digest does not match GitHub metadata.");
+                throw new GitHubAssetDownloadException("DownloadNetwork", "The CadCore release asset could not be downloaded through either the system proxy or a direct connection.", lastFailure);
 
             File.Move(temporaryPath, destinationPath, overwrite: true);
             progress?.Report(1d);
@@ -151,6 +162,16 @@ internal static class GitHubUpdateService
             total += read;
             if (expectedLength > 0) progress?.Report(Math.Clamp(total / (double)expectedLength, 0d, 1d));
         }
+
+        if (declaredSize > 0 && total != declaredSize)
+            throw new HttpRequestException($"The release asset length is incomplete: expected {declaredSize} bytes, received {total} bytes.");
+    }
+
+    private static async Task<bool> VerifyDigestAsync(string path, byte[] expectedDigest, CancellationToken cancellationToken)
+    {
+        await using var verificationStream = File.OpenRead(path);
+        var actualDigest = await SHA256.HashDataAsync(verificationStream, cancellationToken).ConfigureAwait(false);
+        return CryptographicOperations.FixedTimeEquals(actualDigest, expectedDigest);
     }
 
     private static GitHubReleaseAsset? ParseAsset(JsonElement asset)
