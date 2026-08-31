@@ -2,7 +2,9 @@
 param(
     [string]$Repository = 'KiYouJyo/SpatialViewer.CadCore',
     [string]$MinimumVersion = '0.2.1',
-    [string]$Compatibility = 'SpatialViewer 0.2.x'
+    [string]$Compatibility = 'SpatialViewer 0.2.x',
+    [string]$BaselineCommit = '417a581b01360d2a5fa9aaf81e80bcd6996179d8',
+    [string]$BaselineVersion = '0.2.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,6 +25,15 @@ function New-DownloadClient([bool]$UseProxy) {
     return $client
 }
 
+function Remove-CadCoreBuildOutputs([string]$CadCoreRoot) {
+    Get-ChildItem -LiteralPath (Join-Path $CadCoreRoot 'src') -Directory | ForEach-Object {
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'bin') -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath (Join-Path $_.FullName 'obj') -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -LiteralPath 'packaging/CadCoreActivationProbe/bin' -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath 'packaging/CadCoreActivationProbe/obj' -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $headers = @{
     'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.4'
     'Accept' = 'application/vnd.github+json'
@@ -37,11 +48,15 @@ $archive = Join-Path $temp 'CadCore.zip'
 $expanded = Join-Path $temp 'expanded'
 $kernelRoot = Join-Path $temp 'LocalState/Kernels/CadCore'
 $versionsRoot = Join-Path $kernelRoot 'versions'
+$cadCoreRepo = (Resolve-Path 'external/SpatialViewer.CadCore').Path
 New-Item -ItemType Directory -Force -Path $expanded, $versionsRoot | Out-Null
 
 $proxyClient = $null
 $directClient = $null
 $oldRootOverride = $env:SPATIALVIEWER_CADCORE_ROOT
+$originalCadCoreSha = (git -C $cadCoreRepo rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($originalCadCoreSha)) { throw 'Unable to determine the checked-out Cad Core gitlink.' }
+$baselineCheckedOut = $false
 try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $headers
     if (-not $release -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)) {
@@ -51,7 +66,9 @@ try {
     $availableText = ([string]$release.tag_name).TrimStart('v', 'V')
     $available = Normalize-Version ([version]::Parse($availableText))
     $minimum = Normalize-Version ([version]::Parse($MinimumVersion))
+    $baseline = Normalize-Version ([version]::Parse($BaselineVersion))
     if ($available -lt $minimum) { throw "Latest CadCore version $available is older than required $minimum." }
+    if ($baseline -ge $available) { throw "Pinned activation baseline must be older than latest: baseline=$baseline latest=$available" }
 
     $assetName = "CadCore-v$availableText-x64.zip"
     $asset = @($release.assets) | Where-Object { $_.name -eq $assetName } | Select-Object -First 1
@@ -138,21 +155,28 @@ try {
     Move-Item -LiteralPath $pendingTemp -Destination $pendingPath -Force
     $pending = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json
     if ([string]$pending.Version -cne $availableText) { throw "Pending-state version mismatch: $($pending.Version)" }
-
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
 
-    $bundledDll = Get-ChildItem external/SpatialViewer.CadCore/src/SpatialViewer.Formats.Cad.ACadSharp/bin -Recurse -Filter SpatialViewer.Formats.Cad.ACadSharp.dll |
-        Where-Object { $_.FullName -match '\\Release\\' } |
-        Sort-Object LastWriteTimeUtc -Descending |
-        Select-Object -First 1
-    if (-not $bundledDll) { throw 'Bundled Release SpatialViewer.Formats.Cad.ACadSharp.dll was not found for activation baseline.' }
-    $bundledVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($bundledDll.FullName).Version)
-    if ($bundledVersion -ge $available) { throw "Activation probe requires an older bundled Cad Core: bundled=$bundledVersion available=$available" }
-    Write-Host "CadCore activation baseline: bundled=$bundledVersion available=$available"
+    # The product may already bundle the current latest Cad Core. For a stable
+    # regression test, temporarily compile the probe against the known v0.2.0
+    # release commit, then restore the product gitlink before packaging.
+    git -C $cadCoreRepo fetch origin $BaselineCommit --depth=1
+    if ($LASTEXITCODE -ne 0) { throw "Unable to fetch pinned Cad Core baseline $BaselineCommit" }
+    git -C $cadCoreRepo checkout --detach $BaselineCommit
+    if ($LASTEXITCODE -ne 0) { throw "Unable to checkout pinned Cad Core baseline $BaselineCommit" }
+    $baselineCheckedOut = $true
+    Remove-CadCoreBuildOutputs $cadCoreRepo
 
-    # The probe has the same compile-time ProjectReferences as SpatialViewer.App.
-    # Set the root before process start so its module initializer sees pending.json
-    # before Main or any static Cad Core reference can bind to the bundled DLLs.
+    $propsPath = Join-Path $cadCoreRepo 'Directory.Build.props'
+    [xml]$baselineProps = Get-Content -LiteralPath $propsPath
+    $checkedOutBaselineText = [string]$baselineProps.Project.PropertyGroup.Version
+    $checkedOutBaseline = Normalize-Version ([version]::Parse($checkedOutBaselineText))
+    if ($checkedOutBaseline -ne $baseline) { throw "Pinned Cad Core baseline metadata mismatch: expected=$baseline actual=$checkedOutBaseline" }
+    Write-Host "CadCore activation regression baseline: $baseline @ $BaselineCommit; online target=$available"
+
+    # Environment is inherited by the fresh process. ModuleInitializer executes
+    # before Main and must preload the online target into the default ALC before
+    # the probe's compile-time v0.2.0 Cad Core references are bound.
     $env:SPATIALVIEWER_CADCORE_ROOT = $kernelRoot
     dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -p:Platform=x64 -- $availableText
     if ($LASTEXITCODE -ne 0) { throw "CadCore early-binding fresh-process activation probe failed: $LASTEXITCODE" }
@@ -163,10 +187,15 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "CadCore early static-binding activation contract PASS: $availableText is active over bundled $bundledVersion"
+    Write-Host "CadCore early static-binding activation contract PASS: online $available is active over compiled baseline $baseline"
 }
 finally {
     $env:SPATIALVIEWER_CADCORE_ROOT = $oldRootOverride
+    if ($baselineCheckedOut) {
+        git -C $cadCoreRepo checkout --detach $originalCadCoreSha | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Failed to restore Cad Core gitlink to $originalCadCoreSha" }
+        Remove-CadCoreBuildOutputs $cadCoreRepo
+    }
     if ($proxyClient) { $proxyClient.Dispose() }
     if ($directClient) { $directClient.Dispose() }
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
