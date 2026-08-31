@@ -96,9 +96,10 @@ public sealed partial class AboutView : UserControl
 
     private void RenderCadCoreUpdate(CadCoreUpdateResult result, double? progress = null)
     {
-        var current = $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.CurrentVersion)}";
-        var available = result.AvailableVersion is null ? "—" : $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.AvailableVersion)}";
-        CadVersionSummaryText.Text = $"{T("About_CurrentVersion")} {current} · {T("About_AvailableVersion")} {available}";
+        CadCurrentVersionText.Text = $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.CurrentVersion)}";
+        CadAvailableVersionText.Text = result.AvailableVersion is null
+            ? "—"
+            : $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.AvailableVersion)}";
 
         switch (result.State)
         {
@@ -175,19 +176,11 @@ public sealed partial class AboutView : UserControl
 
     private void ApplyResponsiveLayout()
     {
+        // The update rows intentionally retain the original table hierarchy.
+        // Their nested ScrollViewers handle genuinely narrow windows without
+        // converting the design into a different card layout.
         ConfigureMetadataGrid(_layoutMode);
         ConfigureProjectGrid(_layoutMode);
-
-        var compact = _layoutMode == AboutLayoutMode.Compact;
-        Grid.SetRow(AppUpdateButtons, compact ? 1 : 0);
-        Grid.SetColumn(AppUpdateButtons, compact ? 0 : 1);
-        AppUpdateButtons.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-        AppUpdateButtons.Margin = compact ? new Thickness(0, 4, 0, 0) : new Thickness(0);
-
-        Grid.SetRow(CadCoreButtons, compact ? 1 : 0);
-        Grid.SetColumn(CadCoreButtons, compact ? 0 : 1);
-        CadCoreButtons.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-        CadCoreButtons.Margin = compact ? new Thickness(0, 4, 0, 0) : new Thickness(0);
     }
 
     private void ConfigureMetadataGrid(AboutLayoutMode mode)
@@ -258,7 +251,6 @@ public sealed partial class AboutView : UserControl
         ReleaseNotesButton.Content = T("About_ReleaseNotes");
         CheckAppUpdateButton.Content = T("About_CheckUpdates");
         KernelsTitleText.Text = T("About_Kernels");
-        CadCoreDescriptionText.Text = T("About_CadCore_Desc");
         DisabledCheckButton1.Content = T("About_CheckUpdates");
         DisabledCheckButton2.Content = T("About_CheckUpdates");
         DisabledCheckButton3.Content = T("About_CheckUpdates");
