@@ -91,7 +91,7 @@ try {
 
             $downloaded = $true
             $route = if ($attempt -eq 2) { 'direct fallback' } else { 'system proxy/default route' }
-            Write-Host "CadCore download PASS via $route: $assetName / sha256:$actualHash"
+            Write-Host "CadCore download PASS via ${route}: $assetName / sha256:$actualHash"
             break
         }
         catch {
@@ -121,9 +121,9 @@ try {
     foreach ($project in $projects) {
         $projectRoot = Join-Path (Join-Path $expanded 'bin') $project
         $dll = Get-ChildItem -LiteralPath $projectRoot -Recurse -Filter "$project.dll" | Select-Object -First 1
-        if (-not $dll) { throw "Missing required assembly: $project.dll" }
+        if (-not $dll) { throw "Missing required assembly: $($project).dll" }
         $assemblyVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version)
-        if ($assemblyVersion -ne $available) { throw "Assembly version mismatch for $project.dll: $assemblyVersion != $available" }
+        if ($assemblyVersion -ne $available) { throw "Assembly version mismatch for $($project).dll: $assemblyVersion != $available" }
     }
 
     $finalDirectory = Join-Path $versionsRoot $availableText
