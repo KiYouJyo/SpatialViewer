@@ -234,6 +234,7 @@ public sealed partial class AboutView : UserControl
     private void ApplyLocalizedText()
     {
         AboutTitleText.Text = T("About_Title");
+        ProductNameText.Text = T("AppName");
         TaglineText.Text = T("About_Tagline");
         DisplayVersionLabel.Text = T("About_DisplayVersion");
         ChannelLabel.Text = T("About_Channel");
