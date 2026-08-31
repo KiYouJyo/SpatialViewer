@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
 using SpatialViewer.Formats.Cad.ACadSharp;
@@ -43,9 +44,9 @@ try
     if (bundledAbi != currentAbi)
         throw new InvalidOperationException($"Cad Core ABI changed across update: bundled={bundledAbi} current={currentAbi}");
 
-    // Exercise a real compile-time Cad Core reference. Static references were
-    // compiled against the bundled product, while the module initializer must
-    // have preloaded the newer product with the same CLR assembly identity.
+    // Exercise a real compile-time Cad Core reference. The probe itself was
+    // compiled against the bundled 0.3.0 product, while the module initializer
+    // must make that static reference resolve to the externally staged product.
     var importer = new ACadSharpCadImporter();
     if (!importer.CanImport("probe.dwg"))
         throw new InvalidOperationException("The activated ACadSharp importer is not functional.");
@@ -63,19 +64,28 @@ try
     if (!string.Equals(activeVersion, CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion), StringComparison.Ordinal))
         throw new InvalidOperationException($"active.json version mismatch: {activeVersion}");
 
-    var requiredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
+    string[] requiredNames =
+    [
         "SpatialViewer.Core",
         "SpatialViewer.Rendering",
         "SpatialViewer.Formats.Cad",
         "SpatialViewer.Formats.Cad.ACadSharp",
         "SpatialViewer.Rendering.Windows"
-    };
+    ];
+
+    // Rendering assemblies are lazy in the real app and are not all touched by
+    // the importer-only probe. Explicitly request every Cad Core assembly from
+    // the default ALC so the test proves the resolver will also serve the later
+    // renderer/document-model bindings from the selected external product.
+    foreach (var name in requiredNames)
+        _ = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(name));
+
+    var requiredSet = requiredNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
     var loaded = AssemblyLoadContext.Default.Assemblies
-        .Where(assembly => assembly.GetName().Name is { } name && requiredNames.Contains(name))
+        .Where(assembly => assembly.GetName().Name is { } name && requiredSet.Contains(name))
         .ToArray();
-    if (loaded.Length != requiredNames.Count)
-        throw new InvalidOperationException($"Expected {requiredNames.Count} loaded Cad Core assemblies, found {loaded.Length}.");
+    if (loaded.Length != requiredNames.Length)
+        throw new InvalidOperationException($"Expected {requiredNames.Length} loaded Cad Core assemblies, found {loaded.Length}.");
 
     var externalRoot = CadCoreRuntimeBootstrapper.GetVersionDirectory(expectedVersion);
     foreach (var assembly in loaded)
