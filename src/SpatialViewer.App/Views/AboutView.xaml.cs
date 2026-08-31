@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.Windows.AppLifecycle;
 using System.Reflection;
 using Windows.System;
 
@@ -61,7 +62,11 @@ public sealed partial class AboutView : UserControl
 
     private async void CheckCadUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_cadCoreUpdateResult.State == CadCoreUpdateState.ReadyForRestart) return;
+        if (_cadCoreUpdateResult.State == CadCoreUpdateState.ReadyForRestart)
+        {
+            RestartToApplyCadCoreUpdate();
+            return;
+        }
         if (_cadCoreUpdateResult.State == CadCoreUpdateState.UpdateAvailable)
         {
             await DownloadCadCoreUpdateAsync();
@@ -91,6 +96,21 @@ public sealed partial class AboutView : UserControl
         {
             _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled", ErrorDetail = null };
         }
+        RenderCadCoreUpdate(_cadCoreUpdateResult);
+    }
+
+    private void RestartToApplyCadCoreUpdate()
+    {
+        // AppInstance.Restart terminates this process and starts a new instance when successful.
+        // CadCoreRuntimeBootstrapper runs before XAML initialization in the restarted process,
+        // so the staged pending kernel is activated before any static CadCore reference is touched.
+        var failureReason = AppInstance.Restart(string.Empty);
+        _cadCoreUpdateResult = _cadCoreUpdateResult with
+        {
+            State = CadCoreUpdateState.Failed,
+            ErrorCode = "RestartFailed",
+            ErrorDetail = $"Windows App SDK AppInstance.Restart failed: {failureReason}."
+        };
         RenderCadCoreUpdate(_cadCoreUpdateResult);
     }
 
@@ -138,8 +158,8 @@ public sealed partial class AboutView : UserControl
                 break;
             case CadCoreUpdateState.ReadyForRestart:
                 CadUpdateStatusText.Text = T("Update_CadReadyRestart");
-                CheckCadUpdateButton.Content = T("Update_WaitingRestart");
-                CheckCadUpdateButton.IsEnabled = false;
+                CheckCadUpdateButton.Content = RestartUpdateButtonText();
+                CheckCadUpdateButton.IsEnabled = true;
                 break;
             case CadCoreUpdateState.Failed:
                 CadUpdateStatusText.Text = ResolveCadUpdateError(result.ErrorCode);
@@ -149,6 +169,13 @@ public sealed partial class AboutView : UserControl
                 break;
         }
     }
+
+    private string RestartUpdateButtonText() => _localization.CurrentLanguage switch
+    {
+        "ja-JP" => "再起動して更新",
+        "en-US" => "Restart to update",
+        _ => "重启更新"
+    };
 
     private string ResolveCadUpdateError(string? errorCode) => errorCode switch
     {
