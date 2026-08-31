@@ -140,13 +140,16 @@ try {
 
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
 
-    $appDll = Get-ChildItem src/SpatialViewer.App/bin -Recurse -Filter SpatialViewer.App.dll |
+    $bundledDll = Get-ChildItem src/SpatialViewer.App/bin -Recurse -Filter SpatialViewer.Formats.Cad.ACadSharp.dll |
         Where-Object { $_.FullName -match '\\Release\\' } |
         Sort-Object LastWriteTimeUtc -Descending |
         Select-Object -First 1
-    if (-not $appDll) { throw 'Release SpatialViewer.App.dll was not found for fresh-process activation.' }
+    if (-not $bundledDll) { throw 'Bundled Release SpatialViewer.Formats.Cad.ACadSharp.dll was not found for fresh-process activation.' }
+    $bundledVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($bundledDll.FullName).Version)
+    if ($bundledVersion -ge $available) { throw "Activation probe requires an older bundled Cad Core: bundled=$bundledVersion available=$available" }
+    Write-Host "CadCore activation baseline: bundled=$bundledVersion available=$available"
 
-    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $appDll.FullName $kernelRoot $availableText
+    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $bundledDll.FullName $kernelRoot $availableText
     if ($LASTEXITCODE -ne 0) { throw "CadCore fresh-process activation probe failed: $LASTEXITCODE" }
 
     if (Test-Path -LiteralPath $pendingPath) { throw 'pending.json still exists after fresh-process activation.' }
@@ -155,7 +158,7 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "CadCore fresh-process activation contract PASS: $availableText is active"
+    Write-Host "CadCore fresh-process activation contract PASS: $availableText is active over bundled $bundledVersion"
 }
 finally {
     if ($proxyClient) { $proxyClient.Dispose() }
