@@ -84,7 +84,7 @@ public sealed partial class HomeView : UserControl
         var search = (_responsiveMode == ResponsiveLayoutMode.Large ? SearchBox?.Text : CompactSearchBox?.Text)?.Trim() ?? string.Empty;
         var filtered = _items.Where(item => MatchesFilter(item, _activeFilterIndex) &&
             (string.IsNullOrEmpty(search) || item.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) || item.Path.Contains(search, StringComparison.OrdinalIgnoreCase))).ToArray();
-        RecentFiles.ItemsSource = filtered.Select(item => RecentFileTile.From(item, _localization)).ToArray();
+        RecentFiles.ItemsSource = filtered.Select(RecentFileTile.From).ToArray();
         EmptyState.Visibility = filtered.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -139,13 +139,14 @@ public sealed record WorkflowItem(string Title, string Formats, AppIconKind Icon
 
 public sealed record RecentFileTile(RecentFile Source, string ExtensionLabel, string DisplayName, string Metadata)
 {
-    public static RecentFileTile From(RecentFile source, AppLocalizationService localization) =>
-        new(source, source.Extension.TrimStart('.').ToUpperInvariant(), source.DisplayName, $"{FormatSize(source.FileSize)} · {FormatWhen(source.LastOpenedUtc, localization)}");
+    public static RecentFileTile From(RecentFile source) =>
+        new(source, source.Extension.TrimStart('.').ToUpperInvariant(), source.DisplayName, $"{FormatSize(source.FileSize)} · {FormatWhen(source.LastOpenedUtc)}");
 
     private static string FormatSize(long bytes) => bytes >= 1_000_000_000 ? $"{bytes / 1_000_000_000d:0.#} GB" : bytes >= 1_000_000 ? $"{bytes / 1_000_000d:0.#} MB" : bytes >= 1_000 ? $"{bytes / 1_000d:0.#} KB" : $"{bytes} B";
 
-    private static string FormatWhen(DateTimeOffset openedUtc, AppLocalizationService localization)
+    private static string FormatWhen(DateTimeOffset openedUtc)
     {
+        var localization = AppLocalizationService.Default;
         var local = openedUtc.ToLocalTime();
         var today = DateTimeOffset.Now.Date;
         if (local.Date == today)
