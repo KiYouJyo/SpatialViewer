@@ -18,13 +18,13 @@ function New-DownloadClient([bool]$UseProxy) {
     $handler.UseProxy = $UseProxy
     $client = [System.Net.Http.HttpClient]::new($handler)
     $client.Timeout = [TimeSpan]::FromMinutes(5)
-    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.3')
+    $client.DefaultRequestHeaders.UserAgent.ParseAdd('SpatialViewer/0.2.4')
     $client.DefaultRequestHeaders.Accept.ParseAdd('application/octet-stream')
     return $client
 }
 
 $headers = @{
-    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.3'
+    'User-Agent' = 'SpatialViewer-Updater-Smoke/0.2.4'
     'Accept' = 'application/vnd.github+json'
     'X-GitHub-Api-Version' = '2022-11-28'
 }
@@ -41,6 +41,7 @@ New-Item -ItemType Directory -Force -Path $expanded, $versionsRoot | Out-Null
 
 $proxyClient = $null
 $directClient = $null
+$oldRootOverride = $env:SPATIALVIEWER_CADCORE_ROOT
 try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $headers
     if (-not $release -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)) {
@@ -140,17 +141,21 @@ try {
 
     Write-Host "CadCore runtime staging PASS: versions/$availableText + pending.json"
 
-    $bundledDll = Get-ChildItem src/SpatialViewer.App/bin -Recurse -Filter SpatialViewer.Formats.Cad.ACadSharp.dll |
+    $bundledDll = Get-ChildItem external/SpatialViewer.CadCore/src/SpatialViewer.Formats.Cad.ACadSharp/bin -Recurse -Filter SpatialViewer.Formats.Cad.ACadSharp.dll |
         Where-Object { $_.FullName -match '\\Release\\' } |
         Sort-Object LastWriteTimeUtc -Descending |
         Select-Object -First 1
-    if (-not $bundledDll) { throw 'Bundled Release SpatialViewer.Formats.Cad.ACadSharp.dll was not found for fresh-process activation.' }
+    if (-not $bundledDll) { throw 'Bundled Release SpatialViewer.Formats.Cad.ACadSharp.dll was not found for activation baseline.' }
     $bundledVersion = Normalize-Version ([Reflection.AssemblyName]::GetAssemblyName($bundledDll.FullName).Version)
     if ($bundledVersion -ge $available) { throw "Activation probe requires an older bundled Cad Core: bundled=$bundledVersion available=$available" }
     Write-Host "CadCore activation baseline: bundled=$bundledVersion available=$available"
 
-    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -- $bundledDll.FullName $kernelRoot $availableText
-    if ($LASTEXITCODE -ne 0) { throw "CadCore fresh-process activation probe failed: $LASTEXITCODE" }
+    # The probe has the same compile-time ProjectReferences as SpatialViewer.App.
+    # Set the root before process start so its module initializer sees pending.json
+    # before Main or any static Cad Core reference can bind to the bundled DLLs.
+    $env:SPATIALVIEWER_CADCORE_ROOT = $kernelRoot
+    dotnet run --project packaging/CadCoreActivationProbe/CadCoreActivationProbe.csproj -c Release -p:Platform=x64 -- $availableText
+    if ($LASTEXITCODE -ne 0) { throw "CadCore early-binding fresh-process activation probe failed: $LASTEXITCODE" }
 
     if (Test-Path -LiteralPath $pendingPath) { throw 'pending.json still exists after fresh-process activation.' }
     $activePath = Join-Path $kernelRoot 'active.json'
@@ -158,9 +163,10 @@ try {
     $active = Get-Content -LiteralPath $activePath -Raw | ConvertFrom-Json
     if ([string]$active.Version -cne $availableText) { throw "Active-state version mismatch: $($active.Version)" }
 
-    Write-Host "CadCore fresh-process activation contract PASS: $availableText is active over bundled $bundledVersion"
+    Write-Host "CadCore early static-binding activation contract PASS: $availableText is active over bundled $bundledVersion"
 }
 finally {
+    $env:SPATIALVIEWER_CADCORE_ROOT = $oldRootOverride
     if ($proxyClient) { $proxyClient.Dispose() }
     if ($directClient) { $directClient.Dispose() }
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
