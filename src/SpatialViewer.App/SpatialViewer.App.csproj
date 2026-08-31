@@ -13,6 +13,7 @@
     <InformationalVersion>0.2.4</InformationalVersion>
     <DefaultLanguage>zh-CN</DefaultLanguage>
     <AppxBundleAutoResourcePackageQualifiers>Scale|DXFeatureLevel</AppxBundleAutoResourcePackageQualifiers>
+    <CadCoreBundledVersion>0.3.0</CadCoreBundledVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
@@ -23,4 +24,34 @@
     <ProjectReference Include="..\SpatialViewer.Presentation\SpatialViewer.Presentation.csproj" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
   </ItemGroup>
+
+  <!--
+    The five updateable CadCore assemblies must not physically exist beside the
+    app executable in Release builds. The .deps.json default resolver wins over
+    AssemblyLoadContext.Default.Resolving whenever those files are present and
+    would silently bind static references back to the bundled product after a
+    restart. Keep an explicit bundled fallback under Kernels/Bundled instead;
+    the module initializer selects either this directory or the validated active
+    external package before any CAD/rendering type is first used.
+  -->
+  <Target Name="RelocateBundledCadCoreForRuntimeResolution"
+          AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Core.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Rendering.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Rendering.Windows.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Formats.Cad.dll" />
+      <_BundledCadCoreAssembly Include="$(OutDir)SpatialViewer.Formats.Cad.ACadSharp.dll" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_BundledCadCoreAssembly.Identity)')"
+           Text="Cad Core runtime assembly is missing before relocation: %(_BundledCadCoreAssembly.Identity)" />
+    <MakeDir Directories="$(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)" />
+    <Copy SourceFiles="@(_BundledCadCoreAssembly)"
+          DestinationFolder="$(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)"
+          SkipUnchangedFiles="true" />
+    <Delete Files="@(_BundledCadCoreAssembly)" />
+    <Message Importance="high"
+             Text="Relocated bundled Cad Core out of the default app probing path to $(OutDir)Kernels\Bundled\$(CadCoreBundledVersion)." />
+  </Target>
 </Project>
