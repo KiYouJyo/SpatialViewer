@@ -4,9 +4,12 @@
 
 ### Fixed
 
-- Moved staged Cad Core activation from the `App` constructor to an assembly module initializer so a restarted WinUI process selects the external kernel before generated XAML metadata or `MainWindow` can bind static Cad Core references.
-- Replaced the overly weak fresh-process probe with one that has the same five compile-time Cad Core project references as the real application, then constructs `ACadSharpCadImporter` and verifies every Cad Core assembly is loaded from the staged version directory.
-- Closed the v0.2.3 regression where download, staging, and application restart could all succeed while the restarted application continued using the bundled Cad Core.
+- Fixed the real v0.2.3 restart-update root cause: Cad Core product releases had been changing CLR `AssemblyVersion`, so a host compiled against the bundled kernel rejected the downloaded same-name assemblies with `0x80131040` manifest-definition mismatch.
+- Decoupled Cad Core product version from binary ABI. SpatialViewer now reads the bundled/product version from `FileVersion`, validates external package `manifest.version` against file metadata, and treats `manifest.abiVersion` / `AssemblyVersion` as a separate compatibility contract.
+- Pinned the v0.2.4 bundled Cad Core to a traceable 0.3.0 stable-ABI baseline (`AssemblyVersion 1.0.0.0`) and requires the online v0.3.1+ kernel to expose the same ABI before staging or activation.
+- Kept staged Cad Core activation at module-initializer time so the compatible external implementation is preloaded into the default `AssemblyLoadContext` before generated WinUI/XAML or application code binds static Cad Core references.
+- Replaced the old weak probe with a real static-binding regression: compile against bundled Cad Core 0.3.0, download the live newer release, restart a fresh process, construct `ACadSharpCadImporter`, and verify all five Cad Core assemblies have the newer FileVersion, the same ABI, and paths under the staged version directory.
+- Activation diagnostics now record product version, ABI version, load path, pending state, and activation errors separately.
 
 ## [0.2.3] - 2026-08-31
 
