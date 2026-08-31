@@ -102,11 +102,11 @@ try {
         }
         $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($matches[0].FullName).Version.ToString()
         if ($assemblyVersion -cne $requiredAbi) {
-            throw "CAD kernel ABI mismatch for $name: $assemblyVersion != $requiredAbi"
+            throw "CAD kernel ABI mismatch for ${name}: $assemblyVersion != $requiredAbi"
         }
         $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($matches[0].FullName).FileVersion
         if ([string]::IsNullOrWhiteSpace($fileVersion) -or -not $fileVersion.StartsWith("$version.")) {
-            throw "CAD kernel product version mismatch for $name: $fileVersion does not match $version"
+            throw "CAD kernel product version mismatch for ${name}: $fileVersion does not match $version"
         }
         Copy-Item -LiteralPath $matches[0].FullName -Destination (Join-Path $target $name) -Force
     }
