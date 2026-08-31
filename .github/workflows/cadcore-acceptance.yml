@@ -105,6 +105,29 @@ jobs:
           "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Verify MSIX Cad Core resolver layout
+        shell: pwsh
+        run: |
+          $makeappx = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter makeappx.exe | Where-Object FullName -match '\\x64\\makeappx.exe$' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $makeappx) { throw 'x64 makeappx.exe was not found.' }
+          $unbundle = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v024-unbundle'
+          $unpack = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v024-unpack'
+          Remove-Item $unbundle, $unpack -Recurse -Force -ErrorAction SilentlyContinue
+          & $makeappx.FullName unbundle /p $env:BUNDLE_PATH /d $unbundle /o
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unbundle failed: $LASTEXITCODE" }
+          $inner = Get-ChildItem $unbundle -Recurse -Filter '*.msix' | Select-Object -First 1
+          if (-not $inner) { throw 'Inner x64 MSIX was not found.' }
+          & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
+          $names = @('SpatialViewer.Core.dll','SpatialViewer.Rendering.dll','SpatialViewer.Rendering.Windows.dll','SpatialViewer.Formats.Cad.dll','SpatialViewer.Formats.Cad.ACadSharp.dll')
+          foreach ($name in $names) {
+            $rootCopy = Join-Path $unpack $name
+            if (Test-Path -LiteralPath $rootCopy -PathType Leaf) { throw "Cad Core resolver isolation failed; root copy still packaged: $name" }
+            $bundledCopy = Join-Path $unpack "Kernels\Bundled\0.3.0\$name"
+            if (-not (Test-Path -LiteralPath $bundledCopy -PathType Leaf)) { throw "Bundled Cad Core fallback missing from MSIX: $bundledCopy" }
+          }
+          Write-Host 'MSIX Cad Core resolver layout PASS: no root CadCore DLLs; bundled 0.3.0 fallback is isolated.'
+
       - name: Sign bundle and export public certificate
         shell: pwsh
         env:
@@ -141,7 +164,7 @@ jobs:
           $lines = foreach ($file in @($env:BUNDLE_PATH, $env:ACCEPTANCE_ZIP)) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
           @(
-            'SpatialViewer v0.2.4 Cad Core stable-ABI restart acceptance',
+            'SpatialViewer v0.2.4 Cad Core resolver-isolated restart acceptance',
             "SpatialViewer commit: $env:GITHUB_SHA",
             "Bundled CadCore commit: $env:CADCORE_SHA",
             'Package version: 0.2.4.0',
@@ -154,6 +177,7 @@ jobs:
             'DebugHost startup smoke: PASS',
             'Live CadCore release/product-version/ABI contract: PASS',
             'CadCore download/staging/stable-ABI restart activation: PASS',
+            'MSIX resolver-isolated bundled Cad Core layout: PASS',
             'MSIX bundle: PASS',
             'Authenticode signing (CN=AppPublisher): PASS',
             'Offline acceptance ZIP validation: PASS'
