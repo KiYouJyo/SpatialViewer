@@ -55,14 +55,6 @@ jobs:
           "source_ref=refs/tags/v$version" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "dry_run=${{ inputs.dry_run || 'false' }}" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Checkout requested release tag for manual dispatch
-        if: github.event_name == 'workflow_dispatch'
-        shell: pwsh
-        run: |
-          git fetch --tags --force
-          git checkout --force '${{ steps.version.outputs.source_ref }}'
-          git submodule update --init --recursive
-
       - name: Ensure immutable release tag for main release metadata push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
@@ -70,16 +62,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'v${{ steps.version.outputs.version }}'
+          git fetch --tags --force
           $existing = git rev-list -n 1 "refs/tags/$tag" 2>$null
           if (-not [string]::IsNullOrWhiteSpace($existing)) {
-            if ($existing -ne (git rev-parse HEAD)) { throw "Release tag $tag already points to a different commit: $existing" }
-            Write-Host "$tag already points to this release commit."
+            Write-Host "$tag already exists at $existing; reusing it as the immutable release source."
             exit 0
           }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git tag -a $tag -m "Spatial Viewer $tag"
           git push origin "refs/tags/$tag"
+
+      - name: Checkout immutable release source
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        shell: pwsh
+        run: |
+          git fetch --tags --force
+          git checkout --force '${{ steps.version.outputs.source_ref }}'
+          git submodule update --init --recursive
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -210,9 +210,34 @@ jobs:
           $files = @((Join-Path $env:ASSETS_DIRECTORY "SpatialViewer-v${{ steps.version.outputs.version }}-x64-one-click.zip"), $env:BUNDLE_PATH)
           $lines = foreach ($file in $files) { "{0}  {1}" -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file) }
           Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Value $lines -Encoding ascii
+
+          $version = '${{ steps.version.outputs.version }}'
+          $noteFiles = @(
+            "docs/RELEASE-NOTES-v$version.md",
+            "docs/RELEASE-NOTES-v$version.ja.md",
+            "docs/RELEASE-NOTES-v$version.en.md"
+          )
+          $hydratedFromMain = $false
+          foreach ($noteFile in $noteFiles) {
+            if (-not (Test-Path -LiteralPath $noteFile -PathType Leaf)) {
+              $content = git show "origin/main:$noteFile"
+              if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace(($content -join "`n"))) { throw "Missing release notes in both release tag and main: $noteFile" }
+              $directory = Split-Path -Parent $noteFile
+              if ($directory) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
+              [IO.File]::WriteAllText([IO.Path]::GetFullPath($noteFile), ($content -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
+              $hydratedFromMain = $true
+            }
+          }
+
           $bodyPath = Join-Path $env:RUNNER_TEMP 'release-body.md'
-          ./packaging/New-GitHubReleaseBody.ps1 -Version '${{ steps.version.outputs.version }}' -OutputPath $bodyPath
-          Add-Content -LiteralPath $bodyPath -Value "`n### 随包内核`n- SpatialViewer.CadCore v$env:CADCORE_VERSION（ABI $env:CADCORE_ABI，commit `$env:CADCORE_COMMIT`）`n- 发布包始终解析并嵌入已完成应用接入的最新稳定内核版本。" -Encoding utf8
+          ./packaging/New-GitHubReleaseBody.ps1 -Version $version -OutputPath $bodyPath
+          if ($hydratedFromMain) {
+            $body = [IO.File]::ReadAllText($bodyPath, [Text.Encoding]::UTF8)
+            $body = $body.Replace("/blob/v$version/", '/blob/main/')
+            [IO.File]::WriteAllText($bodyPath, $body, [Text.UTF8Encoding]::new($false))
+          }
+          $kernelLine = '- SpatialViewer.CadCore v{0}（ABI {1}，commit `{2}`）' -f $env:CADCORE_VERSION, $env:CADCORE_ABI, $env:CADCORE_COMMIT
+          Add-Content -LiteralPath $bodyPath -Value @('', '### 随包内核', $kernelLine, '- 发布包始终解析并嵌入已完成应用接入的最新稳定内核版本。') -Encoding utf8
 
       - name: Publish and verify GitHub Release
         if: steps.version.outputs.dry_run != 'true'
