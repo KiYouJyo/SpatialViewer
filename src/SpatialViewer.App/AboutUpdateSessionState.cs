@@ -10,18 +10,52 @@ namespace SpatialViewer.Product;
 internal sealed class AboutUpdateSessionState
 {
     private static readonly Lazy<AboutUpdateSessionState> LazyDefault = new(() => new AboutUpdateSessionState());
+    private ProductUpdateCheckState _productState = ProductUpdateCheckState.NotChecked;
+    private GitHubReleaseInfo? _latestProductRelease;
+    private CadCoreUpdateResult _cadCoreResult;
 
     private AboutUpdateSessionState()
     {
-        CadCoreResult = new CadCoreUpdateResult(CadCoreUpdateState.NotChecked, CadCoreRuntimeBootstrapper.CurrentVersion);
+        _cadCoreResult = new CadCoreUpdateResult(CadCoreUpdateState.NotChecked, CadCoreRuntimeBootstrapper.CurrentVersion);
     }
 
     public static AboutUpdateSessionState Default => LazyDefault.Value;
+    public event EventHandler? Changed;
 
-    public ProductUpdateCheckState ProductState { get; set; } = ProductUpdateCheckState.NotChecked;
-    public GitHubReleaseInfo? LatestProductRelease { get; set; }
+    public ProductUpdateCheckState ProductState
+    {
+        get => _productState;
+        set
+        {
+            if (_productState == value) return;
+            _productState = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public GitHubReleaseInfo? LatestProductRelease
+    {
+        get => _latestProductRelease;
+        set
+        {
+            if (Equals(_latestProductRelease, value)) return;
+            _latestProductRelease = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public CadCoreUpdateService CadCoreUpdateService { get; } = new();
-    public CadCoreUpdateResult CadCoreResult { get; set; }
+
+    public CadCoreUpdateResult CadCoreResult
+    {
+        get => _cadCoreResult;
+        set
+        {
+            if (_cadCoreResult == value) return;
+            _cadCoreResult = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
 
 internal enum ProductUpdateCheckState
