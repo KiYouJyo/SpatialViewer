@@ -16,6 +16,33 @@
   <data name="NavImportFolder.Content" xml:space="preserve"><value>Import folder</value></data>
   <data name="NavAbout.Content" xml:space="preserve"><value>About Spatial Viewer</value></data>
   <data name="NavSettings.Content" xml:space="preserve"><value>Settings</value></data>
+  <data name="Shell_NewHomeTab" xml:space="preserve"><value>New Home tab</value></data>
+
+  <data name="HomeTitle.Text" xml:space="preserve"><value>Spatial Viewer</value></data>
+  <data name="HomeOpenFile.Text" xml:space="preserve"><value>Open file</value></data>
+  <data name="HomeQuickOpen.Text" xml:space="preserve"><value>Quick open</value></data>
+  <data name="HomeDropZone.Text" xml:space="preserve"><value>Drop a drawing, spatial dataset, or model here</value></data>
+  <data name="HomeSupportedWorkflows.Text" xml:space="preserve"><value>Supported workflows</value></data>
+  <data name="HomeRecent.Text" xml:space="preserve"><value>Recently opened</value></data>
+  <data name="HomeRecentCompact.Text" xml:space="preserve"><value>Recently opened</value></data>
+  <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>Search recent files</value></data>
+  <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>Search recent files</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>No drawings have been opened yet. Use the button or drop area above to open a DWG / DXF file.</value></data>
+  <data name="Home_Filter_All" xml:space="preserve"><value>All</value></data>
+  <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>Open a CAD file</value></data>
+  <data name="Home_Workflow_Planned" xml:space="preserve"><value>In development</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>Open a DWG or DXF file</value></data>
+  <data name="Home_Date_Today" xml:space="preserve"><value>Today {0:HH:mm}</value></data>
+  <data name="Home_Date_Yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="Home_Date_Format" xml:space="preserve"><value>MMM d</value></data>
+
+  <data name="Placeholder_Projects_Title" xml:space="preserve"><value>Projects</value></data>
+  <data name="Placeholder_Projects_Message" xml:space="preserve"><value>Project workflows will be available in a later release.</value></data>
+  <data name="Placeholder_Favorites_Title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="Placeholder_Favorites_Message" xml:space="preserve"><value>Favorites will be available in a later release.</value></data>
+  <data name="Placeholder_ImportFolder_Title" xml:space="preserve"><value>Import folder</value></data>
+  <data name="Placeholder_ImportFolder_Message" xml:space="preserve"><value>Folder import will be available in a later release.</value></data>
+
   <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
   <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>Appearance &amp; language</value></data>
   <data name="Settings_Theme_Title" xml:space="preserve"><value>Theme</value></data>
@@ -24,7 +51,7 @@
   <data name="Theme_Light" xml:space="preserve"><value>Light</value></data>
   <data name="Theme_Dark" xml:space="preserve"><value>Dark</value></data>
   <data name="Settings_Language_Title" xml:space="preserve"><value>Language</value></data>
-  <data name="Settings_Language_Desc" xml:space="preserve"><value>Choose the interface language. Changes apply immediately without restarting the app.</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>Choose the interface language. The current UI is rebuilt and your location is restored without restarting the app.</value></data>
   <data name="Language_System" xml:space="preserve"><value>Use system setting</value></data>
   <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
   <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
@@ -45,6 +72,32 @@
   <data name="DrawingBackground_Dark" xml:space="preserve"><value>Black</value></data>
   <data name="DrawingBackground_Light" xml:space="preserve"><value>White</value></data>
   <data name="Language_SwitchFailed" xml:space="preserve"><value>Could not switch language</value></data>
+
+  <data name="CadLayersTitle.Text" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadPropertiesTitle.Text" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadPropertiesEmptyOverlay.Text" xml:space="preserve"><value>Select an object to view its CAD properties.</value></data>
+  <data name="CadLayersButton.Label" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadSelectButton.Label" xml:space="preserve"><value>Select</value></data>
+  <data name="CadPanButton.Label" xml:space="preserve"><value>Pan</value></data>
+  <data name="CadFitButton.Label" xml:space="preserve"><value>Fit</value></data>
+  <data name="CadDistanceButton.Label" xml:space="preserve"><value>Distance</value></data>
+  <data name="CadAreaButton.Label" xml:space="preserve"><value>Area</value></data>
+  <data name="CadCoordinateButton.Label" xml:space="preserve"><value>Coordinates</value></data>
+  <data name="CadDisplayButton.Label" xml:space="preserve"><value>Display</value></data>
+  <data name="CadPropertiesButton.Label" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadLayerSegment.Content" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadLayoutSegment.Content" xml:space="preserve"><value>Layouts (not supported yet)</value></data>
+  <data name="CadPropertiesPanelTitle.Text" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadPropertiesEmpty.Text" xml:space="preserve"><value>Select an object to view its CAD properties.</value></data>
+  <data name="CadDiagnosticsBar.Title" xml:space="preserve"><value>The drawing contains unsupported objects</value></data>
+  <data name="Cad_Status_FileChanged" xml:space="preserve"><value>File change detected. Reloading…</value></data>
+  <data name="Cad_Status_OpeningFile" xml:space="preserve"><value>Opening {0}…</value></data>
+  <data name="Cad_Status_OpenFailed" xml:space="preserve"><value>Could not open this file.</value></data>
+  <data name="Cad_Status_Zoom" xml:space="preserve"><value>Zoom {0:G4}</value></data>
+  <data name="Cad_Unitless" xml:space="preserve"><value>Unitless</value></data>
+  <data name="Cad_Status_SkippedObjects" xml:space="preserve"><value>Skipped {0} unsupported objects</value></data>
+  <data name="Cad_Status_FileReloaded" xml:space="preserve"><value>File reloaded</value></data>
+
   <data name="About_Title" xml:space="preserve"><value>About Spatial Viewer</value></data>
   <data name="About_Tagline" xml:space="preserve"><value>A unified viewer for architecture, planning, and spatial data</value></data>
   <data name="About_DisplayVersion" xml:space="preserve"><value>Display version</value></data>
@@ -73,6 +126,17 @@
   <data name="About_LicensePrivacy" xml:space="preserve"><value>Licensing &amp; privacy</value></data>
   <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>Review third-party licenses and local-file handling.</value></data>
   <data name="About_ViewInfo" xml:space="preserve"><value>View information</value></data>
+
+  <data name="KernelPlanned1.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelPlanned2.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelPlanned3.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelSourcePlanned1.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelSourcePlanned2.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelSourcePlanned3.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelStatusPlanned1.Text" xml:space="preserve"><value>Not connected</value></data>
+  <data name="KernelStatusPlanned2.Text" xml:space="preserve"><value>Not connected</value></data>
+  <data name="KernelStatusPlanned3.Text" xml:space="preserve"><value>Not connected</value></data>
+
   <data name="Update_NotChecked" xml:space="preserve"><value>Not checked</value></data>
   <data name="Update_Checking" xml:space="preserve"><value>Checking…</value></data>
   <data name="Update_NoRelease" xml:space="preserve"><value>No GitHub Release is available</value></data>
