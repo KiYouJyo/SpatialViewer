@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.2.2",
-    "packageVersion": "0.2.2.0"
+    "version": "0.2.3",
+    "packageVersion": "0.2.3.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.2.2 CadCore 更新器可靠性修复",
-    "ja-JP": "Spatial Viewer v0.2.2 CadCore アップデーター信頼性修正",
-    "en-US": "Spatial Viewer v0.2.2 CadCore updater reliability fix"
+    "zh-CN": "Spatial Viewer v0.2.3 CadCore 重启更新交互修正",
+    "ja-JP": "Spatial Viewer v0.2.3 CadCore 再起動更新操作の修正",
+    "en-US": "Spatial Viewer v0.2.3 CadCore restart-to-update interaction fix"
   }
 }
