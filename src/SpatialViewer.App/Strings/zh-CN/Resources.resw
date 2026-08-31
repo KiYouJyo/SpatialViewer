@@ -1,2 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
-<root><data name="AppName" xml:space="preserve"><value>图览</value></data><data name="Home" xml:space="preserve"><value>主页</value></data><data name="OpenFile" xml:space="preserve"><value>打开文件</value></data><data name="NotImplemented" xml:space="preserve"><value>暂未实现</value></data></root>
+<root>
+  <data name="AppName" xml:space="preserve"><value>图览</value></data>
+  <data name="Home" xml:space="preserve"><value>主页</value></data>
+  <data name="OpenFile" xml:space="preserve"><value>打开文件</value></data>
+  <data name="NotImplemented" xml:space="preserve"><value>暂未实现</value></data>
+  <data name="Nav_Home" xml:space="preserve"><value>主页</value></data>
+  <data name="Nav_Projects" xml:space="preserve"><value>项目</value></data>
+  <data name="Nav_Favorites" xml:space="preserve"><value>收藏</value></data>
+  <data name="Nav_ImportFolder" xml:space="preserve"><value>导入文件夹</value></data>
+  <data name="Nav_About" xml:space="preserve"><value>关于图览</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>设置</value></data>
+  <data name="NavHome.Content" xml:space="preserve"><value>主页</value></data>
+  <data name="NavProjects.Content" xml:space="preserve"><value>项目</value></data>
+  <data name="NavFavorites.Content" xml:space="preserve"><value>收藏</value></data>
+  <data name="NavImportFolder.Content" xml:space="preserve"><value>导入文件夹</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>关于图览</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>设置</value></data>
+  <data name="Shell_NewHomeTab" xml:space="preserve"><value>新建主页标签</value></data>
+
+  <data name="HomeTitle.Text" xml:space="preserve"><value>图览</value></data>
+  <data name="HomeOpenFile.Text" xml:space="preserve"><value>打开文件</value></data>
+  <data name="HomeQuickOpen.Text" xml:space="preserve"><value>快速打开</value></data>
+  <data name="HomeDropZone.Text" xml:space="preserve"><value>将图纸、空间数据或模型拖到这里</value></data>
+  <data name="HomeSupportedWorkflows.Text" xml:space="preserve"><value>支持的工作流</value></data>
+  <data name="HomeRecent.Text" xml:space="preserve"><value>最近打开</value></data>
+  <data name="HomeRecentCompact.Text" xml:space="preserve"><value>最近打开</value></data>
+  <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>搜索最近文件</value></data>
+  <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>搜索最近文件</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>尚未打开任何图纸。使用上方按钮或拖放区域打开 DWG / DXF。</value></data>
+  <data name="Home_Filter_All" xml:space="preserve"><value>全部</value></data>
+  <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>打开 CAD 文件</value></data>
+  <data name="Home_Workflow_Planned" xml:space="preserve"><value>开发中</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>打开 DWG 或 DXF 文件</value></data>
+  <data name="Home_Date_Today" xml:space="preserve"><value>今天 {0:HH:mm}</value></data>
+  <data name="Home_Date_Yesterday" xml:space="preserve"><value>昨天</value></data>
+  <data name="Home_Date_Format" xml:space="preserve"><value>M月d日</value></data>
+
+  <data name="Placeholder_Projects_Title" xml:space="preserve"><value>项目</value></data>
+  <data name="Placeholder_Projects_Message" xml:space="preserve"><value>项目工作流将在后续版本提供。</value></data>
+  <data name="Placeholder_Favorites_Title" xml:space="preserve"><value>收藏</value></data>
+  <data name="Placeholder_Favorites_Message" xml:space="preserve"><value>收藏夹将在后续版本提供。</value></data>
+  <data name="Placeholder_ImportFolder_Title" xml:space="preserve"><value>导入文件夹</value></data>
+  <data name="Placeholder_ImportFolder_Message" xml:space="preserve"><value>文件夹导入将在后续版本提供。</value></data>
+
+  <data name="Settings_Title" xml:space="preserve"><value>设置</value></data>
+  <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>外观与语言</value></data>
+  <data name="Settings_Theme_Title" xml:space="preserve"><value>主题</value></data>
+  <data name="Settings_Theme_Desc" xml:space="preserve"><value>选择浅色、深色或跟随系统。主题更改立即生效。</value></data>
+  <data name="Theme_System" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>浅色</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="Settings_Language_Title" xml:space="preserve"><value>语言</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>选择界面语言。切换后会重建当前界面并恢复所在位置，无需重启应用。</value></data>
+  <data name="Language_System" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
+  <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
+  <data name="Language_EnUs" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_FileSession" xml:space="preserve"><value>文件与会话</value></data>
+  <data name="Settings_Restore_Title" xml:space="preserve"><value>启动时恢复上次会话</value></data>
+  <data name="Settings_Restore_Desc" xml:space="preserve"><value>重新打开上次退出时仍在会话中的图纸。</value></data>
+  <data name="Settings_Recent_Title" xml:space="preserve"><value>记录最近打开文件</value></data>
+  <data name="Settings_Recent_Desc" xml:space="preserve"><value>仅在本机保存最近文件路径，用于主页快速访问。</value></data>
+  <data name="Settings_Watch_Title" xml:space="preserve"><value>自动检查文件变化</value></data>
+  <data name="Settings_Watch_Desc" xml:space="preserve"><value>打开的图纸被外部修改后自动重新读取。</value></data>
+  <data name="Settings_Viewer" xml:space="preserve"><value>查看器</value></data>
+  <data name="Settings_Fit_Title" xml:space="preserve"><value>打开文件后适合窗口</value></data>
+  <data name="Settings_Fit_Desc" xml:space="preserve"><value>首次显示图纸时自动缩放到全部对象。</value></data>
+  <data name="Settings_DrawingBackground_Title" xml:space="preserve"><value>图纸背景颜色</value></data>
+  <data name="Settings_DrawingBackground_Desc" xml:space="preserve"><value>跟随应用主题，或固定使用黑色/白色画布。</value></data>
+  <data name="DrawingBackground_Follow" xml:space="preserve"><value>跟随应用</value></data>
+  <data name="DrawingBackground_Dark" xml:space="preserve"><value>黑色</value></data>
+  <data name="DrawingBackground_Light" xml:space="preserve"><value>白色</value></data>
+  <data name="Language_SwitchFailed" xml:space="preserve"><value>语言切换失败</value></data>
+
+  <data name="CadLayersTitle.Text" xml:space="preserve"><value>图层</value></data>
+  <data name="CadPropertiesTitle.Text" xml:space="preserve"><value>属性</value></data>
+  <data name="CadPropertiesEmptyOverlay.Text" xml:space="preserve"><value>选择一个对象以查看真实 CAD 属性。</value></data>
+  <data name="CadLayersButton.Label" xml:space="preserve"><value>图层</value></data>
+  <data name="CadSelectButton.Label" xml:space="preserve"><value>选择</value></data>
+  <data name="CadPanButton.Label" xml:space="preserve"><value>平移</value></data>
+  <data name="CadFitButton.Label" xml:space="preserve"><value>适合窗口</value></data>
+  <data name="CadDistanceButton.Label" xml:space="preserve"><value>测距</value></data>
+  <data name="CadAreaButton.Label" xml:space="preserve"><value>面积</value></data>
+  <data name="CadCoordinateButton.Label" xml:space="preserve"><value>坐标</value></data>
+  <data name="CadDisplayButton.Label" xml:space="preserve"><value>显示</value></data>
+  <data name="CadPropertiesButton.Label" xml:space="preserve"><value>属性</value></data>
+  <data name="CadLayerSegment.Content" xml:space="preserve"><value>图层</value></data>
+  <data name="CadLayoutSegment.Content" xml:space="preserve"><value>布局（暂未支持）</value></data>
+  <data name="CadPropertiesPanelTitle.Text" xml:space="preserve"><value>属性</value></data>
+  <data name="CadPropertiesEmpty.Text" xml:space="preserve"><value>选择一个对象以查看真实 CAD 属性。</value></data>
+  <data name="CadDiagnosticsBar.Title" xml:space="preserve"><value>图纸包含暂不支持的对象</value></data>
+  <data name="Cad_Status_FileChanged" xml:space="preserve"><value>检测到文件变化，正在重新读取…</value></data>
+  <data name="Cad_Status_OpeningFile" xml:space="preserve"><value>正在打开 {0}…</value></data>
+  <data name="Cad_Status_OpenFailed" xml:space="preserve"><value>无法打开此文件。</value></data>
+  <data name="Cad_Status_Zoom" xml:space="preserve"><value>缩放 {0:G4}</value></data>
+  <data name="Cad_Unitless" xml:space="preserve"><value>无单位</value></data>
+  <data name="Cad_Status_SkippedObjects" xml:space="preserve"><value>已跳过 {0} 个暂不支持的对象</value></data>
+  <data name="Cad_Status_FileReloaded" xml:space="preserve"><value>文件已重新读取</value></data>
+
+  <data name="About_Title" xml:space="preserve"><value>关于图览</value></data>
+  <data name="About_Tagline" xml:space="preserve"><value>建筑、规划与空间数据统一查看器</value></data>
+  <data name="About_DisplayVersion" xml:space="preserve"><value>显示版本</value></data>
+  <data name="About_Channel" xml:space="preserve"><value>发布渠道</value></data>
+  <data name="About_InternalVersion" xml:space="preserve"><value>内部版本</value></data>
+  <data name="About_Publisher" xml:space="preserve"><value>发行者</value></data>
+  <data name="About_Architecture" xml:space="preserve"><value>当前架构</value></data>
+  <data name="About_TechStack" xml:space="preserve"><value>技术栈</value></data>
+  <data name="About_UpdateManagement" xml:space="preserve"><value>更新管理</value></data>
+  <data name="About_AppProgram" xml:space="preserve"><value>SpatialViewer 主程序</value></data>
+  <data name="About_AppUpdate" xml:space="preserve"><value>应用更新</value></data>
+  <data name="About_CurrentVersion" xml:space="preserve"><value>当前版本</value></data>
+  <data name="About_AvailableVersion" xml:space="preserve"><value>可用版本</value></data>
+  <data name="About_UpdateSource" xml:space="preserve"><value>更新来源</value></data>
+  <data name="About_Status" xml:space="preserve"><value>状态</value></data>
+  <data name="About_ReleaseNotes" xml:space="preserve"><value>发行说明</value></data>
+  <data name="About_CheckUpdates" xml:space="preserve"><value>检查更新</value></data>
+  <data name="About_Kernels" xml:space="preserve"><value>查看内核</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD 图形内核 · SpatialViewer.CadCore</value></data>
+  <data name="About_ProjectOpenSource" xml:space="preserve"><value>项目与开源</value></data>
+  <data name="About_Repository" xml:space="preserve"><value>GitHub 仓库</value></data>
+  <data name="About_Repository_Desc" xml:space="preserve"><value>查看源码、README 与开发进度。</value></data>
+  <data name="About_OpenRepository" xml:space="preserve"><value>打开仓库</value></data>
+  <data name="About_Releases_Desc" xml:space="preserve"><value>查看历史版本、安装包与发行说明。</value></data>
+  <data name="About_ViewVersions" xml:space="preserve"><value>查看版本</value></data>
+  <data name="About_LicensePrivacy" xml:space="preserve"><value>许可与隐私</value></data>
+  <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>查看第三方组件许可与本地文件策略。</value></data>
+  <data name="About_ViewInfo" xml:space="preserve"><value>查看说明</value></data>
+
+  <data name="KernelPlanned1.Text" xml:space="preserve"><value>计划中</value></data>
+  <data name="KernelPlanned2.Text" xml:space="preserve"><value>计划中</value></data>
+  <data name="KernelPlanned3.Text" xml:space="preserve"><value>计划中</value></data>
+  <data name="KernelSourcePlanned1.Text" xml:space="preserve"><value>预留独立源</value></data>
+  <data name="KernelSourcePlanned2.Text" xml:space="preserve"><value>预留独立源</value></data>
+  <data name="KernelSourcePlanned3.Text" xml:space="preserve"><value>预留独立源</value></data>
+  <data name="KernelStatusPlanned1.Text" xml:space="preserve"><value>尚未接入</value></data>
+  <data name="KernelStatusPlanned2.Text" xml:space="preserve"><value>尚未接入</value></data>
+  <data name="KernelStatusPlanned3.Text" xml:space="preserve"><value>尚未接入</value></data>
+
+  <data name="Update_NotChecked" xml:space="preserve"><value>尚未检查</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>正在检查…</value></data>
+  <data name="Update_NoRelease" xml:space="preserve"><value>暂无 GitHub Release</value></data>
+  <data name="Update_NewVersion" xml:space="preserve"><value>发现新版本</value></data>
+  <data name="Update_Latest" xml:space="preserve"><value>已是最新预览版</value></data>
+  <data name="Update_NetworkFailed" xml:space="preserve"><value>网络检查失败</value></data>
+  <data name="Update_Timeout" xml:space="preserve"><value>检查超时</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>暂无 CadCore Release</value></data>
+  <data name="Update_CadUpToDate" xml:space="preserve"><value>已是最新版本</value></data>
+  <data name="Update_CadAvailable" xml:space="preserve"><value>发现内核更新</value></data>
+  <data name="Update_CadDownloading" xml:space="preserve"><value>正在下载内核更新…</value></data>
+  <data name="Update_CadVerifying" xml:space="preserve"><value>正在验证并准备内核更新…</value></data>
+  <data name="Update_CadReadyRestart" xml:space="preserve"><value>更新已下载，重启应用后生效</value></data>
+  <data name="Update_CadFailed" xml:space="preserve"><value>内核更新失败</value></data>
+  <data name="Update_CadMissingAsset" xml:space="preserve"><value>当前 Release 缺少可安装的 x64 内核包</value></data>
+  <data name="Update_CadCancelled" xml:space="preserve"><value>已取消内核更新</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>下载更新</value></data>
+  <data name="Update_Retry" xml:space="preserve"><value>重试</value></data>
+  <data name="Update_WaitingRestart" xml:space="preserve"><value>等待重启</value></data>
+</root>

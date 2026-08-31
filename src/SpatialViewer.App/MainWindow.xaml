@@ -4,7 +4,7 @@
   <Window.SystemBackdrop>
     <MicaBackdrop />
   </Window.SystemBackdrop>
-  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" UseLayoutRounding="True">
+  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" Loaded="LocalizationShell_Loaded" UseLayoutRounding="True">
     <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
       <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
       <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
@@ -16,7 +16,7 @@
           <Button x:Name="ShellNewTabButton" Width="32" Height="32" MinWidth="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="7"
                   HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                  Click="ShellNewTabButton_Click" AutomationProperties.Name="新建主页标签">
+                  Click="ShellNewTabButton_Click">
             <TextBlock Text="+" FontSize="17" Opacity="0.68" />
           </Button>
         </StackPanel>
@@ -28,6 +28,10 @@
                     IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                     Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
       <NavigationView.Resources>
+        <!-- The Fluent default content background is LayerFillColorDefaultBrush,
+             which masks the Window Mica backdrop with a flat gray sheet. Keep
+             the content plane transparent so Settings/About sit directly on Mica. -->
+        <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="SolidBackgroundFillColorTransparent" />
         <!-- The Fluent default puts a rounded 1-DIP SplitView frame around an
              inline pane. This shell already owns the outer window edge, so the
              pane must meet the title bar directly. -->
@@ -38,16 +42,16 @@
         <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="ShellNavigationPaneBackgroundBrush" />
       </NavigationView.Resources>
       <NavigationView.MenuItems>
-        <NavigationViewItem x:Name="HomeNav" Tag="Home" Content="主页" IsSelected="True"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="ProjectsNav" Tag="Projects" Content="项目"><NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="FavoritesNav" Tag="Favorites" Content="收藏"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="HomeNav" x:Uid="NavHome" Tag="Home" Content="主页" IsSelected="True"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="ProjectsNav" x:Uid="NavProjects" Tag="Projects" Content="项目"><NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="FavoritesNav" x:Uid="NavFavorites" Tag="Favorites" Content="收藏"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite" /></NavigationViewItem.Icon></NavigationViewItem>
       </NavigationView.MenuItems>
       <NavigationView.FooterMenuItems>
-        <NavigationViewItem x:Name="ImportFolderNav" Tag="ImportFolder" Content="导入文件夹"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="SettingsNav" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="AboutNav" Tag="About" Content="关于图览"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="ImportFolderNav" x:Uid="NavImportFolder" Tag="ImportFolder" Content="导入文件夹"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="AboutNav" x:Uid="NavAbout" Tag="About" Content="关于图览"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
+        <NavigationViewItem x:Name="SettingsNav" x:Uid="NavSettings" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
       </NavigationView.FooterMenuItems>
-      <ContentControl x:Name="MainContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+      <ContentControl x:Name="MainContent" Background="Transparent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     </NavigationView>
   </Grid>
 </Window>

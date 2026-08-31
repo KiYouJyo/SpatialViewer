@@ -1,14 +1,16 @@
 using System.Text.Json;
-using Windows.Globalization;
 
 namespace SpatialViewer.Product;
 
-internal enum AppLanguagePreference { SimplifiedChinese, Japanese, English }
+// Preserve the first three numeric values written by v0.2 settings JSON.
+internal enum AppLanguagePreference { SimplifiedChinese = 0, Japanese = 1, English = 2, System = 3 }
+// Retained only so existing v0.2 JSON can be migrated without data loss. The
+// viewer now always follows the application theme and exposes no separate UI.
 internal enum ViewerThemePreference { FollowApp, Light, Dark }
 internal enum DrawingBackgroundPreference { FollowMode, Dark, Light }
 
 internal sealed record AppSettings(
-    AppLanguagePreference Language = AppLanguagePreference.SimplifiedChinese,
+    AppLanguagePreference Language = AppLanguagePreference.System,
     bool RestoreLastSession = true,
     bool RecordRecentFiles = true,
     bool AutoCheckFileChanges = true,
@@ -32,22 +34,22 @@ internal static class AppSettingsStore
     public static void Update(Func<AppSettings, AppSettings> update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        var next = update(_current);
+        var next = update(_current) with { ViewerTheme = ViewerThemePreference.FollowApp };
         if (next == _current) return;
         _current = next;
         SaveCore(next);
-        ApplyLanguage(next.Language);
         Changed?.Invoke(null, EventArgs.Empty);
     }
-
-    public static void ApplySavedLanguage() => ApplyLanguage(_current.Language);
 
     private static AppSettings LoadCore()
     {
         try
         {
             if (!File.Exists(SettingsPath)) return new AppSettings();
-            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath)) ?? new AppSettings();
+            var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath)) ?? new AppSettings();
+            // v0.2 briefly exposed a viewer-only theme. Migrate every existing
+            // installation back to the application theme on first load.
+            return loaded with { ViewerTheme = ViewerThemePreference.FollowApp };
         }
         catch (IOException) { return new AppSettings(); }
         catch (JsonException) { return new AppSettings(); }
@@ -66,15 +68,5 @@ internal static class AppSettingsStore
         {
             // Settings persistence must never block an interactive change.
         }
-    }
-
-    private static void ApplyLanguage(AppLanguagePreference language)
-    {
-        ApplicationLanguages.PrimaryLanguageOverride = language switch
-        {
-            AppLanguagePreference.Japanese => "ja-JP",
-            AppLanguagePreference.English => "en-US",
-            _ => "zh-CN"
-        };
     }
 }

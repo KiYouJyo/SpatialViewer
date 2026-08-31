@@ -1,2 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
-<root><data name="AppName" xml:space="preserve"><value>Spatial Viewer</value></data><data name="Home" xml:space="preserve"><value>Home</value></data><data name="OpenFile" xml:space="preserve"><value>Open file</value></data><data name="NotImplemented" xml:space="preserve"><value>Not implemented</value></data></root>
+<root>
+  <data name="AppName" xml:space="preserve"><value>Spatial Viewer</value></data>
+  <data name="Home" xml:space="preserve"><value>Home</value></data>
+  <data name="OpenFile" xml:space="preserve"><value>Open file</value></data>
+  <data name="NotImplemented" xml:space="preserve"><value>Not implemented yet</value></data>
+  <data name="Nav_Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Nav_Projects" xml:space="preserve"><value>Projects</value></data>
+  <data name="Nav_Favorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="Nav_ImportFolder" xml:space="preserve"><value>Import folder</value></data>
+  <data name="Nav_About" xml:space="preserve"><value>About Spatial Viewer</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="NavHome.Content" xml:space="preserve"><value>Home</value></data>
+  <data name="NavProjects.Content" xml:space="preserve"><value>Projects</value></data>
+  <data name="NavFavorites.Content" xml:space="preserve"><value>Favorites</value></data>
+  <data name="NavImportFolder.Content" xml:space="preserve"><value>Import folder</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>About Spatial Viewer</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>Settings</value></data>
+  <data name="Shell_NewHomeTab" xml:space="preserve"><value>New Home tab</value></data>
+
+  <data name="HomeTitle.Text" xml:space="preserve"><value>Spatial Viewer</value></data>
+  <data name="HomeOpenFile.Text" xml:space="preserve"><value>Open file</value></data>
+  <data name="HomeQuickOpen.Text" xml:space="preserve"><value>Quick open</value></data>
+  <data name="HomeDropZone.Text" xml:space="preserve"><value>Drop a drawing, spatial dataset, or model here</value></data>
+  <data name="HomeSupportedWorkflows.Text" xml:space="preserve"><value>Supported workflows</value></data>
+  <data name="HomeRecent.Text" xml:space="preserve"><value>Recently opened</value></data>
+  <data name="HomeRecentCompact.Text" xml:space="preserve"><value>Recently opened</value></data>
+  <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>Search recent files</value></data>
+  <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>Search recent files</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>No drawings have been opened yet. Use the button or drop area above to open a DWG / DXF file.</value></data>
+  <data name="Home_Filter_All" xml:space="preserve"><value>All</value></data>
+  <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>Open a CAD file</value></data>
+  <data name="Home_Workflow_Planned" xml:space="preserve"><value>In development</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>Open a DWG or DXF file</value></data>
+  <data name="Home_Date_Today" xml:space="preserve"><value>Today {0:HH:mm}</value></data>
+  <data name="Home_Date_Yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="Home_Date_Format" xml:space="preserve"><value>MMM d</value></data>
+
+  <data name="Placeholder_Projects_Title" xml:space="preserve"><value>Projects</value></data>
+  <data name="Placeholder_Projects_Message" xml:space="preserve"><value>Project workflows will be available in a later release.</value></data>
+  <data name="Placeholder_Favorites_Title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="Placeholder_Favorites_Message" xml:space="preserve"><value>Favorites will be available in a later release.</value></data>
+  <data name="Placeholder_ImportFolder_Title" xml:space="preserve"><value>Import folder</value></data>
+  <data name="Placeholder_ImportFolder_Message" xml:space="preserve"><value>Folder import will be available in a later release.</value></data>
+
+  <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_AppearanceLanguage" xml:space="preserve"><value>Appearance &amp; language</value></data>
+  <data name="Settings_Theme_Title" xml:space="preserve"><value>Theme</value></data>
+  <data name="Settings_Theme_Desc" xml:space="preserve"><value>Choose light, dark, or follow the system. Theme changes apply immediately.</value></data>
+  <data name="Theme_System" xml:space="preserve"><value>Use system setting</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Settings_Language_Title" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings_Language_Desc" xml:space="preserve"><value>Choose the interface language. The current UI is rebuilt and your location is restored without restarting the app.</value></data>
+  <data name="Language_System" xml:space="preserve"><value>Use system setting</value></data>
+  <data name="Language_ZhCn" xml:space="preserve"><value>简体中文</value></data>
+  <data name="Language_JaJp" xml:space="preserve"><value>日本語</value></data>
+  <data name="Language_EnUs" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_FileSession" xml:space="preserve"><value>Files &amp; session</value></data>
+  <data name="Settings_Restore_Title" xml:space="preserve"><value>Restore the previous session at startup</value></data>
+  <data name="Settings_Restore_Desc" xml:space="preserve"><value>Reopen drawings that were still in the session when the app last exited.</value></data>
+  <data name="Settings_Recent_Title" xml:space="preserve"><value>Remember recently opened files</value></data>
+  <data name="Settings_Recent_Desc" xml:space="preserve"><value>Store recent file paths locally for quick access from Home.</value></data>
+  <data name="Settings_Watch_Title" xml:space="preserve"><value>Automatically check for file changes</value></data>
+  <data name="Settings_Watch_Desc" xml:space="preserve"><value>Reload an open drawing after it is modified externally.</value></data>
+  <data name="Settings_Viewer" xml:space="preserve"><value>Viewer</value></data>
+  <data name="Settings_Fit_Title" xml:space="preserve"><value>Fit to window after opening a file</value></data>
+  <data name="Settings_Fit_Desc" xml:space="preserve"><value>Fit all objects when a drawing is first displayed.</value></data>
+  <data name="Settings_DrawingBackground_Title" xml:space="preserve"><value>Drawing background</value></data>
+  <data name="Settings_DrawingBackground_Desc" xml:space="preserve"><value>Follow the app theme or always use a black or white canvas.</value></data>
+  <data name="DrawingBackground_Follow" xml:space="preserve"><value>Follow app</value></data>
+  <data name="DrawingBackground_Dark" xml:space="preserve"><value>Black</value></data>
+  <data name="DrawingBackground_Light" xml:space="preserve"><value>White</value></data>
+  <data name="Language_SwitchFailed" xml:space="preserve"><value>Could not switch language</value></data>
+
+  <data name="CadLayersTitle.Text" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadPropertiesTitle.Text" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadPropertiesEmptyOverlay.Text" xml:space="preserve"><value>Select an object to view its CAD properties.</value></data>
+  <data name="CadLayersButton.Label" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadSelectButton.Label" xml:space="preserve"><value>Select</value></data>
+  <data name="CadPanButton.Label" xml:space="preserve"><value>Pan</value></data>
+  <data name="CadFitButton.Label" xml:space="preserve"><value>Fit</value></data>
+  <data name="CadDistanceButton.Label" xml:space="preserve"><value>Distance</value></data>
+  <data name="CadAreaButton.Label" xml:space="preserve"><value>Area</value></data>
+  <data name="CadCoordinateButton.Label" xml:space="preserve"><value>Coordinates</value></data>
+  <data name="CadDisplayButton.Label" xml:space="preserve"><value>Display</value></data>
+  <data name="CadPropertiesButton.Label" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadLayerSegment.Content" xml:space="preserve"><value>Layers</value></data>
+  <data name="CadLayoutSegment.Content" xml:space="preserve"><value>Layouts (not supported yet)</value></data>
+  <data name="CadPropertiesPanelTitle.Text" xml:space="preserve"><value>Properties</value></data>
+  <data name="CadPropertiesEmpty.Text" xml:space="preserve"><value>Select an object to view its CAD properties.</value></data>
+  <data name="CadDiagnosticsBar.Title" xml:space="preserve"><value>The drawing contains unsupported objects</value></data>
+  <data name="Cad_Status_FileChanged" xml:space="preserve"><value>File change detected. Reloading…</value></data>
+  <data name="Cad_Status_OpeningFile" xml:space="preserve"><value>Opening {0}…</value></data>
+  <data name="Cad_Status_OpenFailed" xml:space="preserve"><value>Could not open this file.</value></data>
+  <data name="Cad_Status_Zoom" xml:space="preserve"><value>Zoom {0:G4}</value></data>
+  <data name="Cad_Unitless" xml:space="preserve"><value>Unitless</value></data>
+  <data name="Cad_Status_SkippedObjects" xml:space="preserve"><value>Skipped {0} unsupported objects</value></data>
+  <data name="Cad_Status_FileReloaded" xml:space="preserve"><value>File reloaded</value></data>
+
+  <data name="About_Title" xml:space="preserve"><value>About Spatial Viewer</value></data>
+  <data name="About_Tagline" xml:space="preserve"><value>A unified viewer for architecture, planning, and spatial data</value></data>
+  <data name="About_DisplayVersion" xml:space="preserve"><value>Display version</value></data>
+  <data name="About_Channel" xml:space="preserve"><value>Release channel</value></data>
+  <data name="About_InternalVersion" xml:space="preserve"><value>Internal version</value></data>
+  <data name="About_Publisher" xml:space="preserve"><value>Publisher</value></data>
+  <data name="About_Architecture" xml:space="preserve"><value>Architecture</value></data>
+  <data name="About_TechStack" xml:space="preserve"><value>Technology</value></data>
+  <data name="About_UpdateManagement" xml:space="preserve"><value>Update management</value></data>
+  <data name="About_AppProgram" xml:space="preserve"><value>SpatialViewer application</value></data>
+  <data name="About_AppUpdate" xml:space="preserve"><value>Application update</value></data>
+  <data name="About_CurrentVersion" xml:space="preserve"><value>Current version</value></data>
+  <data name="About_AvailableVersion" xml:space="preserve"><value>Available version</value></data>
+  <data name="About_UpdateSource" xml:space="preserve"><value>Update source</value></data>
+  <data name="About_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="About_ReleaseNotes" xml:space="preserve"><value>Release notes</value></data>
+  <data name="About_CheckUpdates" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="About_Kernels" xml:space="preserve"><value>Viewer kernels</value></data>
+  <data name="About_CadCore_Desc" xml:space="preserve"><value>CAD graphics kernel · SpatialViewer.CadCore</value></data>
+  <data name="About_ProjectOpenSource" xml:space="preserve"><value>Project &amp; open source</value></data>
+  <data name="About_Repository" xml:space="preserve"><value>GitHub repository</value></data>
+  <data name="About_Repository_Desc" xml:space="preserve"><value>View source code, README, and development progress.</value></data>
+  <data name="About_OpenRepository" xml:space="preserve"><value>Open repository</value></data>
+  <data name="About_Releases_Desc" xml:space="preserve"><value>View previous versions, installers, and release notes.</value></data>
+  <data name="About_ViewVersions" xml:space="preserve"><value>View releases</value></data>
+  <data name="About_LicensePrivacy" xml:space="preserve"><value>Licensing &amp; privacy</value></data>
+  <data name="About_LicensePrivacy_Desc" xml:space="preserve"><value>Review third-party licenses and local-file handling.</value></data>
+  <data name="About_ViewInfo" xml:space="preserve"><value>View information</value></data>
+
+  <data name="KernelPlanned1.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelPlanned2.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelPlanned3.Text" xml:space="preserve"><value>Planned</value></data>
+  <data name="KernelSourcePlanned1.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelSourcePlanned2.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelSourcePlanned3.Text" xml:space="preserve"><value>Reserved source</value></data>
+  <data name="KernelStatusPlanned1.Text" xml:space="preserve"><value>Not connected</value></data>
+  <data name="KernelStatusPlanned2.Text" xml:space="preserve"><value>Not connected</value></data>
+  <data name="KernelStatusPlanned3.Text" xml:space="preserve"><value>Not connected</value></data>
+
+  <data name="Update_NotChecked" xml:space="preserve"><value>Not checked</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>Checking…</value></data>
+  <data name="Update_NoRelease" xml:space="preserve"><value>No GitHub Release is available</value></data>
+  <data name="Update_NewVersion" xml:space="preserve"><value>A new version is available</value></data>
+  <data name="Update_Latest" xml:space="preserve"><value>You have the latest preview</value></data>
+  <data name="Update_NetworkFailed" xml:space="preserve"><value>Network check failed</value></data>
+  <data name="Update_Timeout" xml:space="preserve"><value>Update check timed out</value></data>
+  <data name="Update_CadNoRelease" xml:space="preserve"><value>No CadCore Release is available</value></data>
+  <data name="Update_CadUpToDate" xml:space="preserve"><value>The kernel is up to date</value></data>
+  <data name="Update_CadAvailable" xml:space="preserve"><value>A kernel update is available</value></data>
+  <data name="Update_CadDownloading" xml:space="preserve"><value>Downloading the kernel update…</value></data>
+  <data name="Update_CadVerifying" xml:space="preserve"><value>Verifying and preparing the kernel update…</value></data>
+  <data name="Update_CadReadyRestart" xml:space="preserve"><value>Update downloaded. Restart the app to apply it</value></data>
+  <data name="Update_CadFailed" xml:space="preserve"><value>Kernel update failed</value></data>
+  <data name="Update_CadMissingAsset" xml:space="preserve"><value>This Release does not contain an installable x64 kernel package</value></data>
+  <data name="Update_CadCancelled" xml:space="preserve"><value>Kernel update cancelled</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>Download update</value></data>
+  <data name="Update_Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Update_WaitingRestart" xml:space="preserve"><value>Waiting for restart</value></data>
+</root>

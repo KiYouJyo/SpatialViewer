@@ -8,47 +8,50 @@ namespace SpatialViewer.Product.Views;
 public sealed partial class AboutView : UserControl
 {
     private const string ProductRepository = "KiYouJyo/SpatialViewer";
-    private const string CadCoreRepository = "KiYouJyo/SpatialViewer.CadCore";
     private static readonly Uri ProductRepositoryUri = new("https://github.com/KiYouJyo/SpatialViewer");
+    private static readonly Uri CadCoreRepositoryUri = new("https://github.com/KiYouJyo/SpatialViewer.CadCore");
     private static readonly Uri ReleasesUri = new("https://github.com/KiYouJyo/SpatialViewer/releases");
     private static readonly Uri PrivacyUri = new("https://github.com/KiYouJyo/SpatialViewer/blob/main/PRIVACY.md");
+    private readonly AppLocalizationService _localization = AppLocalizationService.Default;
+    private readonly CadCoreUpdateService _cadCoreUpdate = new();
     private GitHubReleaseInfo? _latestProductRelease;
+    private CadCoreUpdateResult _cadCoreUpdateResult;
+    private AboutLayoutMode _layoutMode = AboutLayoutMode.Wide;
 
     public AboutView()
     {
+        _cadCoreUpdateResult = new CadCoreUpdateResult(CadCoreUpdateState.NotChecked, CadCoreRuntimeBootstrapper.CurrentVersion);
         InitializeComponent();
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        if (version is not null)
-            ToolTipService.SetToolTip(CadCurrentVersionText, $"SpatialViewer bundle {version.Major}.{version.Minor}.{version.Build}");
+        ApplyLocalizedText();
+        RenderCadCoreUpdate(_cadCoreUpdateResult);
     }
 
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)
     {
         CheckAppUpdateButton.IsEnabled = false;
-        AppUpdateStatusText.Text = "正在检查…";
+        AppUpdateStatusText.Text = T("Update_Checking");
         try
         {
             _latestProductRelease = await GitHubUpdateService.GetLatestReleaseAsync(ProductRepository);
             if (_latestProductRelease is null)
             {
                 AvailableAppVersionText.Text = "—";
-                AppUpdateStatusText.Text = "暂无 GitHub Release";
+                AppUpdateStatusText.Text = T("Update_NoRelease");
                 return;
             }
 
             AvailableAppVersionText.Text = $"v{_latestProductRelease.DisplayVersion}";
-            var current = new Version(0, 2, 0);
-            AppUpdateStatusText.Text = GitHubUpdateService.IsNewer(_latestProductRelease.TagName, current)
-                ? "发现新版本"
-                : "已是最新预览版";
+            AppUpdateStatusText.Text = GitHubUpdateService.IsNewer(_latestProductRelease.TagName, CurrentProductVersion())
+                ? T("Update_NewVersion")
+                : T("Update_Latest");
         }
         catch (HttpRequestException)
         {
-            AppUpdateStatusText.Text = "网络检查失败";
+            AppUpdateStatusText.Text = T("Update_NetworkFailed");
         }
         catch (TaskCanceledException)
         {
-            AppUpdateStatusText.Text = "检查超时";
+            AppUpdateStatusText.Text = T("Update_Timeout");
         }
         finally
         {
@@ -58,72 +61,234 @@ public sealed partial class AboutView : UserControl
 
     private async void CheckCadUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        CadUpdateStatusText.Text = "正在检查…";
+        if (_cadCoreUpdateResult.State == CadCoreUpdateState.ReadyForRestart) return;
+        if (_cadCoreUpdateResult.State == CadCoreUpdateState.UpdateAvailable)
+        {
+            await DownloadCadCoreUpdateAsync();
+            return;
+        }
+
+        CheckCadUpdateButton.IsEnabled = false;
+        _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Checking, ErrorCode = null };
+        RenderCadCoreUpdate(_cadCoreUpdateResult);
+        _cadCoreUpdateResult = await _cadCoreUpdate.CheckForUpdatesAsync();
+        RenderCadCoreUpdate(_cadCoreUpdateResult);
+    }
+
+    private async Task DownloadCadCoreUpdateAsync()
+    {
+        CheckCadUpdateButton.IsEnabled = false;
+        var progress = new Progress<CadCoreUpdateProgress>(value =>
+        {
+            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = value.State };
+            RenderCadCoreUpdate(_cadCoreUpdateResult, value.Fraction);
+        });
         try
         {
-            var release = await GitHubUpdateService.GetLatestReleaseAsync(CadCoreRepository);
-            if (release is null)
-            {
-                CadAvailableVersionText.Text = "—";
-                CadUpdateStatusText.Text = "暂无独立 Release";
-                return;
-            }
-            CadAvailableVersionText.Text = $"v{release.DisplayVersion}";
-            CadUpdateStatusText.Text = "已读取独立仓库";
+            _cadCoreUpdateResult = await _cadCoreUpdate.DownloadAndStageAsync(progress);
         }
-        catch (HttpRequestException)
+        catch (OperationCanceledException)
         {
-            CadUpdateStatusText.Text = "网络检查失败";
+            _cadCoreUpdateResult = _cadCoreUpdateResult with { State = CadCoreUpdateState.Failed, ErrorCode = "Cancelled" };
         }
-        catch (TaskCanceledException)
+        RenderCadCoreUpdate(_cadCoreUpdateResult);
+    }
+
+    private void RenderCadCoreUpdate(CadCoreUpdateResult result, double? progress = null)
+    {
+        CadCurrentVersionText.Text = $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.CurrentVersion)}";
+        CadAvailableVersionText.Text = result.AvailableVersion is null
+            ? "—"
+            : $"v{CadCoreRuntimeBootstrapper.FormatVersion(result.AvailableVersion)}";
+
+        switch (result.State)
         {
-            CadUpdateStatusText.Text = "检查超时";
+            case CadCoreUpdateState.NotChecked:
+                CadUpdateStatusText.Text = T("Update_NotChecked");
+                CheckCadUpdateButton.Content = T("About_CheckUpdates");
+                CheckCadUpdateButton.IsEnabled = true;
+                break;
+            case CadCoreUpdateState.Checking:
+                CadUpdateStatusText.Text = T("Update_Checking");
+                CheckCadUpdateButton.Content = T("About_CheckUpdates");
+                CheckCadUpdateButton.IsEnabled = false;
+                break;
+            case CadCoreUpdateState.UpToDate:
+                CadUpdateStatusText.Text = T("Update_CadUpToDate");
+                CheckCadUpdateButton.Content = T("About_CheckUpdates");
+                CheckCadUpdateButton.IsEnabled = true;
+                break;
+            case CadCoreUpdateState.UpdateAvailable:
+                CadUpdateStatusText.Text = T("Update_CadAvailable");
+                CheckCadUpdateButton.Content = T("Update_Download");
+                CheckCadUpdateButton.IsEnabled = true;
+                break;
+            case CadCoreUpdateState.Downloading:
+                CadUpdateStatusText.Text = progress is null
+                    ? T("Update_CadDownloading")
+                    : $"{T("Update_CadDownloading")} {progress.Value:P0}";
+                CheckCadUpdateButton.Content = T("Update_Download");
+                CheckCadUpdateButton.IsEnabled = false;
+                break;
+            case CadCoreUpdateState.Verifying:
+                CadUpdateStatusText.Text = T("Update_CadVerifying");
+                CheckCadUpdateButton.Content = T("Update_Download");
+                CheckCadUpdateButton.IsEnabled = false;
+                break;
+            case CadCoreUpdateState.ReadyForRestart:
+                CadUpdateStatusText.Text = T("Update_CadReadyRestart");
+                CheckCadUpdateButton.Content = T("Update_WaitingRestart");
+                CheckCadUpdateButton.IsEnabled = false;
+                break;
+            case CadCoreUpdateState.Failed:
+                CadUpdateStatusText.Text = ResolveCadUpdateError(result.ErrorCode);
+                CheckCadUpdateButton.Content = T("Update_Retry");
+                CheckCadUpdateButton.IsEnabled = true;
+                break;
         }
     }
+
+    private string ResolveCadUpdateError(string? errorCode) => errorCode switch
+    {
+        "NoRelease" => T("Update_CadNoRelease"),
+        "Timeout" => T("Update_Timeout"),
+        "Network" => T("Update_NetworkFailed"),
+        "MissingAsset" => T("Update_CadMissingAsset"),
+        "Cancelled" => T("Update_CadCancelled"),
+        _ => T("Update_CadFailed")
+    };
 
     private async void ReleaseNotesButton_Click(object sender, RoutedEventArgs e) =>
         await Launcher.LaunchUriAsync(_latestProductRelease is { HtmlUrl.Length: > 0 } release ? new Uri(release.HtmlUrl) : ReleasesUri);
 
     private async void OpenRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(ProductRepositoryUri);
+    private async void OpenCadCoreRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(CadCoreRepositoryUri);
     private async void OpenReleasesButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(ReleasesUri);
     private async void OpenPrivacyButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(PrivacyUri);
 
     private void AboutRoot_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // Figma's 1312-DIP desktop composition remains the preferred layout.
-        // Below that width the project cards reflow while the section/card
-        // surfaces retain their native WinUI materials and spacing hierarchy.
-        var compact = e.NewSize.Width < 900;
-        if (compact && ProjectLinksGrid.ColumnDefinitions.Count == 3)
+        var mode = e.NewSize.Width >= 1040 ? AboutLayoutMode.Wide : e.NewSize.Width >= 680 ? AboutLayoutMode.Medium : AboutLayoutMode.Compact;
+        if (mode == _layoutMode && MetadataGrid.ColumnDefinitions.Count > 0) return;
+        _layoutMode = mode;
+        ApplyResponsiveLayout();
+    }
+
+    private void ApplyResponsiveLayout()
+    {
+        // The update rows intentionally retain the original table hierarchy.
+        // Their nested ScrollViewers handle genuinely narrow windows without
+        // converting the design into a different card layout.
+        ConfigureMetadataGrid(_layoutMode);
+        ConfigureProjectGrid(_layoutMode);
+    }
+
+    private void ConfigureMetadataGrid(AboutLayoutMode mode)
+    {
+        MetadataGrid.ColumnDefinitions.Clear();
+        MetadataGrid.RowDefinitions.Clear();
+        if (mode == AboutLayoutMode.Wide)
         {
-            ProjectLinksGrid.ColumnDefinitions.Clear();
-            ProjectLinksGrid.ColumnDefinitions.Add(new ColumnDefinition());
-            ProjectLinksGrid.RowDefinitions.Clear();
-            ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-            ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-            ProjectLinksGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            for (var index = 0; index < ProjectLinksGrid.Children.Count; index++)
-            {
-                if (ProjectLinksGrid.Children[index] is not FrameworkElement child) continue;
-                Grid.SetColumn(child, 0);
-                Grid.SetRow(child, index * 2);
-            }
+            AddColumns(MetadataGrid, 3);
+            Grid.SetRow(MetadataColumn0, 0); Grid.SetColumn(MetadataColumn0, 0); Grid.SetColumnSpan(MetadataColumn0, 1);
+            Grid.SetRow(MetadataColumn1, 0); Grid.SetColumn(MetadataColumn1, 1); Grid.SetColumnSpan(MetadataColumn1, 1);
+            Grid.SetRow(MetadataColumn2, 0); Grid.SetColumn(MetadataColumn2, 2); Grid.SetColumnSpan(MetadataColumn2, 1);
+            return;
         }
-        else if (!compact && ProjectLinksGrid.ColumnDefinitions.Count == 1)
+
+        if (mode == AboutLayoutMode.Medium)
         {
-            ProjectLinksGrid.RowDefinitions.Clear();
-            ProjectLinksGrid.ColumnDefinitions.Clear();
-            ProjectLinksGrid.ColumnDefinitions.Add(new ColumnDefinition());
-            ProjectLinksGrid.ColumnDefinitions.Add(new ColumnDefinition());
-            ProjectLinksGrid.ColumnDefinitions.Add(new ColumnDefinition());
-            for (var index = 0; index < ProjectLinksGrid.Children.Count; index++)
-            {
-                if (ProjectLinksGrid.Children[index] is not FrameworkElement child) continue;
-                Grid.SetRow(child, 0);
-                Grid.SetColumn(child, index);
-            }
+            AddColumns(MetadataGrid, 2); AddRows(MetadataGrid, 2);
+            Grid.SetRow(MetadataColumn0, 0); Grid.SetColumn(MetadataColumn0, 0); Grid.SetColumnSpan(MetadataColumn0, 1);
+            Grid.SetRow(MetadataColumn1, 0); Grid.SetColumn(MetadataColumn1, 1); Grid.SetColumnSpan(MetadataColumn1, 1);
+            Grid.SetRow(MetadataColumn2, 1); Grid.SetColumn(MetadataColumn2, 0); Grid.SetColumnSpan(MetadataColumn2, 2);
+            return;
         }
+
+        AddColumns(MetadataGrid, 1); AddRows(MetadataGrid, 3);
+        Grid.SetRow(MetadataColumn0, 0); Grid.SetColumn(MetadataColumn0, 0); Grid.SetColumnSpan(MetadataColumn0, 1);
+        Grid.SetRow(MetadataColumn1, 1); Grid.SetColumn(MetadataColumn1, 0); Grid.SetColumnSpan(MetadataColumn1, 1);
+        Grid.SetRow(MetadataColumn2, 2); Grid.SetColumn(MetadataColumn2, 0); Grid.SetColumnSpan(MetadataColumn2, 1);
+    }
+
+    private void ConfigureProjectGrid(AboutLayoutMode mode)
+    {
+        ProjectLinksGrid.ColumnDefinitions.Clear();
+        ProjectLinksGrid.RowDefinitions.Clear();
+        if (mode == AboutLayoutMode.Wide)
+        {
+            AddColumns(ProjectLinksGrid, 3);
+            Place(RepositoryCard, 0, 0, 1); Place(ReleasesCard, 0, 1, 1); Place(PrivacyCard, 0, 2, 1);
+            return;
+        }
+        if (mode == AboutLayoutMode.Medium)
+        {
+            AddColumns(ProjectLinksGrid, 2); AddRows(ProjectLinksGrid, 2);
+            Place(RepositoryCard, 0, 0, 1); Place(ReleasesCard, 0, 1, 1); Place(PrivacyCard, 1, 0, 2);
+            return;
+        }
+        AddColumns(ProjectLinksGrid, 1); AddRows(ProjectLinksGrid, 3);
+        Place(RepositoryCard, 0, 0, 1); Place(ReleasesCard, 1, 0, 1); Place(PrivacyCard, 2, 0, 1);
+    }
+
+    private void ApplyLocalizedText()
+    {
+        AboutTitleText.Text = T("About_Title");
+        ProductNameText.Text = T("AppName");
+        TaglineText.Text = T("About_Tagline");
+        DisplayVersionLabel.Text = T("About_DisplayVersion");
+        ChannelLabel.Text = T("About_Channel");
+        InternalVersionLabel.Text = T("About_InternalVersion");
+        PublisherLabel.Text = T("About_Publisher");
+        ArchitectureLabel.Text = T("About_Architecture");
+        TechStackLabel.Text = T("About_TechStack");
+        UpdateManagementTitleText.Text = T("About_UpdateManagement");
+        AppProgramTitleText.Text = T("About_AppProgram");
+        AppUpdateDescriptionText.Text = T("About_AppUpdate");
+        CurrentVersionLabel.Text = T("About_CurrentVersion");
+        AvailableVersionLabel.Text = T("About_AvailableVersion");
+        UpdateSourceLabel.Text = T("About_UpdateSource");
+        StatusLabel.Text = T("About_Status");
+        ReleaseNotesButton.Content = T("About_ReleaseNotes");
+        CheckAppUpdateButton.Content = T("About_CheckUpdates");
+        KernelsTitleText.Text = T("About_Kernels");
+        DisabledCheckButton1.Content = T("About_CheckUpdates");
+        DisabledCheckButton2.Content = T("About_CheckUpdates");
+        DisabledCheckButton3.Content = T("About_CheckUpdates");
+        ProjectOpenSourceTitleText.Text = T("About_ProjectOpenSource");
+        RepositoryTitleText.Text = T("About_Repository");
+        RepositoryDescriptionText.Text = T("About_Repository_Desc");
+        OpenRepositoryButton.Content = T("About_OpenRepository");
+        ReleasesDescriptionText.Text = T("About_Releases_Desc");
+        OpenReleasesButton.Content = T("About_ViewVersions");
+        LicensePrivacyTitleText.Text = T("About_LicensePrivacy");
+        LicensePrivacyDescriptionText.Text = T("About_LicensePrivacy_Desc");
+        OpenPrivacyButton.Content = T("About_ViewInfo");
+        AppUpdateStatusText.Text = T("Update_NotChecked");
+    }
+
+    private string T(string key) => _localization.GetString(key);
+
+    private static Version CurrentProductVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        return version is null ? new Version(0, 0) : new Version(version.Major, version.Minor, Math.Max(0, version.Build));
+    }
+
+    private static void AddColumns(Grid grid, int count)
+    {
+        for (var index = 0; index < count; index++) grid.ColumnDefinitions.Add(new ColumnDefinition());
+    }
+
+    private static void AddRows(Grid grid, int count)
+    {
+        for (var index = 0; index < count; index++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+    }
+
+    private static void Place(FrameworkElement element, int row, int column, int columnSpan)
+    {
+        Grid.SetRow(element, row); Grid.SetColumn(element, column); Grid.SetColumnSpan(element, columnSpan);
     }
 }
+
+internal enum AboutLayoutMode { Wide, Medium, Compact }

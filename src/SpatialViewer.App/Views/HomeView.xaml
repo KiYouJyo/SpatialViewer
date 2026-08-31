@@ -13,16 +13,16 @@
   <ScrollViewer Background="Transparent" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
     <Grid Padding="24" RowDefinitions="Auto,16,Auto,16,Auto,8,Auto,24,Auto,12,*" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" UseLayoutRounding="True">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="图览" Style="{StaticResource DisplayTitleText}" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Style="{StaticResource HeaderActionButton}" Click="Open_Click" AutomationProperties.Name="打开 DWG 或 DXF 文件"><StackPanel Orientation="Horizontal" Spacing="8"><controls:AppIcon Kind="OpenFile" IconSize="20" /><TextBlock Text="打开文件" Style="{StaticResource TabText}" FontWeight="SemiBold" /></StackPanel></Button>
+        <TextBlock x:Uid="HomeTitle" Text="图览" Style="{StaticResource DisplayTitleText}" VerticalAlignment="Center" />
+        <Button x:Name="OpenFileHeaderButton" Grid.Column="1" Style="{StaticResource HeaderActionButton}" Click="Open_Click"><StackPanel Orientation="Horizontal" Spacing="8"><controls:AppIcon Kind="OpenFile" IconSize="20" /><TextBlock x:Uid="HomeOpenFile" Text="打开文件" Style="{StaticResource TabText}" FontWeight="SemiBold" /></StackPanel></Button>
       </Grid>
       <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18,16" HorizontalAlignment="Stretch">
         <Grid RowDefinitions="Auto,12,44">
-          <StackPanel Orientation="Horizontal" Spacing="10"><TextBlock Text="快速打开" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" /><Border Background="{ThemeResource BgSelectionBrush}" CornerRadius="5" Padding="8,4"><TextBlock Text="DWG · DXF · GPKG · SHP · IFC · 3DM" Style="{StaticResource TagText}" TextWrapping="Wrap" /></Border></StackPanel>
-          <Button Grid.Row="2" Style="{StaticResource DropZone}" Click="Open_Click" AllowDrop="True" DragOver="DropZone_DragOver" Drop="DropZone_Drop"><StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"><controls:AppIcon Kind="OpenFile" IconSize="20" Foreground="{ThemeResource AccentBrush}" /><TextBlock Text="将图纸、空间数据或模型拖到这里" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" /></StackPanel></Button>
+          <StackPanel Orientation="Horizontal" Spacing="10"><TextBlock x:Uid="HomeQuickOpen" Text="快速打开" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" /><Border Background="{ThemeResource BgSelectionBrush}" CornerRadius="5" Padding="8,4"><TextBlock Text="DWG · DXF · GPKG · SHP · IFC · 3DM" Style="{StaticResource TagText}" TextWrapping="Wrap" /></Border></StackPanel>
+          <Button Grid.Row="2" Style="{StaticResource DropZone}" Click="Open_Click" AllowDrop="True" DragOver="DropZone_DragOver" Drop="DropZone_Drop"><StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"><controls:AppIcon Kind="OpenFile" IconSize="20" Foreground="{ThemeResource AccentBrush}" /><TextBlock x:Uid="HomeDropZone" Text="将图纸、空间数据或模型拖到这里" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" /></StackPanel></Button>
         </Grid>
       </Border>
-      <TextBlock Grid.Row="4" Text="支持的工作流" Style="{StaticResource SectionTitleText}" />
+      <TextBlock Grid.Row="4" x:Uid="HomeSupportedWorkflows" Text="支持的工作流" Style="{StaticResource SectionTitleText}" />
       <!-- Large is an explicit four-column Figma grid. It must not be auto-wrapped. -->
       <Grid x:Name="WorkflowLarge" Grid.Row="6" Height="80" ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
         <ContentControl Content="{x:Bind CadWorkflow}" ContentTemplate="{StaticResource WorkflowCardTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
@@ -44,24 +44,24 @@
       </StackPanel>
       <!-- Large toolbar is one Figma row: title | filters | 344 DIP search. -->
       <Grid x:Name="RecentToolbarLarge" Grid.Row="8" ColumnDefinitions="Auto,*,344" ColumnSpacing="16">
-        <TextBlock Text="最近打开" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
+        <TextBlock x:Uid="HomeRecent" Text="最近打开" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
         <ListView x:Name="RecentFilterListLarge" Grid.Column="1" ItemsSource="{x:Bind RecentFilterItems}" SelectedIndex="0" IsItemClickEnabled="True" SelectionMode="Single" SelectionChanged="FilterList_SelectionChanged"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollMode="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollMode="Disabled">
           <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListView.ItemsPanel>
           <ListView.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Margin="8,2" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" /></DataTemplate></ListView.ItemTemplate>
         </ListView>
-        <TextBox x:Name="SearchBox" Grid.Column="2" VerticalAlignment="Center" PlaceholderText="搜索最近文件" TextChanged="SearchBox_TextChanged" />
+        <TextBox x:Name="SearchBox" x:Uid="HomeSearchRecent" Grid.Column="2" VerticalAlignment="Center" PlaceholderText="搜索最近文件" TextChanged="SearchBox_TextChanged" />
       </Grid>
       <StackPanel x:Name="RecentToolbarCompact" Grid.Row="8" Visibility="Collapsed" Spacing="8">
-        <TextBlock Text="最近打开" Style="{StaticResource SectionTitleText}" />
+        <TextBlock x:Uid="HomeRecentCompact" Text="最近打开" Style="{StaticResource SectionTitleText}" />
         <ListView x:Name="RecentFilterListCompact" ItemsSource="{x:Bind RecentFilterItems}" SelectedIndex="0" IsItemClickEnabled="True" SelectionMode="Single" SelectionChanged="FilterList_SelectionChanged"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollMode="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollMode="Disabled">
           <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListView.ItemsPanel>
           <ListView.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Margin="8,2" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" /></DataTemplate></ListView.ItemTemplate>
         </ListView>
-        <TextBox x:Name="CompactSearchBox" VerticalAlignment="Center" PlaceholderText="搜索最近文件" TextChanged="SearchBox_TextChanged" />
+        <TextBox x:Name="CompactSearchBox" x:Uid="HomeSearchRecentCompact" VerticalAlignment="Center" PlaceholderText="搜索最近文件" TextChanged="SearchBox_TextChanged" />
       </StackPanel>
-      <Grid Grid.Row="10"><ItemsControl x:Name="RecentFiles"><ItemsControl.ItemTemplate><DataTemplate><Button Tag="{Binding}" Click="RecentFile_Click" Style="{StaticResource RecentFileCard}"><Grid ColumnDefinitions="Auto,*,24" ColumnSpacing="16"><Border Background="{ThemeResource BgSelectionBrush}" CornerRadius="5" Padding="8,4" VerticalAlignment="Center"><TextBlock Text="{Binding ExtensionLabel}" Style="{StaticResource TagText}" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock Text="{Binding DisplayName}" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Metadata}" Style="{StaticResource MetadataText}" TextTrimming="CharacterEllipsis" /></StackPanel><FontIcon Grid.Column="2" Glyph="&#xE72A;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Width="20" Height="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,44,0,0" Spacing="10"><controls:AppIcon Kind="OpenFile" IconSize="28" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" /><TextBlock Text="尚未打开任何图纸。使用上方按钮或拖放区域打开 DWG / DXF。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" /></StackPanel></Grid>
+      <Grid Grid.Row="10"><ItemsControl x:Name="RecentFiles"><ItemsControl.ItemTemplate><DataTemplate><Button Tag="{Binding}" Click="RecentFile_Click" Style="{StaticResource RecentFileCard}"><Grid ColumnDefinitions="Auto,*,24" ColumnSpacing="16"><Border Background="{ThemeResource BgSelectionBrush}" CornerRadius="5" Padding="8,4" VerticalAlignment="Center"><TextBlock Text="{Binding ExtensionLabel}" Style="{StaticResource TagText}" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock Text="{Binding DisplayName}" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Metadata}" Style="{StaticResource MetadataText}" TextTrimming="CharacterEllipsis" /></StackPanel><FontIcon Grid.Column="2" Glyph="&#xE72A;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Width="20" Height="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,44,0,0" Spacing="10"><controls:AppIcon Kind="OpenFile" IconSize="28" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" /><TextBlock x:Uid="HomeEmptyState" Text="尚未打开任何图纸。使用上方按钮或拖放区域打开 DWG / DXF。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" /></StackPanel></Grid>
     </Grid>
   </ScrollViewer>
 </UserControl>

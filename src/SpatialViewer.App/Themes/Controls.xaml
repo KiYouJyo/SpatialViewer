@@ -53,6 +53,33 @@
     <Setter Property="CornerRadius" Value="8" />
   </Style>
 
+  <!-- Settings/About deliberately use WinUI's neutral Fluent card resources.
+       The older BgPanel/BgSelection palette is product accent chrome and must not
+       tint ordinary content cards teal. This mirrors UrbanPlanToolbox. -->
+  <Style x:Key="SettingsSectionCardStyle" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style x:Key="SettingsInnerCardStyle" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style x:Key="SettingsRowLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style x:Key="SettingsDescriptionStyle" TargetType="TextBlock" BasedOn="{StaticResource MetadataText}">
+    <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
   <Style x:Key="PanelSegment" TargetType="Button">
     <Setter Property="Height" Value="26" />
     <Setter Property="Padding" Value="10,0" />
