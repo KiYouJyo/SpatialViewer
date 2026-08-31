@@ -163,7 +163,7 @@ internal static class CadCoreRuntimeBootstrapper
         return context.LoadFromAssemblyPath(path);
     }
 
-    private static IReadOnlyDictionary<string, string> BuildBundledResolver(string? bundledAssembly)
+    private static Dictionary<string, string> BuildBundledResolver(string? bundledAssembly)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(bundledAssembly)) return map;
@@ -192,8 +192,6 @@ internal static class CadCoreRuntimeBootstrapper
         var bootstrapAssemblyDirectory = Path.GetDirectoryName(typeof(CadCoreRuntimeBootstrapper).Assembly.Location);
         var baseDirectory = string.IsNullOrWhiteSpace(bootstrapAssemblyDirectory) ? AppContext.BaseDirectory : bootstrapAssemblyDirectory;
 
-        // Release packages intentionally relocate CadCore away from the root
-        // probing directory so Default.Resolving can choose the active kernel.
         var bundledRoot = Path.Combine(baseDirectory, "Kernels", "Bundled");
         if (Directory.Exists(bundledRoot))
         {
@@ -205,8 +203,6 @@ internal static class CadCoreRuntimeBootstrapper
             if (relocated is not null) return relocated;
         }
 
-        // Debug/development fallback. Release acceptance explicitly asserts that
-        // this direct path does not exist in the distributable output.
         var directPath = Path.Combine(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
         if (File.Exists(directPath)) return directPath;
         return Directory.EnumerateFiles(baseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll", SearchOption.AllDirectories).FirstOrDefault();
