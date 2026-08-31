@@ -4,7 +4,7 @@
   <Window.SystemBackdrop>
     <MicaBackdrop />
   </Window.SystemBackdrop>
-  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" UseLayoutRounding="True">
+  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" Loaded="LocalizationShell_Loaded" UseLayoutRounding="True">
     <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
       <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
       <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
@@ -16,7 +16,7 @@
           <Button x:Name="ShellNewTabButton" Width="32" Height="32" MinWidth="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="7"
                   HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                  Click="ShellNewTabButton_Click" AutomationProperties.Name="新建主页标签">
+                  Click="ShellNewTabButton_Click">
             <TextBlock Text="+" FontSize="17" Opacity="0.68" />
           </Button>
         </StackPanel>
