@@ -1,41 +1,26 @@
 using System.Runtime.Loader;
 using System.Text.Json;
+using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Product;
 
-if (args.Length != 3)
+if (args.Length != 1)
 {
-    Console.Error.WriteLine("Usage: CadCoreActivationProbe <bundled-acadsharp-dll> <kernel-root> <expected-version>");
+    Console.Error.WriteLine("Usage: CadCoreActivationProbe <expected-version>");
     return 64;
 }
 
-var bundledAssemblyPath = Path.GetFullPath(args[0]);
-var kernelRoot = Path.GetFullPath(args[1]);
-if (!Version.TryParse(args[2], out var expectedVersion) || expectedVersion is null)
+if (!Version.TryParse(args[0], out var expectedVersion) || expectedVersion is null)
 {
-    Console.Error.WriteLine($"Invalid expected version: {args[2]}");
+    Console.Error.WriteLine($"Invalid expected version: {args[0]}");
     return 65;
 }
 expectedVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(expectedVersion);
 
-if (!File.Exists(bundledAssemblyPath))
-{
-    Console.Error.WriteLine($"Bundled Cad Core assembly not found: {bundledAssemblyPath}");
-    return 66;
-}
-if (!Directory.Exists(kernelRoot))
-{
-    Console.Error.WriteLine($"Kernel root not found: {kernelRoot}");
-    return 67;
-}
-
-Environment.SetEnvironmentVariable("SPATIALVIEWER_CADCORE_ROOT", kernelRoot);
-var bundledProbePath = Path.Combine(AppContext.BaseDirectory, "SpatialViewer.Formats.Cad.ACadSharp.dll");
-File.Copy(bundledAssemblyPath, bundledProbePath, overwrite: true);
-
 try
 {
-    CadCoreRuntimeBootstrapper.Initialize();
-
+    // CadCoreEarlyBootstrap has already executed as a module initializer before
+    // this Main method (and therefore before these statically referenced types)
+    // can be JIT-bound to the bundled project-reference assemblies.
     var bundledVersion = CadCoreRuntimeBootstrapper.BundledVersion;
     var currentVersion = CadCoreRuntimeBootstrapper.CurrentVersion;
     var isExternal = CadCoreRuntimeBootstrapper.IsUsingExternalKernel;
@@ -55,7 +40,17 @@ try
     if (pendingVersion is not null)
         throw new InvalidOperationException($"pending.json was not consumed after activation: {pendingVersion}");
 
-    var activePath = Path.Combine(kernelRoot, "active.json");
+    // Exercise a real compile-time Cad Core reference. If the default ALC still
+    // bound to the bundled version, constructing this type or inspecting its
+    // assembly will expose the mismatch immediately.
+    var importer = new ACadSharpCadImporter();
+    if (!importer.CanImport("probe.dwg"))
+        throw new InvalidOperationException("The activated ACadSharp importer is not functional.");
+    var importerVersion = CadCoreRuntimeBootstrapper.NormalizeVersion(typeof(ACadSharpCadImporter).Assembly.GetName().Version ?? new Version(0, 0, 0));
+    if (importerVersion != expectedVersion)
+        throw new InvalidOperationException($"Static importer binding mismatch: {importerVersion} != {expectedVersion}");
+
+    var activePath = Path.Combine(CadCoreRuntimeBootstrapper.KernelRoot, "active.json");
     if (!File.Exists(activePath)) throw new InvalidOperationException("active.json was not created.");
     using var activeDocument = JsonDocument.Parse(File.ReadAllText(activePath));
     var activeVersion = activeDocument.RootElement.GetProperty("Version").GetString();
@@ -70,28 +65,27 @@ try
         "SpatialViewer.Formats.Cad.ACadSharp",
         "SpatialViewer.Rendering.Windows"
     };
-    var loadedNames = AssemblyLoadContext.Default.Assemblies
-        .Select(static assembly => assembly.GetName())
-        .Where(name => name.Name is not null && requiredNames.Contains(name.Name))
+    var loaded = AssemblyLoadContext.Default.Assemblies
+        .Where(assembly => assembly.GetName().Name is { } name && requiredNames.Contains(name))
         .ToArray();
-    if (loadedNames.Length != requiredNames.Count)
-        throw new InvalidOperationException($"Expected {requiredNames.Count} loaded Cad Core assemblies, found {loadedNames.Length}: {string.Join(", ", loadedNames.Select(static name => name.FullName))}");
-    foreach (var name in loadedNames)
+    if (loaded.Length != requiredNames.Count)
+        throw new InvalidOperationException($"Expected {requiredNames.Count} loaded Cad Core assemblies, found {loaded.Length}.");
+    foreach (var assembly in loaded)
     {
-        var version = name.Version is null ? new Version(0, 0, 0) : CadCoreRuntimeBootstrapper.NormalizeVersion(name.Version);
+        var name = assembly.GetName();
+        var version = CadCoreRuntimeBootstrapper.NormalizeVersion(name.Version ?? new Version(0, 0, 0));
+        Console.WriteLine($"Loaded={name.Name} {version} @ {assembly.Location}");
         if (version != expectedVersion)
             throw new InvalidOperationException($"Loaded assembly version mismatch: {name.Name}={version}, expected={expectedVersion}");
+        if (!assembly.Location.StartsWith(CadCoreRuntimeBootstrapper.GetVersionDirectory(expectedVersion), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Loaded assembly came from bundled path instead of staged Cad Core: {assembly.Location}");
     }
 
-    Console.WriteLine($"Cad Core fresh-process activation PASS: {CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)}");
+    Console.WriteLine($"Cad Core early static-binding activation PASS: {CadCoreRuntimeBootstrapper.FormatVersion(expectedVersion)}");
     return 0;
 }
 catch (Exception exception)
 {
     Console.Error.WriteLine(exception);
     return 1;
-}
-finally
-{
-    try { if (File.Exists(bundledProbePath)) File.Delete(bundledProbePath); } catch { }
 }
