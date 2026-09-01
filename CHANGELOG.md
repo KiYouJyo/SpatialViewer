@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0] - 2026-09-01
+
+### Added
+
+- Replaced the Projects placeholder with a persistent local project catalog supporting project creation, multi-file grouping, search, recent-open metadata, and reopen actions.
+- Connected the Import Folder navigation action to recursive supported-format discovery and project creation.
+- Replaced the Favorites placeholder with a persistent local favorites catalog supporting add, search, open, and remove actions.
+
+### Changed
+
+- Ended the product-level Preview / Stable distinction; SpatialViewer now follows one semantic-version product stream and every installed version below the latest published stable version can discover that update.
+- Advanced the product and MSIX package identities to `0.3.0` / `0.3.0.0`.
+- Kept the existing title bar, hamburger navigation, NavigationView surface hierarchy, theme resources, and fixed background behavior unchanged while adding the new pages.
+
 ## [0.2.5] - 2026-08-31
 
 ### Fixed
