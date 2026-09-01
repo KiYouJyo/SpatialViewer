@@ -4,13 +4,25 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace SpatialViewer.Product.Views;
 
-public sealed record ProjectViewItem(
-    Guid Id,
-    string Name,
-    IReadOnlyList<string> Files,
-    string FileCountText,
-    string FormatSummary,
-    string LastOpenedText);
+public sealed class ProjectViewItem
+{
+    public ProjectViewItem(Guid id, string name, IReadOnlyList<string> files, string fileCountText, string formatSummary, string lastOpenedText)
+    {
+        Id = id;
+        Name = name;
+        Files = files;
+        FileCountText = fileCountText;
+        FormatSummary = formatSummary;
+        LastOpenedText = lastOpenedText;
+    }
+
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public IReadOnlyList<string> Files { get; set; }
+    public string FileCountText { get; set; }
+    public string FormatSummary { get; set; }
+    public string LastOpenedText { get; set; }
+}
 
 public sealed partial class ProjectsView : UserControl
 {
