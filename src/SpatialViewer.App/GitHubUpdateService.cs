@@ -32,8 +32,8 @@ internal static class GitHubUpdateService
 
     public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(
         string repository,
-        CancellationToken cancellationToken = default,
-        bool includePrereleases = false)
+        bool includePrereleases = false,
+        CancellationToken cancellationToken = default)
     {
         using var response = await Client.GetAsync($"https://api.github.com/repos/{repository}/releases?per_page=50", cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
