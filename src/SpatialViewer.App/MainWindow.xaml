@@ -28,7 +28,7 @@
     <NavigationView x:Name="ShellNavigation" Grid.Row="1" Background="Transparent"
                     AlwaysShowHeader="False"
                     IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
-                    Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_ItemInvoked">
+                    Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_V03ItemInvoked">
       <NavigationView.Resources>
         <!-- Do not override NavigationViewContentBackground here. WinUI defines that
              resource in its own Light/Dark/HighContrast theme dictionaries, so it
