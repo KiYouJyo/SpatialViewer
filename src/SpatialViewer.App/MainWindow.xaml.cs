@@ -1,4 +1,5 @@
 using Microsoft.UI;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -25,6 +26,12 @@ public sealed partial class MainWindow : Window
     private readonly Dictionary<string, ShellTabVisual> _homeTabs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HomeView> _homeViews = new(StringComparer.Ordinal);
     private readonly Dictionary<DocumentSession, ShellTabVisual> _documentTabs = new();
+    private readonly Dictionary<DocumentSession, CadViewerView> _documentViews = new();
+    private readonly Grid _documentViewHost = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch
+    };
     private object? _selectedTab;
     private ResponsiveLayoutMode _responsiveMode = ResponsiveLayoutMode.Large;
     private bool _responsiveLayoutApplied;
@@ -180,6 +187,7 @@ public sealed partial class MainWindow : Window
         PersistWindowSize();
         SessionStateStore.Save(_workspace.Documents.Select(document => document.FilePath));
         AppWindow.Changed -= AppWindow_Changed;
+        DisposeDocumentViews();
         _workspace.CloseAll();
     }
 
@@ -255,8 +263,10 @@ public sealed partial class MainWindow : Window
         layer.Children.Add(selectButton); layer.Children.Add(closeButton);
         var container = new Border { Tag = tag, Width = width, Height = 32, CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(0), Child = layer };
         container.Transitions = [new EntranceThemeTransition { FromHorizontalOffset = 12 }, new RepositionThemeTransition()];
+        var visual = new ShellTabVisual(container, headerText);
+        ApplyTabVisual(tag, visual, selected: false, RootGrid.ActualTheme == ElementTheme.Dark);
         ShellTabItems.Children.Add(container);
-        return new ShellTabVisual(container, headerText);
+        return visual;
     }
 
     private void ShowHome(string? tabId = null)
@@ -266,7 +276,7 @@ public sealed partial class MainWindow : Window
         // NavigationView already selects its item before ItemInvoked. Writing
         // the same selection again reopens a minimal pane, so only restore a
         // selection when returning from the viewer where none is selected.
-        if (MainContent.Content is CadViewerView) SelectShellItem(HomeNav);
+        if (IsDocumentSurfaceVisible) SelectShellItem(HomeNav);
         SelectTab(target);
         var view = _homeViews[target];
         MainContent.Content = view;
@@ -297,6 +307,7 @@ public sealed partial class MainWindow : Window
         await session.LoadAsync(_importer, new Progress<SpatialViewer.Core.ImportProgress>(_ => { }));
         if (session.State == DocumentSessionState.Ready && AppSettingsStore.Current.RecordRecentFiles)
             await _recentFiles.RecordAsync(session.FilePath);
+        if (_documentViews.TryGetValue(session, out var view)) view.RefreshSessionState();
         if (ReferenceEquals(_workspace.ActiveDocument, session)) ShowDocument(session);
     }
 
@@ -306,7 +317,13 @@ public sealed partial class MainWindow : Window
         ShowViewerChrome();
         SelectShellItem(null);
         SelectTab(EnsureDocumentTab(session));
-        MainContent.Content = new CadViewerView(session);
+
+        var activeView = EnsureDocumentView(session);
+        foreach (var pair in _documentViews)
+            pair.Value.Visibility = ReferenceEquals(pair.Key, session) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!IsDocumentSurfaceVisible) MainContent.Content = _documentViewHost;
+        if (activeView.Visibility != Visibility.Visible) activeView.Visibility = Visibility.Visible;
     }
 
     private DocumentSession EnsureDocumentTab(DocumentSession session)
@@ -316,13 +333,57 @@ public sealed partial class MainWindow : Window
         return session;
     }
 
+    private CadViewerView EnsureDocumentView(DocumentSession session)
+    {
+        if (_documentViews.TryGetValue(session, out var existing)) return existing;
+        var view = new CadViewerView(session) { Visibility = Visibility.Collapsed };
+        _documentViews.Add(session, view);
+        _documentViewHost.Children.Add(view);
+        return view;
+    }
+
+    private bool IsDocumentSurfaceVisible => ReferenceEquals(MainContent.Content, _documentViewHost);
+
+    private void DisposeDocumentView(DocumentSession session)
+    {
+        if (!_documentViews.Remove(session, out var view)) return;
+        _documentViewHost.Children.Remove(view);
+        view.Dispose();
+    }
+
+    private void DisposeDocumentViews()
+    {
+        foreach (var view in _documentViews.Values) view.Dispose();
+        _documentViews.Clear();
+        _documentViewHost.Children.Clear();
+    }
+
+    private void ResetDocumentViewsForLocalization()
+    {
+        if (IsDocumentSurfaceVisible) MainContent.Content = null;
+        DisposeDocumentViews();
+    }
+
     private void ShellNewTabButton_Click(object sender, RoutedEventArgs e) => CreateHomeTab(select: true);
     private void ShellTabSelect_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: { } tag }) return;
-        if (tag is string homeId && _homeTabs.ContainsKey(homeId)) ShowHome(homeId);
-        else if (tag is DocumentSession session) ShowDocument(session);
+        if (sender is not Button { Tag: { } tag } || !IsKnownTab(tag)) return;
+
+        // Paint the tiny selected-state delta first. The potentially heavier page
+        // activation runs at low dispatcher priority so rapid clicks coalesce and
+        // stale tab activations never rebuild/measure a page the user already left.
+        SelectTab(tag);
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (!Equals(_selectedTab, tag) || !IsKnownTab(tag)) return;
+            if (tag is string homeId) ShowHome(homeId);
+            else if (tag is DocumentSession session) ShowDocument(session);
+        });
     }
+
+    private bool IsKnownTab(object tag) =>
+        tag is string homeId ? _homeTabs.ContainsKey(homeId) :
+        tag is DocumentSession session && _documentTabs.ContainsKey(session);
 
     private void ShellTabClose_Click(object sender, RoutedEventArgs e)
     {
@@ -338,13 +399,13 @@ public sealed partial class MainWindow : Window
                 else if (_homeTabs.Keys.FirstOrDefault() is { } nextHome) ShowHome(nextHome);
                 else CreateHomeTab(select: true);
             }
-            else RefreshTabVisuals();
         }
     }
 
     private void CloseSession(DocumentSession session)
     {
         if (_documentTabs.Remove(session, out var tab)) ShellTabItems.Children.Remove(tab.Container);
+        DisposeDocumentView(session);
         _workspace.Close(session);
         if (_workspace.ActiveDocument is { } active) ShowDocument(active);
         else if (_homeTabs.Keys.FirstOrDefault() is { } home) ShowHome(home);
@@ -353,8 +414,30 @@ public sealed partial class MainWindow : Window
 
     private void SelectTab(object tag)
     {
+        if (Equals(_selectedTab, tag)) return;
+        var previous = _selectedTab;
         _selectedTab = tag;
-        RefreshTabVisuals();
+        var dark = RootGrid.ActualTheme == ElementTheme.Dark;
+        if (previous is not null && TryGetTabVisual(previous, out var previousVisual))
+            ApplyTabVisual(previous, previousVisual, selected: false, dark);
+        if (TryGetTabVisual(tag, out var selectedVisual))
+            ApplyTabVisual(tag, selectedVisual, selected: true, dark);
+    }
+
+    private bool TryGetTabVisual(object tag, out ShellTabVisual visual)
+    {
+        if (tag is string homeId && _homeTabs.TryGetValue(homeId, out var homeVisual))
+        {
+            visual = homeVisual;
+            return true;
+        }
+        if (tag is DocumentSession session && _documentTabs.TryGetValue(session, out var documentVisual))
+        {
+            visual = documentVisual;
+            return true;
+        }
+        visual = null!;
+        return false;
     }
 
     private void RefreshTabVisuals()
@@ -444,6 +527,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowViewerChrome()
     {
+        if (_navigationChromeHiddenForViewer) return;
         _navigationChromeHiddenForViewer = true;
         ShellNavigation.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftMinimal;
         ShellNavigation.CompactPaneLength = 0;

@@ -22,6 +22,7 @@ public sealed partial class MainWindow
     {
         if (_localizationShellHooked) return;
         _localizationShellHooked = true;
+        Title = "SpatialViewer";
         _shellLocalization.LanguageChanged += ShellLocalization_LanguageChanged;
         ShellNewTabButton.Click += ShellNewTabButton_LocalizationClick;
         Closed += LocalizationWindow_Closed;
@@ -45,17 +46,23 @@ public sealed partial class MainWindow
     {
         var visibleSurface = MainContent.Content switch
         {
+            _ when IsDocumentSurfaceVisible => LocalizedSurface.Document,
             CadViewerView => LocalizedSurface.Document,
             HomeView => LocalizedSurface.Home,
             SettingsView => LocalizedSurface.Settings,
             AboutView => LocalizedSurface.About,
+            ProjectsView => LocalizedSurface.Library,
+            FavoritesView => LocalizedSurface.Library,
             PlaceholderView => LocalizedSurface.Placeholder,
             _ => LocalizedSurface.Home
         };
         var selectedTab = _selectedTab;
         var navigationTag = (ShellNavigation.SelectedItem as NavigationViewItem)?.Tag?.ToString();
 
-        if (MainContent.Content is CadViewerView viewer) viewer.Dispose();
+        // Cached document views intentionally survive ordinary tab switches, but
+        // localization must recreate them so x:Uid and runtime-localized labels
+        // resolve in the newly selected language.
+        ResetDocumentViewsForLocalization();
         MainContent.Content = null;
 
         // Home pages are cached per tab. Recreating every cached page is the
@@ -81,13 +88,13 @@ public sealed partial class MainWindow
         switch (navigationTag)
         {
             case "Projects":
-                ShowPlaceholder(T("Placeholder_Projects_Title"), T("Placeholder_Projects_Message"));
+                ShowProjects();
                 break;
             case "Favorites":
-                ShowPlaceholder(T("Placeholder_Favorites_Title"), T("Placeholder_Favorites_Message"));
+                ShowFavorites();
                 break;
             case "ImportFolder":
-                ShowPlaceholder(T("Placeholder_ImportFolder_Title"), T("Placeholder_ImportFolder_Message"));
+                ShowProjects();
                 break;
             case "Settings":
                 ShowSettings();
@@ -127,6 +134,7 @@ public sealed partial class MainWindow
         Document,
         Settings,
         About,
+        Library,
         Placeholder
     }
 }

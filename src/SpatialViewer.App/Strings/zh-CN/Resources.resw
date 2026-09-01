@@ -141,7 +141,7 @@
   <data name="Update_Checking" xml:space="preserve"><value>正在检查…</value></data>
   <data name="Update_NoRelease" xml:space="preserve"><value>暂无 GitHub Release</value></data>
   <data name="Update_NewVersion" xml:space="preserve"><value>发现新版本</value></data>
-  <data name="Update_Latest" xml:space="preserve"><value>已是最新预览版</value></data>
+  <data name="Update_Latest" xml:space="preserve"><value>已是最新版本</value></data>
   <data name="Update_NetworkFailed" xml:space="preserve"><value>网络检查失败</value></data>
   <data name="Update_Timeout" xml:space="preserve"><value>检查超时</value></data>
   <data name="Update_CadNoRelease" xml:space="preserve"><value>暂无 CadCore Release</value></data>

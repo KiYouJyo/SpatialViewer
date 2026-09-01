@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.2.7",
-    "packageVersion": "0.2.7.0"
+    "version": "0.3.0",
+    "packageVersion": "0.3.0.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "Spatial Viewer v0.2.7 页面主题修复与最新内核发布",
-    "ja-JP": "Spatial Viewer v0.2.7 ページテーマ修正と最新カーネル公開",
-    "en-US": "Spatial Viewer v0.2.7 page theme fix and latest kernel release"
+    "zh-CN": "SpatialViewer v0.3 项目与收藏",
+    "ja-JP": "SpatialViewer v0.3 プロジェクトとお気に入り",
+    "en-US": "SpatialViewer v0.3 Projects and Favorites"
   }
 }

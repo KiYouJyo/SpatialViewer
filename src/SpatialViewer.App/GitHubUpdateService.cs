@@ -30,24 +30,32 @@ internal static class GitHubUpdateService
     private static readonly HttpClient DownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: true);
     private static readonly HttpClient DirectDownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: false);
 
-    public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
+    public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(
+        string repository,
+        bool includePrereleases = false,
+        CancellationToken cancellationToken = default)
     {
-        using var response = await Client.GetAsync($"https://api.github.com/repos/{repository}/releases/latest", cancellationToken).ConfigureAwait(false);
+        using var response = await Client.GetAsync($"https://api.github.com/repos/{repository}/releases?per_page=50", cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var root = json.RootElement;
-        var assets = root.TryGetProperty("assets", out var assetArray) && assetArray.ValueKind == JsonValueKind.Array
-            ? assetArray.EnumerateArray().Select(ParseAsset).Where(static asset => asset is not null).Cast<GitHubReleaseAsset>().ToArray()
-            : [];
-        return new GitHubReleaseInfo(
-            root.GetProperty("tag_name").GetString() ?? string.Empty,
-            root.GetProperty("html_url").GetString() ?? $"https://github.com/{repository}/releases",
-            root.TryGetProperty("name", out var name) ? name.GetString() : null,
-            root.TryGetProperty("body", out var body) ? body.GetString() : null,
-            root.TryGetProperty("published_at", out var published) && published.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(published.GetString(), out var timestamp) ? timestamp : null,
-            assets);
+        if (json.RootElement.ValueKind != JsonValueKind.Array) return null;
+
+        GitHubReleaseInfo? latest = null;
+        Version? latestVersion = null;
+        foreach (var release in json.RootElement.EnumerateArray())
+        {
+            if (release.TryGetProperty("draft", out var draft) && draft.ValueKind == JsonValueKind.True) continue;
+            if (!includePrereleases && release.TryGetProperty("prerelease", out var prerelease) && prerelease.ValueKind == JsonValueKind.True) continue;
+            var tagName = release.TryGetProperty("tag_name", out var tag) ? tag.GetString() : null;
+            if (string.IsNullOrWhiteSpace(tagName) || !TryParseVersionTag(tagName, out var version)) continue;
+            if (latestVersion is not null && version <= latestVersion) continue;
+            latestVersion = version;
+            latest = ParseRelease(release);
+        }
+
+        return latest;
     }
 
     public static bool IsNewer(string availableTag, Version current) =>
@@ -174,6 +182,20 @@ internal static class GitHubUpdateService
         return CryptographicOperations.FixedTimeEquals(actualDigest, expectedDigest);
     }
 
+    private static GitHubReleaseInfo ParseRelease(JsonElement root)
+    {
+        var assets = root.TryGetProperty("assets", out var assetArray) && assetArray.ValueKind == JsonValueKind.Array
+            ? assetArray.EnumerateArray().Select(ParseAsset).Where(static asset => asset is not null).Cast<GitHubReleaseAsset>().ToArray()
+            : [];
+        return new GitHubReleaseInfo(
+            root.GetProperty("tag_name").GetString() ?? string.Empty,
+            root.GetProperty("html_url").GetString() ?? string.Empty,
+            root.TryGetProperty("name", out var name) ? name.GetString() : null,
+            root.TryGetProperty("body", out var body) ? body.GetString() : null,
+            root.TryGetProperty("published_at", out var published) && published.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(published.GetString(), out var timestamp) ? timestamp : null,
+            assets);
+    }
+
     private static GitHubReleaseAsset? ParseAsset(JsonElement asset)
     {
         var name = asset.TryGetProperty("name", out var nameElement) ? nameElement.GetString() : null;
@@ -202,7 +224,7 @@ internal static class GitHubUpdateService
     private static HttpClient CreateApiClient(TimeSpan timeout)
     {
         var client = new HttpClient { Timeout = timeout };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.5"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.3.0"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
@@ -217,7 +239,7 @@ internal static class GitHubUpdateService
             UseProxy = useProxy
         };
         var client = new HttpClient(handler) { Timeout = timeout };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.2.5"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SpatialViewer", "0.3.0"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
         return client;
     }
