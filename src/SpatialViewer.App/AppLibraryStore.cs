@@ -2,14 +2,14 @@ using System.Text.Json;
 
 namespace SpatialViewer.Product;
 
-internal sealed record ProjectLibraryItem(
+public sealed record ProjectLibraryItem(
     Guid Id,
     string Name,
     IReadOnlyList<string> Files,
     DateTimeOffset CreatedAt,
     DateTimeOffset LastOpenedAt);
 
-internal sealed class AppLibraryStore
+public sealed class AppLibraryStore
 {
     private readonly string _path;
     private readonly object _gate = new();
@@ -72,6 +72,7 @@ internal sealed class AppLibraryStore
             _state.Projects.Add(created);
             PersistLocked();
         }
+
         Changed?.Invoke(this, EventArgs.Empty);
         return ToModel(created);
     }
@@ -87,6 +88,7 @@ internal sealed class AppLibraryStore
             project.LastOpenedAt = DateTimeOffset.UtcNow;
             PersistLocked();
         }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -99,6 +101,7 @@ internal sealed class AppLibraryStore
             project.LastOpenedAt = DateTimeOffset.UtcNow;
             PersistLocked();
         }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -110,6 +113,7 @@ internal sealed class AppLibraryStore
             changed = _state.Projects.RemoveAll(project => project.Id == projectId) > 0;
             if (changed) PersistLocked();
         }
+
         if (changed) Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -123,6 +127,7 @@ internal sealed class AppLibraryStore
             _state.Favorites.Add(normalized);
             PersistLocked();
         }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -136,6 +141,7 @@ internal sealed class AppLibraryStore
             changed = _state.Favorites.RemoveAll(candidate => string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase)) > 0;
             if (changed) PersistLocked();
         }
+
         if (changed) Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -144,7 +150,9 @@ internal sealed class AppLibraryStore
         if (string.IsNullOrWhiteSpace(path)) return false;
         var normalized = NormalizePath(path);
         lock (_gate)
+        {
             return _state.Favorites.Contains(normalized, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private static IReadOnlyList<string> NormalizeFiles(IEnumerable<string> files) => files
@@ -153,15 +161,12 @@ internal sealed class AppLibraryStore
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    private static string NormalizePath(string path)
-    {
-        try { return Path.GetFullPath(path.Trim()); }
-        catch (Exception) when (path.Length > 0) { return path.Trim(); }
-    }
+    private static string NormalizePath(string path) => Path.GetFullPath(path.Trim());
 
     private void PersistLocked()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+        var directory = Path.GetDirectoryName(_path);
+        if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
         var temporaryPath = $"{_path}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(_state, JsonOptions));
         File.Move(temporaryPath, _path, overwrite: true);
@@ -183,6 +188,7 @@ internal sealed class AppLibraryStore
                 if (project.CreatedAt == default) project.CreatedAt = DateTimeOffset.UtcNow;
                 if (project.LastOpenedAt == default) project.LastOpenedAt = project.CreatedAt;
             }
+
             return state;
         }
         catch (JsonException)
