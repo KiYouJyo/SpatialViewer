@@ -37,7 +37,7 @@ internal sealed class CadCoreUpdateService
         var current = CurrentVersion;
         try
         {
-            var release = await GitHubUpdateService.GetLatestReleaseAsync(Repository, cancellationToken).ConfigureAwait(false);
+            var release = await GitHubUpdateService.GetLatestReleaseAsync(Repository, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (release is null) return Fail(current, null, "NoRelease");
             if (!GitHubUpdateService.TryParseVersionTag(release.TagName, out var parsedVersion))
                 return Fail(current, null, "InvalidVersion", release.TagName);
