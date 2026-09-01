@@ -30,12 +30,11 @@ internal static class GitHubUpdateService
     private static readonly HttpClient DownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: true);
     private static readonly HttpClient DirectDownloadClient = CreateDownloadClient(TimeSpan.FromMinutes(5), useProxy: false);
 
-    public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(string repository, CancellationToken cancellationToken = default)
+    public static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(
+        string repository,
+        CancellationToken cancellationToken = default,
+        bool includePrereleases = false)
     {
-        // SpatialViewer 0.3 has one update channel. GitHub's historical
-        // prerelease flag is intentionally not used as an eligibility gate:
-        // every installed lower semantic version must be able to discover the
-        // highest published, non-draft release.
         using var response = await Client.GetAsync($"https://api.github.com/repos/{repository}/releases?per_page=50", cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
@@ -48,6 +47,7 @@ internal static class GitHubUpdateService
         foreach (var release in json.RootElement.EnumerateArray())
         {
             if (release.TryGetProperty("draft", out var draft) && draft.ValueKind == JsonValueKind.True) continue;
+            if (!includePrereleases && release.TryGetProperty("prerelease", out var prerelease) && prerelease.ValueKind == JsonValueKind.True) continue;
             var tagName = release.TryGetProperty("tag_name", out var tag) ? tag.GetString() : null;
             if (string.IsNullOrWhiteSpace(tagName) || !TryParseVersionTag(tagName, out var version)) continue;
             if (latestVersion is not null && version <= latestVersion) continue;
