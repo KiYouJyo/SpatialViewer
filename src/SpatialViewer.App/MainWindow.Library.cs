@@ -19,6 +19,32 @@ public sealed partial class MainWindow
         ".ifc", ".3dm"
     ];
 
+    private async void ShellNavigation_V03ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        if (args.InvokedItemContainer is not NavigationViewItem item || item.Tag is not string tag) return;
+        switch (tag)
+        {
+            case "Home":
+                ShowHome();
+                break;
+            case "Projects":
+                ShowProjects();
+                break;
+            case "Favorites":
+                ShowFavorites();
+                break;
+            case "ImportFolder":
+                await ImportFolderAsProjectAsync();
+                break;
+            case "Settings":
+                ShowSettings();
+                break;
+            case "About":
+                ShowAbout();
+                break;
+        }
+    }
+
     private void ShowProjects()
     {
         ShowNavigationChrome();
