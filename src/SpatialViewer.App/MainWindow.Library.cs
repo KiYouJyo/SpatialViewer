@@ -69,7 +69,7 @@ public sealed partial class MainWindow
     {
         var nameBox = new TextBox
         {
-            PlaceholderText = _localizationLanguage switch
+            PlaceholderText = LocalizationLanguage switch
             {
                 "ja-JP" => "プロジェクト名",
                 "en-US" => "Project name",
@@ -79,20 +79,20 @@ public sealed partial class MainWindow
         };
         var dialog = new ContentDialog
         {
-            Title = _localizationLanguage switch
+            Title = LocalizationLanguage switch
             {
                 "ja-JP" => "新規プロジェクト",
                 "en-US" => "New project",
                 _ => "新建项目"
             },
             Content = nameBox,
-            PrimaryButtonText = _localizationLanguage switch
+            PrimaryButtonText = LocalizationLanguage switch
             {
                 "ja-JP" => "作成",
                 "en-US" => "Create",
                 _ => "创建"
             },
-            CloseButtonText = _localizationLanguage switch
+            CloseButtonText = LocalizationLanguage switch
             {
                 "ja-JP" => "キャンセル",
                 "en-US" => "Cancel",
@@ -126,7 +126,7 @@ public sealed partial class MainWindow
         var folder = await picker.PickSingleFolderAsync();
         if (folder is null) return;
 
-        IReadOnlyList<string> files;
+        string[] files;
         try
         {
             files = Directory
@@ -148,7 +148,7 @@ public sealed partial class MainWindow
         ShowProjects();
     }
 
-    private async Task<IReadOnlyList<string>> PickLibraryFilesAsync()
+    private async Task<string[]> PickLibraryFilesAsync()
     {
         var picker = new FileOpenPicker();
         foreach (var extension in LibraryFileExtensions) picker.FileTypeFilter.Add(extension);
@@ -161,12 +161,12 @@ public sealed partial class MainWindow
         Path.GetExtension(path),
         StringComparer.OrdinalIgnoreCase);
 
-    private string DefaultProjectName() => _localizationLanguage switch
+    private static string DefaultProjectName() => LocalizationLanguage switch
     {
         "ja-JP" => $"プロジェクト {DateTime.Now:yyyy-MM-dd}",
         "en-US" => $"Project {DateTime.Now:yyyy-MM-dd}",
         _ => $"项目 {DateTime.Now:yyyy-MM-dd}"
     };
 
-    private string _localizationLanguage => AppLocalizationService.Default.CurrentLanguage;
+    private static string LocalizationLanguage => AppLocalizationService.Default.CurrentLanguage;
 }
