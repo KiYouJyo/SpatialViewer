@@ -46,6 +46,7 @@ public sealed partial class MainWindow
     {
         var visibleSurface = MainContent.Content switch
         {
+            _ when IsDocumentSurfaceVisible => LocalizedSurface.Document,
             CadViewerView => LocalizedSurface.Document,
             HomeView => LocalizedSurface.Home,
             SettingsView => LocalizedSurface.Settings,
@@ -58,7 +59,10 @@ public sealed partial class MainWindow
         var selectedTab = _selectedTab;
         var navigationTag = (ShellNavigation.SelectedItem as NavigationViewItem)?.Tag?.ToString();
 
-        if (MainContent.Content is CadViewerView viewer) viewer.Dispose();
+        // Cached document views intentionally survive ordinary tab switches, but
+        // localization must recreate them so x:Uid and runtime-localized labels
+        // resolve in the newly selected language.
+        ResetDocumentViewsForLocalization();
         MainContent.Content = null;
 
         // Home pages are cached per tab. Recreating every cached page is the

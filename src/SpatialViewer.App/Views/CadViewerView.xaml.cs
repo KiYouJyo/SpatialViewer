@@ -225,6 +225,8 @@ public sealed partial class CadViewerView : UserControl, IDisposable
         if (e.Key == Windows.System.VirtualKey.F) Viewport.Fit();
     }
 
+    internal void RefreshSessionState() => Refresh();
+
     private string T(string key) => _localization.GetString(key);
 
     public void Dispose()
