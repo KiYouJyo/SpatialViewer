@@ -13,6 +13,8 @@
 - Ended the product-level Preview / Stable distinction; SpatialViewer now follows one semantic-version product stream and every installed version below the latest published stable version can discover that update.
 - Advanced the product and MSIX package identities to `0.3.0` / `0.3.0.0`.
 - Kept the existing title bar, hamburger navigation, NavigationView surface hierarchy, theme resources, and fixed background behavior unchanged while adding the new pages.
+- Improved title-bar tab responsiveness by caching document views, keeping open document viewers in a shared host during document-to-document switches, updating only the previous and next tab visuals, coalescing stale rapid-click activations, and avoiding repeated viewer NavigationView chrome reconfiguration.
+- Changed the Simplified Chinese up-to-date application status from “已是最新预览版” to “已是最新版本”.
 
 ## [0.2.5] - 2026-08-31
 
