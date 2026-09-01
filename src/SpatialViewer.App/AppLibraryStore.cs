@@ -155,7 +155,7 @@ public sealed class AppLibraryStore
         }
     }
 
-    private static IReadOnlyList<string> NormalizeFiles(IEnumerable<string> files) => files
+    private static string[] NormalizeFiles(IEnumerable<string> files) => files
         .Where(path => !string.IsNullOrWhiteSpace(path))
         .Select(NormalizePath)
         .Distinct(StringComparer.OrdinalIgnoreCase)
