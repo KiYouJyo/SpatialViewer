@@ -4,11 +4,21 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace SpatialViewer.Product.Views;
 
-public sealed record FavoriteViewItem(
-    string FilePath,
-    string DisplayName,
-    string ExtensionLabel,
-    string Metadata);
+public sealed class FavoriteViewItem
+{
+    public FavoriteViewItem(string filePath, string displayName, string extensionLabel, string metadata)
+    {
+        FilePath = filePath;
+        DisplayName = displayName;
+        ExtensionLabel = extensionLabel;
+        Metadata = metadata;
+    }
+
+    public string FilePath { get; set; }
+    public string DisplayName { get; set; }
+    public string ExtensionLabel { get; set; }
+    public string Metadata { get; set; }
+}
 
 public sealed partial class FavoritesView : UserControl
 {
