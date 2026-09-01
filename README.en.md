@@ -44,14 +44,11 @@ Repository documentation will be kept in Chinese, Japanese, and English where pr
 
 ## Development status
 
-The repository is currently focused on project foundations and viewer-core development. Compatibility claims, rendering completeness, performance targets, and distribution details will be documented only after they can be verified.
+The repository is currently in the early 0.x development stage. `SpatialViewer.App` provides the WinUI 3 product shell, Home and Recent files, DWG/DXF viewing, multiple tabs, layers/selection/properties, plus the Projects and Favorites features integrated in v0.3. GIS, IFC, and Rhino viewing will be added progressively as their independent cores are integrated. See the [CAD compatibility matrix](docs/compatibility/cad.md) and [ROADMAP.md](ROADMAP.md) for current boundaries.
 
 ## Download and install
 
-Download the first Preview from [GitHub Releases](https://github.com/KiYouJyo/SpatialViewer/releases/latest):
-
-- `SpatialViewer-v0.1.0-x64-one-click.zip` is the recommended entry point. Fully extract it and run `① 安装图览.cmd`; it downloads, verifies, and installs the matching MSIXBundle.
-- `SpatialViewer_0.1.0.0_x64.msixbundle` is for manual deployment. Verify it with `SHA256SUMS.txt` from the same Release and establish trust for the accompanying public certificate first.
+Current builds are distributed through a single product stream on [GitHub Releases](https://github.com/KiYouJyo/SpatialViewer/releases/latest); the product no longer distinguishes Preview and Stable channels. Prefer the one-click installer or signed MSIXBundle attached to the relevant Release and verify it with the checksum and certificate from the same Release.
 
 Project homepage: https://kiyoujyo.github.io/SpatialViewer/
 
