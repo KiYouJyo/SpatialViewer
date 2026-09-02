@@ -1,6 +1,12 @@
 {
-  "schemaVersion": 1,
-  "releasePolicy": "Every SpatialViewer release embeds the latest stable release of each kernel whose application integration is marked complete. Kernels not yet integrated must not be bundled.",
+  "schemaVersion": 2,
+  "releasePolicy": "Every SpatialViewer release embeds the latest stable release of each kernel whose application integration is marked complete. Kernel eligibility is determined by stable CLR ABI plus the independent host contract, never by the SpatialViewer product version.",
+  "hostContracts": {
+    "cad": {
+      "name": "SpatialViewer.CadHost",
+      "version": "1.0.0"
+    }
+  },
   "kernels": [
     {
       "id": "cad",
@@ -10,8 +16,10 @@
       "track": "latest-stable",
       "runtime": "x64",
       "requiredAbiVersion": "1.0.0.0",
-      "compatibility": "SpatialViewer 0.2.x",
-      "assetNameTemplate": "CadCore-v{version}-x64.zip"
+      "manifestSchemaVersion": 2,
+      "hostContract": "cad",
+      "assetNameTemplate": "CadCore-v{version}-x64.zip",
+      "manifestAssetName": "cadcore-release.json"
     }
   ]
 }

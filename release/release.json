@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.3.0",
-    "packageVersion": "0.3.0.0"
+    "version": "0.3.1",
+    "packageVersion": "0.3.1.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3 项目与收藏",
-    "ja-JP": "SpatialViewer v0.3 プロジェクトとお気に入り",
-    "en-US": "SpatialViewer v0.3 Projects and Favorites"
+    "zh-CN": "SpatialViewer v0.3.1 内核兼容性修复",
+    "ja-JP": "SpatialViewer v0.3.1 カーネル互換性修正",
+    "en-US": "SpatialViewer v0.3.1 Kernel Compatibility Fix"
   }
 }

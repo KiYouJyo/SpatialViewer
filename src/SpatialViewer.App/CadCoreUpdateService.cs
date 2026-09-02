@@ -27,7 +27,9 @@ internal sealed class CadCoreUpdateService
 {
     private const string Repository = "KiYouJyo/SpatialViewer.CadCore";
     private GitHubReleaseInfo? _pendingRelease;
-    private GitHubReleaseAsset? _pendingAsset;
+    private GitHubReleaseAsset? _pendingArchiveAsset;
+    private GitHubReleaseAsset? _pendingManifestAsset;
+    private CadCoreReleaseManifest? _pendingManifest;
     private Version? _pendingVersion;
 
     private static Version CurrentVersion => CadCoreRuntimeBootstrapper.CurrentVersion;
@@ -35,6 +37,7 @@ internal sealed class CadCoreUpdateService
     public async Task<CadCoreUpdateResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         var current = CurrentVersion;
+        ResetPendingUpdate();
         try
         {
             var release = await GitHubUpdateService.GetLatestReleaseAsync(Repository, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -43,12 +46,37 @@ internal sealed class CadCoreUpdateService
                 return Fail(current, null, "InvalidVersion", release.TagName);
 
             var available = CadCoreRuntimeBootstrapper.NormalizeVersion(parsedVersion);
+            if (available <= current) return new(CadCoreUpdateState.UpToDate, current, available);
+
+            var archiveAsset = FindKernelAsset(release);
+            if (archiveAsset is null) return Fail(current, available, "MissingAsset");
+            var manifestAsset = FindManifestAsset(release);
+            if (manifestAsset is null) return Fail(current, available, "MissingManifestAsset");
+
+            var manifestResult = await DownloadAndValidateManifestAsync(manifestAsset, available, cancellationToken).ConfigureAwait(false);
+            if (manifestResult.Manifest is null)
+                return Fail(current, available, manifestResult.ErrorCode ?? "ManifestValidation", manifestResult.ErrorDetail);
+
+            var manifest = manifestResult.Manifest;
+            if (manifest.AbiVersion != CadCoreRuntimeBootstrapper.BundledAbiVersion)
+                return Fail(
+                    current,
+                    available,
+                    "IncompatibleAbi",
+                    $"Host ABI={CadCoreRuntimeBootstrapper.BundledAbiVersion}; package ABI={manifest.AbiVersion}.");
+            if (!CadCoreRuntimeBootstrapper.IsHostContractCompatible(manifest.HostContract))
+                return Fail(
+                    current,
+                    available,
+                    "IncompatibleHostContract",
+                    $"Host={CadCoreRuntimeBootstrapper.HostContractName} {CadCoreRuntimeBootstrapper.HostContractVersion}; package={manifest.HostContract.Name} {manifest.HostContract.MinVersion}..<{manifest.HostContract.MaxVersionExclusive}.");
+
             _pendingRelease = release;
             _pendingVersion = available;
-            _pendingAsset = FindKernelAsset(release);
+            _pendingArchiveAsset = archiveAsset;
+            _pendingManifestAsset = manifestAsset;
+            _pendingManifest = manifest;
 
-            if (available <= current) return new(CadCoreUpdateState.UpToDate, current, available);
-            if (_pendingAsset is null) return Fail(current, available, "MissingAsset");
             if (CadCoreRuntimeBootstrapper.IsPendingVersion(available))
                 return new(CadCoreUpdateState.ReadyForRestart, current, available);
             return new(CadCoreUpdateState.UpdateAvailable, current, available);
@@ -61,6 +89,10 @@ internal sealed class CadCoreUpdateService
         {
             return Fail(current, null, "Network", exception.Message);
         }
+        catch (GitHubAssetDownloadException exception)
+        {
+            return Fail(current, null, exception.Code, exception.Message);
+        }
     }
 
     public async Task<CadCoreUpdateResult> DownloadAndStageAsync(
@@ -68,7 +100,7 @@ internal sealed class CadCoreUpdateService
         CancellationToken cancellationToken = default)
     {
         var current = CurrentVersion;
-        if (_pendingRelease is null || _pendingAsset is null || _pendingVersion is null)
+        if (_pendingRelease is null || _pendingArchiveAsset is null || _pendingManifestAsset is null || _pendingManifest is null || _pendingVersion is null)
             return Fail(current, null, "NoPendingUpdate");
 
         var available = _pendingVersion;
@@ -83,7 +115,7 @@ internal sealed class CadCoreUpdateService
             Directory.CreateDirectory(downloadsRoot);
             progress?.Report(new(CadCoreUpdateState.Downloading, 0d));
             var downloadProgress = new Progress<double>(fraction => progress?.Report(new(CadCoreUpdateState.Downloading, fraction)));
-            await GitHubUpdateService.DownloadAssetAsync(_pendingAsset, archivePath, downloadProgress, cancellationToken).ConfigureAwait(false);
+            await GitHubUpdateService.DownloadAssetAsync(_pendingArchiveAsset, archivePath, downloadProgress, cancellationToken).ConfigureAwait(false);
 
             progress?.Report(new(CadCoreUpdateState.Verifying));
             Directory.CreateDirectory(temporaryDirectory);
@@ -92,6 +124,10 @@ internal sealed class CadCoreUpdateService
                 return Fail(current, available, "PackageValidation", validationError);
             if (package.Version != available)
                 return Fail(current, available, "VersionMismatch", $"Package={package.Version}; Release={available}");
+            if (package.AbiVersion != _pendingManifest.AbiVersion || package.HostContract != _pendingManifest.HostContract)
+                return Fail(current, available, "ManifestMismatch", "The manifest inside the kernel archive does not match the preflight release manifest.");
+            if (package.AbiVersion != CadCoreRuntimeBootstrapper.BundledAbiVersion)
+                return Fail(current, available, "IncompatibleAbi", $"Host ABI={CadCoreRuntimeBootstrapper.BundledAbiVersion}; package ABI={package.AbiVersion}.");
 
             if (Directory.Exists(finalDirectory)) Directory.Delete(finalDirectory, recursive: true);
             Directory.Move(temporaryDirectory, finalDirectory);
@@ -131,6 +167,38 @@ internal sealed class CadCoreUpdateService
         }
     }
 
+    private static async Task<(CadCoreReleaseManifest? Manifest, string? ErrorCode, string? ErrorDetail)> DownloadAndValidateManifestAsync(
+        GitHubReleaseAsset asset,
+        Version expectedVersion,
+        CancellationToken cancellationToken)
+    {
+        var downloadsRoot = Path.Combine(CadCoreRuntimeBootstrapper.KernelRoot, "downloads");
+        Directory.CreateDirectory(downloadsRoot);
+        var path = Path.Combine(downloadsRoot, $"cadcore-release-{Environment.ProcessId}-{Guid.NewGuid():N}.json");
+        try
+        {
+            await GitHubUpdateService.DownloadAssetAsync(asset, path, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (!CadCoreReleaseManifestReader.TryReadFile(path, out var manifest, out var error) || manifest is null)
+                return (null, "ManifestValidation", error);
+            if (manifest.Version != expectedVersion)
+                return (null, "ManifestVersionMismatch", $"Manifest={manifest.Version}; Release={expectedVersion}");
+            return (manifest, null, null);
+        }
+        finally
+        {
+            TryDeleteFile(path);
+        }
+    }
+
+    private void ResetPendingUpdate()
+    {
+        _pendingRelease = null;
+        _pendingArchiveAsset = null;
+        _pendingManifestAsset = null;
+        _pendingManifest = null;
+        _pendingVersion = null;
+    }
+
     private static CadCoreUpdateResult Fail(Version current, Version? available, string code, string? detail = null)
     {
         CadCoreUpdateDiagnostics.Write("failed", code, detail);
@@ -142,6 +210,9 @@ internal sealed class CadCoreUpdateService
         var expectedName = $"CadCore-v{release.DisplayVersion}-x64.zip";
         return release.Assets.FirstOrDefault(asset => string.Equals(asset.Name, expectedName, StringComparison.OrdinalIgnoreCase));
     }
+
+    private static GitHubReleaseAsset? FindManifestAsset(GitHubReleaseInfo release) =>
+        release.Assets.FirstOrDefault(asset => string.Equals(asset.Name, "cadcore-release.json", StringComparison.OrdinalIgnoreCase));
 
     private static void ExtractSafely(string archivePath, string destinationDirectory, CancellationToken cancellationToken)
     {

@@ -5,6 +5,8 @@ on:
     paths:
       - 'release/kernel-integration.json'
       - 'packaging/Resolve-LatestIntegratedCadCore.ps1'
+      - 'packaging/Test-CadCoreUpdateRelease.ps1'
+      - 'packaging/Test-CadCoreUpdaterRuntime.ps1'
       - 'packaging/Rewrite-CadCoreMsixBundleLayout.ps1'
       - '.github/workflows/publish-github-release.yml'
       - '.github/workflows/release-kernel-contract.yml'
@@ -13,6 +15,8 @@ on:
     paths:
       - 'release/kernel-integration.json'
       - 'packaging/Resolve-LatestIntegratedCadCore.ps1'
+      - 'packaging/Test-CadCoreUpdateRelease.ps1'
+      - 'packaging/Test-CadCoreUpdaterRuntime.ps1'
       - 'packaging/Rewrite-CadCoreMsixBundleLayout.ps1'
       - '.github/workflows/publish-github-release.yml'
       - '.github/workflows/release-kernel-contract.yml'
@@ -23,7 +27,7 @@ permissions:
 jobs:
   verify:
     runs-on: windows-2025-vs2026
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -33,13 +37,20 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           $policy = Get-Content release/kernel-integration.json -Raw | ConvertFrom-Json
+          if ([int]$policy.schemaVersion -ne 2) { throw "Kernel integration policy must use schema 2." }
           $complete = @($policy.kernels | Where-Object integrationStatus -eq 'complete')
           if ($complete.Count -ne 1 -or [string]$complete[0].id -cne 'cad') { throw 'Current release policy must bundle only the completed CAD integration.' }
+          $cad = $complete[0]
+          if ([string]$cad.requiredAbiVersion -cne '1.0.0.0') { throw "Unexpected integrated CadCore ABI: $($cad.requiredAbiVersion)" }
+          $hostPolicy = $policy.hostContracts.([string]$cad.hostContract)
+          if (-not $hostPolicy -or [string]$hostPolicy.name -cne 'SpatialViewer.CadHost' -or [string]$hostPolicy.version -cne '1.0.0') { throw 'SpatialViewer.CadHost 1.0.0 policy is missing.' }
+          $policyText = Get-Content release/kernel-integration.json -Raw
+          if ($policyText -match 'SpatialViewer\s+0\.\d+\.x') { throw 'Kernel policy must not gate compatibility on the SpatialViewer product version.' }
           $workflow = Get-Content .github/workflows/publish-github-release.yml -Raw
           if (-not $workflow.Contains('Resolve-LatestIntegratedCadCore.ps1')) { throw 'GitHub release workflow does not resolve the latest integrated CadCore.' }
-          if ($workflow.Contains("-BundledVersion '0.3.0'")) { throw 'GitHub release workflow must not hard-code an obsolete CadCore version.' }
           $payload = Join-Path $env:RUNNER_TEMP 'latest-integrated-cadcore'
           $resolved = @(./packaging/Resolve-LatestIntegratedCadCore.ps1 -OutputDirectory $payload) | Select-Object -Last 1
-          if (-not $resolved -or [version]$resolved.version -lt [version]'0.4.0') { throw "Resolved CadCore is not the current integrated stable line: $($resolved.version)" }
+          if (-not $resolved -or [version]$resolved.version -lt [version]'0.9.0') { throw "Resolved CadCore is not on the host-contract stable line: $($resolved.version)" }
           if ([string]$resolved.abiVersion -cne '1.0.0.0') { throw "Unexpected CadCore ABI: $($resolved.abiVersion)" }
-          Write-Host "Release kernel contract PASS: CadCore v$($resolved.version), ABI $($resolved.abiVersion)."
+          if ([string]$resolved.hostContractName -cne 'SpatialViewer.CadHost' -or [string]$resolved.hostVersion -cne '1.0.0') { throw 'Resolved CadCore host contract mismatch.' }
+          Write-Host "Release kernel contract PASS: CadCore v$($resolved.version), ABI $($resolved.abiVersion), host $($resolved.hostContractName) $($resolved.hostVersion)."
