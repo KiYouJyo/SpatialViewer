@@ -212,7 +212,7 @@ internal sealed class ProductAppUpdateService(IBundleSignatureVerifier? signatur
         return null;
     }
 
-    private AppUpdateInfo Fail(string code, string? detail = null, GitHubReleaseInfo? release = null) =>
+    private static AppUpdateInfo Fail(string code, string? detail = null, GitHubReleaseInfo? release = null) =>
         new(AppUpdateState.Failed, release?.DisplayVersion, detail, code, release);
 
     private void LoadPendingState()
@@ -284,12 +284,16 @@ internal static class ApplicationRestartRegistration
     {
         var result = RegisterApplicationRestart(null, 0);
         hresult = result;
-        if (result != 0) throw new COMException("RegisterApplicationRestart failed.", result);
+        if (result != 0) Marshal.ThrowExceptionForHR(result);
         return new Registration();
     }
 
     private sealed class Registration : IDisposable
     {
-        public void Dispose() => RegisterApplicationRestart(string.Empty, 0);
+        public void Dispose()
+        {
+            var result = RegisterApplicationRestart(string.Empty, 0);
+            if (result != 0) Debug.WriteLine($"RegisterApplicationRestart cleanup returned 0x{result:X8}.");
+        }
     }
 }
