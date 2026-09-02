@@ -88,7 +88,7 @@ public sealed partial class MainWindow
     {
         if (sender is not Border { Tag: { } tag } container) return;
         var properties = e.GetCurrentPoint(container).Properties;
-        if (!properties.IsMiddleButtonPressed && properties.PointerUpdateKind != PointerUpdateKind.MiddleButtonPressed) return;
+        if (!properties.IsMiddleButtonPressed && !properties.PointerUpdateKind.Equals(PointerUpdateKind.MiddleButtonPressed)) return;
 
         // "Middle click" here explicitly means pressing the mouse wheel button.
         // Match browser semantics and close a background tab without activating it.
@@ -99,7 +99,7 @@ public sealed partial class MainWindow
     private void ShellTab_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
         if (sender is not Border { Tag: { } tag } container) return;
-        if (e.GetCurrentPoint(container).Properties.PointerUpdateKind != PointerUpdateKind.MiddleButtonReleased) return;
+        if (!e.GetCurrentPoint(container).Properties.PointerUpdateKind.Equals(PointerUpdateKind.MiddleButtonReleased)) return;
 
         // Fallback for mouse/driver combinations that do not expose a reliable
         // middle-button state during PointerPressed. If the pressed path already
