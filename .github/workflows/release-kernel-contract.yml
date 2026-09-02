@@ -42,8 +42,8 @@ jobs:
           if ($complete.Count -ne 1 -or [string]$complete[0].id -cne 'cad') { throw 'Current release policy must bundle only the completed CAD integration.' }
           $cad = $complete[0]
           if ([string]$cad.requiredAbiVersion -cne '1.0.0.0') { throw "Unexpected integrated CadCore ABI: $($cad.requiredAbiVersion)" }
-          $host = $policy.hostContracts.([string]$cad.hostContract)
-          if (-not $host -or [string]$host.name -cne 'SpatialViewer.CadHost' -or [string]$host.version -cne '1.0.0') { throw 'SpatialViewer.CadHost 1.0.0 policy is missing.' }
+          $hostPolicy = $policy.hostContracts.([string]$cad.hostContract)
+          if (-not $hostPolicy -or [string]$hostPolicy.name -cne 'SpatialViewer.CadHost' -or [string]$hostPolicy.version -cne '1.0.0') { throw 'SpatialViewer.CadHost 1.0.0 policy is missing.' }
           $policyText = Get-Content release/kernel-integration.json -Raw
           if ($policyText -match 'SpatialViewer\s+0\.\d+\.x') { throw 'Kernel policy must not gate compatibility on the SpatialViewer product version.' }
           $workflow = Get-Content .github/workflows/publish-github-release.yml -Raw
