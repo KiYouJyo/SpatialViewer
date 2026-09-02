@@ -1,14 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
-using System.Reflection;
+using System.Runtime.InteropServices;
 using Windows.System;
 
 namespace SpatialViewer.Product.Views;
 
 public sealed partial class AboutView : UserControl
 {
-    private const string ProductRepository = "KiYouJyo/SpatialViewer";
     private static readonly Uri ProductRepositoryUri = new("https://github.com/KiYouJyo/SpatialViewer");
     private static readonly Uri CadCoreRepositoryUri = new("https://github.com/KiYouJyo/SpatialViewer.CadCore");
     private static readonly Uri ReleasesUri = new("https://github.com/KiYouJyo/SpatialViewer/releases");
@@ -21,6 +20,7 @@ public sealed partial class AboutView : UserControl
     {
         InitializeComponent();
         ApplyLocalizedText();
+        PopulateApplicationInfo();
         Loaded += AboutView_Loaded;
         Unloaded += AboutView_Unloaded;
         RenderProductUpdate();
@@ -29,11 +29,9 @@ public sealed partial class AboutView : UserControl
 
     private void AboutView_Loaded(object sender, RoutedEventArgs e)
     {
-        // Exactly one observer per visible About page. The operation/state owner
-        // lives for the process, while recreated pages attach and immediately
-        // render the current state just like UrbanPlanToolbox's shared updater.
         _updates.Changed -= Updates_Changed;
         _updates.Changed += Updates_Changed;
+        PopulateApplicationInfo();
         RenderProductUpdate();
         RenderCadCoreUpdate(_updates.CadCoreResult);
     }
@@ -50,58 +48,97 @@ public sealed partial class AboutView : UserControl
         });
     }
 
+    private void PopulateApplicationInfo()
+    {
+        DisplayVersionText.Text = AppVersionProvider.DisplayVersion;
+        PackageVersionText.Text = AppVersionProvider.GetPackageVersion();
+        ArchitectureText.Text = RuntimeInformation.ProcessArchitecture.ToString();
+        CurrentAppVersionText.Text = AppVersionProvider.DisplayVersion;
+    }
+
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        CheckAppUpdateButton.IsEnabled = false;
-        _updates.ProductState = ProductUpdateCheckState.Checking;
-        RenderProductUpdate();
-        try
+        var info = _updates.ProductInfo;
+        if (info.IsReadyToInstall)
         {
-            var release = await GitHubUpdateService.GetLatestReleaseAsync(ProductRepository);
-            _updates.LatestProductRelease = release;
-            if (release is null)
-            {
-                _updates.ProductState = ProductUpdateCheckState.NoRelease;
-            }
-            else
-            {
-                _updates.ProductState = GitHubUpdateService.IsNewer(release.TagName, CurrentProductVersion())
-                    ? ProductUpdateCheckState.NewVersion
-                    : ProductUpdateCheckState.Latest;
-            }
+            await _updates.InstallProductUpdateAsync();
+            return;
         }
-        catch (HttpRequestException)
+
+        if (info.IsUpdateAvailable)
         {
-            _updates.ProductState = ProductUpdateCheckState.NetworkFailed;
+            await _updates.DownloadProductUpdateAsync();
+            return;
         }
-        catch (TaskCanceledException)
-        {
-            _updates.ProductState = ProductUpdateCheckState.Timeout;
-        }
-        finally
-        {
-            RenderProductUpdate();
-            CheckAppUpdateButton.IsEnabled = true;
-        }
+
+        await _updates.CheckProductUpdateAsync();
     }
 
     private void RenderProductUpdate()
     {
-        AvailableAppVersionText.Text = _updates.LatestProductRelease is null
+        var info = _updates.ProductInfo;
+        ToolTipService.SetToolTip(AppUpdateStatusText, null);
+        AvailableAppVersionText.Text = string.IsNullOrWhiteSpace(info.AvailableVersion)
             ? "—"
-            : $"v{_updates.LatestProductRelease.DisplayVersion}";
-        AppUpdateStatusText.Text = _updates.ProductState switch
+            : $"v{info.AvailableVersion}";
+        AppUpdateStatusText.Text = ResolveProductUpdateStatus(info);
+        if (info.State == AppUpdateState.Failed && !string.IsNullOrWhiteSpace(info.Detail))
+            ToolTipService.SetToolTip(AppUpdateStatusText, info.Detail);
+
+        CheckAppUpdateButton.Content = info.State switch
         {
-            ProductUpdateCheckState.Checking => T("Update_Checking"),
-            ProductUpdateCheckState.NoRelease => T("Update_NoRelease"),
-            ProductUpdateCheckState.NewVersion => T("Update_NewVersion"),
-            ProductUpdateCheckState.Latest => T("Update_Latest"),
-            ProductUpdateCheckState.NetworkFailed => T("Update_NetworkFailed"),
-            ProductUpdateCheckState.Timeout => T("Update_Timeout"),
-            _ => T("Update_NotChecked")
+            AppUpdateState.UpdateAvailable => L("下载并验证", "ダウンロードして検証", "Download & verify"),
+            AppUpdateState.ReadyToInstall => RestartUpdateButtonText(),
+            AppUpdateState.Downloading => L("正在下载", "ダウンロード中", "Downloading"),
+            AppUpdateState.Verifying => L("正在验证", "検証中", "Verifying"),
+            AppUpdateState.Installing or AppUpdateState.Restarting => L("正在更新", "更新中", "Updating"),
+            AppUpdateState.Failed or AppUpdateState.Cancelled => T("Update_Retry"),
+            _ => T("About_CheckUpdates")
         };
-        CheckAppUpdateButton.IsEnabled = _updates.ProductState != ProductUpdateCheckState.Checking;
+
+        var busyState = info.State is AppUpdateState.Checking or AppUpdateState.Downloading or AppUpdateState.Verifying or AppUpdateState.Installing or AppUpdateState.Restarting;
+        CheckAppUpdateButton.IsEnabled = _updates.CanOperateProductUpdate && !busyState;
+
+        var progressVisible = info.State is AppUpdateState.Downloading or AppUpdateState.Verifying or AppUpdateState.Installing or AppUpdateState.Restarting;
+        AppUpdateProgressBar.Visibility = progressVisible ? Visibility.Visible : Visibility.Collapsed;
+        AppUpdateProgressBar.IsIndeterminate = info.State is not AppUpdateState.Downloading || _updates.ProductProgress is null;
+        if (_updates.ProductProgress is double progress) AppUpdateProgressBar.Value = progress * 100d;
     }
+
+    private string ResolveProductUpdateStatus(AppUpdateInfo info) => info.State switch
+    {
+        AppUpdateState.NotChecked => T("Update_NotChecked"),
+        AppUpdateState.Checking => T("Update_Checking"),
+        AppUpdateState.UpToDate => T("Update_Latest"),
+        AppUpdateState.UpdateAvailable => T("Update_NewVersion"),
+        AppUpdateState.Downloading => _updates.ProductProgress is double progress
+            ? $"{L("正在下载…", "ダウンロード中…", "Downloading…")} {progress:P0}"
+            : L("正在下载…", "ダウンロード中…", "Downloading…"),
+        AppUpdateState.Verifying => L("正在验证安装包…", "インストールパッケージを検証中…", "Verifying package…"),
+        AppUpdateState.ReadyToInstall => L("安装包已验证，等待更新", "パッケージ検証済み。更新できます", "Package verified; ready to update"),
+        AppUpdateState.Installing => L("正在安装更新…", "更新をインストール中…", "Installing update…"),
+        AppUpdateState.Restarting => L("正在重启并完成更新…", "再起動して更新を完了しています…", "Restarting to finish update…"),
+        AppUpdateState.Completed => L("更新已完成", "更新が完了しました", "Update completed"),
+        AppUpdateState.Cancelled => L("更新已取消", "更新をキャンセルしました", "Update cancelled"),
+        AppUpdateState.Failed => ResolveProductUpdateError(info.ErrorCode),
+        _ => T("Update_NotChecked")
+    };
+
+    private string ResolveProductUpdateError(string? errorCode) => errorCode switch
+    {
+        "ReleaseNotFound" => T("Update_NoRelease"),
+        "UnableToContactGitHub" or "DownloadNetwork" or "DownloadTimeout" => T("Update_NetworkFailed"),
+        "BundleAssetNotFound" => L("发行版缺少唯一的 MSIXBundle 或校验清单", "リリースに一意の MSIXBundle またはチェックサム一覧がありません", "The release is missing the unique MSIXBundle or checksum manifest"),
+        "ChecksumMissing" => L("校验清单缺少安装包哈希", "チェックサム一覧にパッケージのハッシュがありません", "The checksum manifest does not contain the package hash"),
+        "ChecksumMismatch" => L("安装包 SHA-256 校验失败", "パッケージの SHA-256 検証に失敗しました", "Package SHA-256 verification failed"),
+        "SignatureMissing" or "SignatureInvalid" or "SignerSubjectMismatch" or "SignerThumbprintMismatch" => L("安装包签名验证失败", "パッケージ署名の検証に失敗しました", "Package signature verification failed"),
+        "PackageDeploymentFailed" => L("Windows 安装更新失败", "Windows による更新のインストールに失敗しました", "Windows failed to install the update"),
+        "NoPendingUpdate" => L("没有可安装的已验证更新", "インストール可能な検証済み更新がありません", "No verified update is ready to install"),
+        "Cancelled" => L("更新已取消", "更新をキャンセルしました", "Update cancelled"),
+        null or "" => L("更新失败", "更新に失敗しました", "Update failed"),
+        _ when errorCode.StartsWith("0x", StringComparison.OrdinalIgnoreCase) => $"{L("Windows 安装更新失败", "Windows による更新のインストールに失敗しました", "Windows failed to install the update")} · {errorCode}",
+        _ => $"{L("更新失败", "更新に失敗しました", "Update failed")} · {errorCode}"
+    };
 
     private async void CheckCadUpdateButton_Click(object sender, RoutedEventArgs e)
     {
@@ -145,9 +182,6 @@ public sealed partial class AboutView : UserControl
 
     private void RestartToApplyCadCoreUpdate()
     {
-        // AppInstance.Restart terminates this process and starts a new instance when successful.
-        // CadCoreRuntimeBootstrapper runs before XAML initialization in the restarted process,
-        // so the staged pending kernel is activated before any static CadCore reference is touched.
         var failureReason = AppInstance.Restart(string.Empty);
         _updates.CadCoreResult = _updates.CadCoreResult with
         {
@@ -214,12 +248,7 @@ public sealed partial class AboutView : UserControl
         }
     }
 
-    private string RestartUpdateButtonText() => _localization.CurrentLanguage switch
-    {
-        "ja-JP" => "再起動して更新",
-        "en-US" => "Restart to update",
-        _ => "重启更新"
-    };
+    private string RestartUpdateButtonText() => L("重启并更新", "再起動して更新", "Restart to update");
 
     private string ResolveCadUpdateError(string? errorCode) => errorCode switch
     {
@@ -233,7 +262,7 @@ public sealed partial class AboutView : UserControl
     };
 
     private async void ReleaseNotesButton_Click(object sender, RoutedEventArgs e) =>
-        await Launcher.LaunchUriAsync(_updates.LatestProductRelease is { HtmlUrl.Length: > 0 } release ? new Uri(release.HtmlUrl) : ReleasesUri);
+        await Launcher.LaunchUriAsync(_updates.ProductInfo.Release is { HtmlUrl.Length: > 0 } release ? new Uri(release.HtmlUrl) : ReleasesUri);
 
     private async void OpenRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(ProductRepositoryUri);
     private async void OpenCadCoreRepositoryButton_Click(object sender, RoutedEventArgs e) => await Launcher.LaunchUriAsync(CadCoreRepositoryUri);
@@ -337,13 +366,14 @@ public sealed partial class AboutView : UserControl
         OpenPrivacyButton.Content = T("About_ViewInfo");
     }
 
-    private string T(string key) => _localization.GetString(key);
-
-    private static Version CurrentProductVersion()
+    private string L(string zh, string ja, string en) => _localization.CurrentLanguage switch
     {
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        return version is null ? new Version(0, 0) : new Version(version.Major, version.Minor, Math.Max(0, version.Build));
-    }
+        "ja-JP" => ja,
+        "en-US" => en,
+        _ => zh
+    };
+
+    private string T(string key) => _localization.GetString(key);
 
     private static void AddColumns(Grid grid, int count)
     {
