@@ -1,17 +1,16 @@
 namespace SpatialViewer.Product;
 
 /// <summary>
-/// Process-lifetime update state shared by every AboutView instance.
-/// This mirrors UrbanPlanToolbox's default UpdateViewModel session: navigating
-/// away from About and returning must render the last check instead of resetting
-/// the card to NotChecked. The CadCore service itself also belongs to this
-/// session so an UpdateAvailable result can still be downloaded after navigation.
+/// Process-lifetime update owner shared by every AboutView instance. Product
+/// update operations follow the same single-session pattern as UrbanPlanToolbox.
 /// </summary>
 internal sealed class AboutUpdateSessionState
 {
     private static readonly Lazy<AboutUpdateSessionState> LazyDefault = new(() => new AboutUpdateSessionState());
-    private ProductUpdateCheckState _productState = ProductUpdateCheckState.NotChecked;
-    private GitHubReleaseInfo? _latestProductRelease;
+    private readonly ProductAppUpdateService _productUpdateService = new();
+    private AppUpdateInfo _productInfo = new(AppUpdateState.NotChecked);
+    private double? _productProgress;
+    private int _productBusy;
     private CadCoreUpdateResult _cadCoreResult;
 
     private AboutUpdateSessionState()
@@ -22,26 +21,100 @@ internal sealed class AboutUpdateSessionState
     public static AboutUpdateSessionState Default => LazyDefault.Value;
     public event EventHandler? Changed;
 
-    public ProductUpdateCheckState ProductState
+    public AppUpdateInfo ProductInfo
     {
-        get => _productState;
-        set
+        get => _productInfo;
+        private set
         {
-            if (_productState == value) return;
-            _productState = value;
+            if (_productInfo == value) return;
+            _productInfo = value;
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    public GitHubReleaseInfo? LatestProductRelease
+    public double? ProductProgress
     {
-        get => _latestProductRelease;
-        set
+        get => _productProgress;
+        private set
         {
-            if (Equals(_latestProductRelease, value)) return;
-            _latestProductRelease = value;
+            if (_productProgress == value) return;
+            _productProgress = value;
             Changed?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    public bool CanOperateProductUpdate => Volatile.Read(ref _productBusy) == 0;
+
+    public async Task CheckProductUpdateAsync(CancellationToken cancellationToken = default)
+    {
+        if (Interlocked.Exchange(ref _productBusy, 1) != 0) return;
+        try
+        {
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = AppUpdateState.Checking, Detail = null, ErrorCode = null };
+            ProductInfo = await _productUpdateService.CheckForUpdatesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = AppUpdateState.Cancelled, Detail = "Cancelled", ErrorCode = "Cancelled" };
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _productBusy, 0);
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public async Task DownloadProductUpdateAsync(CancellationToken cancellationToken = default)
+    {
+        if (!ProductInfo.IsUpdateAvailable || Interlocked.Exchange(ref _productBusy, 1) != 0) return;
+        try
+        {
+            var progress = new Progress<AppUpdateProgress>(ApplyProductProgress);
+            var result = await _productUpdateService.DownloadAndPrepareAsync(progress, cancellationToken);
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = result.State, Detail = result.Detail, ErrorCode = result.ErrorCode };
+        }
+        catch (OperationCanceledException)
+        {
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = AppUpdateState.Cancelled, Detail = "Cancelled", ErrorCode = "Cancelled" };
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _productBusy, 0);
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public async Task InstallProductUpdateAsync(CancellationToken cancellationToken = default)
+    {
+        if (!ProductInfo.IsReadyToInstall || Interlocked.Exchange(ref _productBusy, 1) != 0) return;
+        try
+        {
+            var progress = new Progress<AppUpdateProgress>(ApplyProductProgress);
+            var result = await _productUpdateService.InstallPendingAsync(progress, cancellationToken);
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = result.State, Detail = result.Detail, ErrorCode = result.ErrorCode };
+        }
+        catch (OperationCanceledException)
+        {
+            ProductProgress = null;
+            ProductInfo = ProductInfo with { State = AppUpdateState.Cancelled, Detail = "Cancelled", ErrorCode = "Cancelled" };
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _productBusy, 0);
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ApplyProductProgress(AppUpdateProgress value)
+    {
+        var normalized = AppUpdateProgress.NormalizeValue(value.Value);
+        ProductProgress = value.State == AppUpdateState.Downloading ? normalized : null;
+        ProductInfo = ProductInfo with { State = value.State, Detail = value.Detail, ErrorCode = null };
     }
 
     public CadCoreUpdateService CadCoreUpdateService { get; } = new();
@@ -56,15 +129,4 @@ internal sealed class AboutUpdateSessionState
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
-}
-
-internal enum ProductUpdateCheckState
-{
-    NotChecked,
-    Checking,
-    NoRelease,
-    NewVersion,
-    Latest,
-    NetworkFailed,
-    Timeout
 }
