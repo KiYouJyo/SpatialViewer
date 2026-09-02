@@ -23,6 +23,9 @@ jobs:
       - name: Verify trilingual localization contract
         shell: pwsh
         run: ./packaging/Test-LocalizationCompleteness.ps1
+      - name: Verify application update contract
+        shell: pwsh
+        run: ./packaging/Test-AppUpdateContract.ps1
       - run: dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
       - run: dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
       - run: dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
