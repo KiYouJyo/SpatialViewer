@@ -5,15 +5,40 @@ using System.Text.Json;
 
 namespace SpatialViewer.Product;
 
+internal sealed record CadCoreHostContractDescriptor(
+    string Name,
+    Version MinVersion,
+    Version MaxVersionExclusive)
+{
+    public bool Supports(string hostName, Version hostVersion) =>
+        string.Equals(Name, hostName, StringComparison.Ordinal) &&
+        hostVersion >= MinVersion &&
+        hostVersion < MaxVersionExclusive;
+}
+
+internal sealed record CadCoreReleaseManifest(
+    Version Version,
+    Version AbiVersion,
+    string Tag,
+    string Commit,
+    string Runtime,
+    string Framework,
+    string SourceRepository,
+    CadCoreHostContractDescriptor HostContract);
+
 internal sealed record CadCorePackageDescriptor(
     Version Version,
     Version AbiVersion,
+    CadCoreHostContractDescriptor HostContract,
     string DirectoryPath,
     IReadOnlyDictionary<string, string> RequiredAssemblies,
     IReadOnlyDictionary<string, string> ResolverAssemblies);
 
 internal static class CadCoreRuntimeBootstrapper
 {
+    internal const string HostContractName = "SpatialViewer.CadHost";
+    internal static readonly Version HostContractVersion = new(1, 0, 0);
+
     private const string KernelRootOverrideEnvironmentVariable = "SPATIALVIEWER_CADCORE_ROOT";
     private static readonly string[] CadCoreAssemblyNames =
     [
@@ -84,14 +109,6 @@ internal static class CadCoreRuntimeBootstrapper
                     return;
                 }
 
-                // Do not proactively LoadFromAssemblyPath here. The .NET host's
-                // deps resolver can still bind a later static ProjectReference to
-                // a bundled DLL that physically exists in the default probing
-                // directory. Release packaging therefore keeps the five CadCore
-                // assemblies only under Kernels/Bundled/<version>. Once the
-                // ordinary deps lookup misses, this Default.Resolving handler is
-                // authoritative and returns either the selected external package
-                // or the bundled fallback.
                 ConfigureResolver(package.ResolverAssemblies);
                 CurrentVersion = package.Version;
                 CurrentAbiVersion = package.AbiVersion;
@@ -282,15 +299,100 @@ internal static class CadCoreRuntimeBootstrapper
         return true;
     }
 
+    internal static bool IsHostContractCompatible(CadCoreHostContractDescriptor contract) =>
+        contract.Supports(HostContractName, HostContractVersion);
+
     internal static Version NormalizeVersion(Version version) => new(version.Major, version.Minor, Math.Max(0, version.Build));
     internal static string FormatVersion(Version version) => $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}";
 
     private sealed record CadCoreActivationState(string Version);
 }
 
+internal static class CadCoreReleaseManifestReader
+{
+    private const int SupportedSchemaVersion = 2;
+    private const string ProductName = "SpatialViewer.CadCore";
+    private const string Repository = "KiYouJyo/SpatialViewer.CadCore";
+
+    public static bool TryReadFile(string path, out CadCoreReleaseManifest? manifest, out string? error)
+    {
+        manifest = null;
+        error = null;
+        try
+        {
+            if (!File.Exists(path)) return Fail("cadcore-release.json is missing.", out error);
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            return TryRead(document.RootElement, out manifest, out error);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
+    private static bool TryRead(JsonElement root, out CadCoreReleaseManifest? manifest, out string? error)
+    {
+        manifest = null;
+        error = null;
+        if (!root.TryGetProperty("schemaVersion", out var schemaElement) || !schemaElement.TryGetInt32(out var schemaVersion) || schemaVersion != SupportedSchemaVersion)
+            return Fail($"Unsupported CadCore release manifest schema. Expected {SupportedSchemaVersion}.", out error);
+        if (!TryReadString(root, "product", out var product) || !string.Equals(product, ProductName, StringComparison.Ordinal))
+            return Fail("The CadCore package product identity is invalid.", out error);
+        if (!TryReadVersion(root, "version", out var version)) return Fail("The CadCore package version is invalid.", out error);
+        version = CadCoreRuntimeBootstrapper.NormalizeVersion(version);
+        if (!TryReadVersion(root, "abiVersion", out var abiVersion)) return Fail("The CadCore package ABI version is invalid.", out error);
+        if (!TryReadString(root, "tag", out var tag) || !string.Equals(tag, $"v{CadCoreRuntimeBootstrapper.FormatVersion(version)}", StringComparison.Ordinal))
+            return Fail("The CadCore package tag does not match its version.", out error);
+        if (!TryReadString(root, "commit", out var commit)) return Fail("The CadCore package source commit is missing.", out error);
+        if (!TryReadString(root, "runtime", out var runtime) || !string.Equals(runtime, "x64", StringComparison.OrdinalIgnoreCase))
+            return Fail("The CadCore package runtime is not x64.", out error);
+        if (!TryReadString(root, "framework", out var framework) || !string.Equals(framework, "net10.0", StringComparison.OrdinalIgnoreCase))
+            return Fail("The CadCore package framework is unsupported.", out error);
+        if (!TryReadString(root, "sourceRepository", out var repository) || !string.Equals(repository, Repository, StringComparison.OrdinalIgnoreCase))
+            return Fail("The CadCore package source repository is invalid.", out error);
+        if (!root.TryGetProperty("hostContract", out var hostContractElement) || hostContractElement.ValueKind != JsonValueKind.Object)
+            return Fail("The CadCore host contract is missing.", out error);
+        if (!TryReadString(hostContractElement, "name", out var hostName)) return Fail("The CadCore host contract name is invalid.", out error);
+        if (!TryReadVersion(hostContractElement, "minVersion", out var hostMin)) return Fail("The CadCore minimum host contract version is invalid.", out error);
+        if (!TryReadVersion(hostContractElement, "maxVersionExclusive", out var hostMax)) return Fail("The CadCore maximum host contract version is invalid.", out error);
+        if (hostMin >= hostMax) return Fail("The CadCore host contract range is invalid.", out error);
+
+        manifest = new CadCoreReleaseManifest(
+            version,
+            abiVersion,
+            tag,
+            commit,
+            runtime,
+            framework,
+            repository,
+            new CadCoreHostContractDescriptor(hostName, hostMin, hostMax));
+        return true;
+    }
+
+    private static bool TryReadString(JsonElement root, string propertyName, out string value)
+    {
+        value = string.Empty;
+        if (!root.TryGetProperty(propertyName, out var element) || element.ValueKind != JsonValueKind.String) return false;
+        value = element.GetString() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool TryReadVersion(JsonElement root, string propertyName, out Version version)
+    {
+        version = new Version(0, 0, 0);
+        return TryReadString(root, propertyName, out var text) && Version.TryParse(text, out version!);
+    }
+
+    private static bool Fail(string message, out string? error)
+    {
+        error = message;
+        return false;
+    }
+}
+
 internal static class CadCorePackageValidator
 {
-    private const string ProductName = "SpatialViewer.CadCore";
     private static readonly IReadOnlyDictionary<string, string> RequiredProjects = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["SpatialViewer.Core"] = "SpatialViewer.Core",
@@ -308,24 +410,11 @@ internal static class CadCorePackageValidator
         {
             var fullDirectory = Path.GetFullPath(directory);
             var manifestPath = Path.Combine(fullDirectory, "cadcore-release.json");
-            if (!File.Exists(manifestPath)) return Fail("cadcore-release.json is missing.", out error);
-
-            using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
-            var root = manifest.RootElement;
-            if (!TryReadString(root, "product", out var product) || !string.Equals(product, ProductName, StringComparison.Ordinal))
-                return Fail("The CadCore package product identity is invalid.", out error);
-            if (!TryReadString(root, "version", out var versionText) || !Version.TryParse(versionText, out var parsedVersion) || parsedVersion is null)
-                return Fail("The CadCore package version is invalid.", out error);
-            var version = CadCoreRuntimeBootstrapper.NormalizeVersion(parsedVersion);
-            if (!TryReadString(root, "abiVersion", out var abiVersionText) || !Version.TryParse(abiVersionText, out var parsedAbiVersion) || parsedAbiVersion is null)
-                return Fail("The CadCore package ABI version is invalid.", out error);
-            var abiVersion = parsedAbiVersion;
-            if (!TryReadString(root, "runtime", out var runtime) || !string.Equals(runtime, "x64", StringComparison.OrdinalIgnoreCase))
-                return Fail("The CadCore package runtime is not x64.", out error);
-            if (!TryReadString(root, "sourceRepository", out var repository) || !string.Equals(repository, "KiYouJyo/SpatialViewer.CadCore", StringComparison.OrdinalIgnoreCase))
-                return Fail("The CadCore package source repository is invalid.", out error);
-            if (!TryReadString(root, "compatibility", out var compatibility) || !IsCompatible(compatibility))
-                return Fail("The CadCore package is not compatible with this SpatialViewer version.", out error);
+            if (!CadCoreReleaseManifestReader.TryReadFile(manifestPath, out var manifest, out error) || manifest is null) return false;
+            if (!CadCoreRuntimeBootstrapper.IsHostContractCompatible(manifest.HostContract))
+                return Fail(
+                    $"CadCore host contract mismatch: package={manifest.HostContract.Name} {manifest.HostContract.MinVersion}..<${manifest.HostContract.MaxVersionExclusive}; host={CadCoreRuntimeBootstrapper.HostContractName} {CadCoreRuntimeBootstrapper.HostContractVersion}.",
+                    out error);
 
             var requiredAssemblies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var pair in RequiredProjects)
@@ -336,22 +425,29 @@ internal static class CadCorePackageValidator
                 if (assemblyPath is null) return Fail($"Required CadCore assembly is missing: {pair.Key}.dll", out error);
 
                 var assemblyVersion = AssemblyName.GetAssemblyName(assemblyPath).Version;
-                if (assemblyVersion is null || assemblyVersion != abiVersion)
+                if (assemblyVersion is null || assemblyVersion != manifest.AbiVersion)
                     return Fail($"CadCore ABI version does not match the release manifest: {pair.Key}.dll", out error);
-                if (!CadCoreRuntimeBootstrapper.TryReadFileProductVersion(assemblyPath, out var fileProductVersion) || fileProductVersion != version)
+                if (!CadCoreRuntimeBootstrapper.TryReadFileProductVersion(assemblyPath, out var fileProductVersion) || fileProductVersion != manifest.Version)
                     return Fail($"CadCore file product version does not match the release manifest: {pair.Key}.dll", out error);
                 requiredAssemblies[pair.Key] = Path.GetFullPath(assemblyPath);
             }
 
             var resolverAssemblies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var dll in Directory.EnumerateFiles(Path.Combine(fullDirectory, "bin"), "*.dll", SearchOption.AllDirectories))
+            var binRoot = Path.Combine(fullDirectory, "bin");
+            foreach (var dll in Directory.EnumerateFiles(binRoot, "*.dll", SearchOption.AllDirectories))
             {
                 var simpleName = Path.GetFileNameWithoutExtension(dll);
                 resolverAssemblies.TryAdd(simpleName, Path.GetFullPath(dll));
             }
             foreach (var pair in requiredAssemblies) resolverAssemblies[pair.Key] = pair.Value;
 
-            package = new CadCorePackageDescriptor(version, abiVersion, fullDirectory, requiredAssemblies, resolverAssemblies);
+            package = new CadCorePackageDescriptor(
+                manifest.Version,
+                manifest.AbiVersion,
+                manifest.HostContract,
+                fullDirectory,
+                requiredAssemblies,
+                resolverAssemblies);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or BadImageFormatException)
@@ -359,20 +455,6 @@ internal static class CadCorePackageValidator
             error = exception.Message;
             return false;
         }
-    }
-
-    private static bool IsCompatible(string compatibility)
-    {
-        var appVersion = typeof(CadCorePackageValidator).Assembly.GetName().Version ?? new Version(0, 0, 0);
-        return compatibility.Equals($"SpatialViewer {appVersion.Major}.{appVersion.Minor}.x", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryReadString(JsonElement root, string propertyName, out string value)
-    {
-        value = string.Empty;
-        if (!root.TryGetProperty(propertyName, out var element) || element.ValueKind != JsonValueKind.String) return false;
-        value = element.GetString() ?? string.Empty;
-        return !string.IsNullOrWhiteSpace(value);
     }
 
     private static bool Fail(string message, out string? error)
