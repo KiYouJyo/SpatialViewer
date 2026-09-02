@@ -17,11 +17,11 @@ function Assert-HostContract([object]$Manifest) {
     if ([int]$Manifest.schemaVersion -ne 2) { throw "Unexpected CadCore manifest schema: $($Manifest.schemaVersion)" }
     if (-not $Manifest.hostContract) { throw 'Manifest hostContract is missing.' }
     if ([string]$Manifest.hostContract.name -cne $HostContractName) { throw "Unexpected host contract name: $($Manifest.hostContract.name)" }
-    $host = [version]$HostContractVersion
+    $hostVersion = [version]$HostContractVersion
     $min = [version][string]$Manifest.hostContract.minVersion
     $max = [version][string]$Manifest.hostContract.maxVersionExclusive
-    if ($min -ge $max) { throw "Invalid host contract range: $min..<${max}" }
-    if ($host -lt $min -or $host -ge $max) { throw "Host contract is incompatible: host=$host package=$min..<${max}" }
+    if ($min -ge $max) { throw "Invalid host contract range: $min..<$max" }
+    if ($hostVersion -lt $min -or $hostVersion -ge $max) { throw "Host contract is incompatible: host=$hostVersion package=$min..<$max" }
 }
 
 $headers = @{
