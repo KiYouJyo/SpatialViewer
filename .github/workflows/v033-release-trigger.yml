@@ -1,0 +1,48 @@
+name: SpatialViewer v0.3.3 Release Trigger
+
+on:
+  push:
+    branches: ['codex/v0.3.3-release-trigger']
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Retarget unpublished v0.3.3 tag to current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.3.3 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v0.3.3 is already published; refusing to retarget a published release tag.' >&2
+            exit 1
+          fi
+          git fetch origin main --tags --force
+          main_sha="$(git rev-parse origin/main)"
+          echo "Release source main commit: $main_sha"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -fa v0.3.3 "$main_sha" -m 'Spatial Viewer v0.3.3'
+          git push --force origin refs/tags/v0.3.3
+
+      - name: Dispatch formal v0.3.3 GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish-github-release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f version=0.3.3 \
+            -f dry_run=false
+          echo 'Formal v0.3.3 release workflow dispatched.'
