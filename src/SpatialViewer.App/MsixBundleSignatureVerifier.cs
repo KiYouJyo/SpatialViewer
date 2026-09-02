@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -78,7 +79,8 @@ internal sealed class MsixBundleSignatureVerifier : IBundleSignatureVerifier
         finally
         {
             trustData.dwStateAction = WtdStateActionClose;
-            WinVerifyTrust(IntPtr.Zero, WintrustActionGenericVerifyV2, ref trustData);
+            var closeResult = WinVerifyTrust(IntPtr.Zero, WintrustActionGenericVerifyV2, ref trustData);
+            if (closeResult != 0) Debug.WriteLine($"WinVerifyTrust close returned 0x{closeResult:X8}.");
             Marshal.DestroyStructure<WinTrustFileInfo>(fileInfoPointer);
             Marshal.FreeHGlobal(fileInfoPointer);
         }
