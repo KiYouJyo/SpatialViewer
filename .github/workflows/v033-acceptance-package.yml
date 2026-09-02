@@ -1,0 +1,94 @@
+name: SpatialViewer v0.3.3 Acceptance Package
+
+on:
+  push:
+    branches: ['codex/v0.3.3-acceptance-package']
+    paths:
+      - '.github/workflows/v033-acceptance-package.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-and-collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Dispatch signed dry-run packaging
+        id: dispatch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "started_at=$started_at" >> "$GITHUB_OUTPUT"
+          gh workflow run publish-github-release.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f version=0.3.3 \
+            -f dry_run=true
+
+      - name: Resolve dispatched run
+        id: run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STARTED_AT: ${{ steps.dispatch.outputs.started_at }}
+        run: |
+          set -euo pipefail
+          run_id=""
+          for attempt in $(seq 1 30); do
+            run_id="$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow publish-github-release.yml \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,createdAt \
+              --jq '[.[] | select(.createdAt >= env.STARTED_AT)] | sort_by(.createdAt) | last | .databaseId // empty')"
+            if [ -n "$run_id" ]; then break; fi
+            sleep 2
+          done
+          if [ -z "$run_id" ]; then
+            echo "Unable to resolve the dispatched dry-run workflow." >&2
+            exit 1
+          fi
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Resolved dry-run workflow run: $run_id"
+
+      - name: Wait for signed package validation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.run.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          gh run watch "$RUN_ID" --repo "${{ github.repository }}" --exit-status --interval 10
+
+      - name: Download validated release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.run.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name SpatialViewer-0.3.3-github-release-assets \
+            --dir acceptance
+          test -f acceptance/SpatialViewer-v0.3.3-x64-one-click.zip
+          test -f acceptance/SpatialViewer_0.3.3.0_x64.msixbundle
+          test -f acceptance/SHA256SUMS.txt
+          test -f acceptance/cadcore-resolution.json
+          ls -lah acceptance
+
+      - name: Upload v0.3.3 acceptance package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpatialViewer-v0.3.3-acceptance-package
+          path: acceptance/*
+          if-no-files-found: error
+          retention-days: 30
