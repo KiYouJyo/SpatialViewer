@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.3] - 2026-09-02
+
+### Added
+
+- Added mouse middle-button closing for title-bar tabs without activating background tabs first.
+- Added native hover cards for tabs, including a live fitted CAD drawing preview for document tabs and a lightweight home-page preview.
+
+### Changed
+
+- Replaced the detached tab entrance transition with a Chrome-style horizontal width expansion plus short opacity fade; the animation uses no vertical translation or content scaling.
+- Kept the existing title-bar geometry, tab sizing, colors, hamburger menu, NavigationView surfaces, page backgrounds, and selected/unselected visual treatment unchanged outside the new interaction states.
+- Advanced the product and MSIX package identities to `0.3.3` / `0.3.3.0`.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added

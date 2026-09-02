@@ -262,10 +262,11 @@ public sealed partial class MainWindow : Window
         var layer = new Grid();
         layer.Children.Add(selectButton); layer.Children.Add(closeButton);
         var container = new Border { Tag = tag, Width = width, Height = 32, CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(0), Child = layer };
-        container.Transitions = [new EntranceThemeTransition { FromHorizontalOffset = 12 }, new RepositionThemeTransition()];
+        container.Transitions = [new RepositionThemeTransition()];
         var visual = new ShellTabVisual(container, headerText);
         ApplyTabVisual(tag, visual, selected: false, RootGrid.ActualTheme == ElementTheme.Dark);
         ShellTabItems.Children.Add(container);
+        ConfigureTabInteractions(container, tag, title, width);
         return visual;
     }
 
