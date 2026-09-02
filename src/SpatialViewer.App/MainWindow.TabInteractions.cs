@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.Graphics.Canvas.UI.Xaml;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
