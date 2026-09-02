@@ -1,0 +1,45 @@
+name: SpatialViewer v0.3.3 Release Body Repair
+
+on:
+  push:
+    branches: ['codex/v0.3.3-fix-release-body']
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Regenerate v0.3.3 release body
+        shell: pwsh
+        run: |
+          $bodyPath = Join-Path $env:RUNNER_TEMP 'release-body.md'
+          ./packaging/New-GitHubReleaseBody.ps1 -Version '0.3.3' -OutputPath $bodyPath
+          Add-Content -LiteralPath $bodyPath -Value @(
+            '',
+            '### 随包内核',
+            '- SpatialViewer.CadCore v0.11.0（ABI 1.0.0.0，commit `5636afd725fb78325e687854b80bb703ce5ec2a2`）',
+            '- 发布包始终解析并嵌入已完成应用接入的最新稳定内核版本。'
+          ) -Encoding utf8
+          "BODY_PATH=$bodyPath" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Update published GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit v0.3.3 --notes-file $env:BODY_PATH
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to update v0.3.3 Release body.' }
+
+          $release = gh api 'repos/${{ github.repository }}/releases/tags/v0.3.3' | ConvertFrom-Json
+          $lines = @(([string]$release.body) -split "`r?`n")
+          $switcherCount = @($lines | Where-Object { $_ -match '^简体中文 \|' }).Count
+          if ($switcherCount -ne 1) { throw "Expected exactly one language switcher, found $switcherCount." }
+          if ([string]$release.body -notmatch 'CAD 文档标签在悬停后显示图纸预览') { throw 'Release body lost the accepted v0.3.3 notes.' }
+          Write-Host 'v0.3.3 Release body repair PASS.'
