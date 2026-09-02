@@ -22,6 +22,7 @@ public sealed partial class MainWindow
     private async void ShellNavigation_V03ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
         if (args.InvokedItemContainer is not NavigationViewItem item || item.Tag is not string tag) return;
+        EnsureHomeTabPresentationTracking();
         switch (tag)
         {
             case "Home":
