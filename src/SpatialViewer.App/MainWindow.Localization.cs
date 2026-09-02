@@ -120,11 +120,7 @@ public sealed partial class MainWindow
         ApplyLocalizedHomeTabHeaders();
     }
 
-    private void ApplyLocalizedHomeTabHeaders()
-    {
-        var title = T("Nav_Home");
-        foreach (var tab in _homeTabs.Values) tab.HeaderText.Text = title;
-    }
+    private void ApplyLocalizedHomeTabHeaders() => RefreshHomeTabPresentationsForLocalization();
 
     private string T(string key) => _shellLocalization.GetString(key);
 
