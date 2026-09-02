@@ -108,7 +108,7 @@ public sealed partial class MainWindow
         else CreateHomeTab(select: true);
     }
 
-    private ToolTip CreateTabPreviewToolTip(object tag, string title)
+    private static ToolTip CreateTabPreviewToolTip(object tag, string title)
     {
         var content = new StackPanel
         {
@@ -141,7 +141,7 @@ public sealed partial class MainWindow
         return new ToolTip { Content = content };
     }
 
-    private static FrameworkElement CreateHomeTabPreview(string title)
+    private static Grid CreateHomeTabPreview(string title)
     {
         var grid = new Grid
         {
