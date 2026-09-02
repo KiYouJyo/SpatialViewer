@@ -1,0 +1,226 @@
+name: SpatialViewer v0.3.2 Application Update Acceptance
+
+on:
+  push:
+    branches: ['codex/v0.3.2-app-update-acceptance']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spatialviewer-v032-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Verify v0.3.2 source updater contract
+        shell: pwsh
+        run: |
+          ./packaging/Test-LocalizationCompleteness.ps1
+          ./packaging/Test-AppUpdateContract.ps1
+          [xml]$project = Get-Content src/SpatialViewer.App/SpatialViewer.App.csproj
+          [xml]$manifest = Get-Content src/SpatialViewer.App/Package.appxmanifest
+          $release = Get-Content release/release.json -Raw | ConvertFrom-Json
+          if ([string]$project.Project.PropertyGroup.Version -cne '0.3.2') { throw 'Project product version is not 0.3.2.' }
+          if ([string]$project.Project.PropertyGroup.AssemblyVersion -cne '0.3.2.0') { throw 'Assembly version is not 0.3.2.0.' }
+          $identity = $manifest.Package.Identity
+          if ([string]$identity.Name -cne 'SpatialViewer' -or [string]$identity.Publisher -cne 'CN=AppPublisher' -or [string]$identity.Version -cne '0.3.2.0') { throw 'MSIX identity is not the v0.3.2 release identity.' }
+          if ([string]$release.product.version -cne '0.3.2' -or [string]$release.product.packageVersion -cne '0.3.2.0') { throw 'Release metadata is not v0.3.2.' }
+          Write-Host 'v0.3.2 source updater contract PASS.'
+
+      - name: Download official v0.3.1 and v0.3.2 release assets
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Accept = 'application/vnd.github+json'; Authorization = "Bearer $env:GITHUB_TOKEN"; 'User-Agent' = 'SpatialViewer-v032-Acceptance' }
+          $root = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v032-update-acceptance'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+
+          function Get-StableRelease([string]$tag) {
+            $uri = "https://api.github.com/repos/KiYouJyo/SpatialViewer/releases/tags/$tag"
+            $release = Invoke-RestMethod -Uri $uri -Headers $headers
+            if ($release.tag_name -cne $tag -or $release.draft -or $release.prerelease) { throw "Stable release unavailable: $tag" }
+            return $release
+          }
+          function Save-Asset($release, [string]$name, [string]$path) {
+            $asset = @($release.assets | Where-Object name -ceq $name)
+            if ($asset.Count -ne 1) { throw "Expected exactly one $name asset in $($release.tag_name)." }
+            Invoke-WebRequest -Uri $asset[0].browser_download_url -Headers $headers -OutFile $path
+            if ((Get-Item -LiteralPath $path).Length -ne [long]$asset[0].size) { throw "Asset size mismatch: $name" }
+            if ($asset[0].digest -and $asset[0].digest -match '^sha256:(?<hash>[A-Fa-f0-9]{64})$') {
+              $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+              if ($actual -cne $matches.hash.ToUpperInvariant()) { throw "GitHub asset digest mismatch: $name" }
+            }
+            return $asset[0]
+          }
+
+          $r31 = Get-StableRelease 'v0.3.1'
+          $r32 = Get-StableRelease 'v0.3.2'
+          $v31Bundle = Join-Path $root 'SpatialViewer_0.3.1.0_x64.msixbundle'
+          $v31Installer = Join-Path $root 'SpatialViewer-v0.3.1-x64-one-click.zip'
+          $v32Bundle = Join-Path $root 'SpatialViewer_0.3.2.0_x64.msixbundle'
+          $v32Sums = Join-Path $root 'SHA256SUMS-v0.3.2.txt'
+          Save-Asset $r31 'SpatialViewer_0.3.1.0_x64.msixbundle' $v31Bundle | Out-Null
+          Save-Asset $r31 'SpatialViewer-v0.3.1-x64-one-click.zip' $v31Installer | Out-Null
+          Save-Asset $r32 'SpatialViewer_0.3.2.0_x64.msixbundle' $v32Bundle | Out-Null
+          Save-Asset $r32 'SHA256SUMS.txt' $v32Sums | Out-Null
+
+          $sumLine = Get-Content -LiteralPath $v32Sums | Where-Object { $_ -match 'SpatialViewer_0\.3\.2\.0_x64\.msixbundle$' } | Select-Object -First 1
+          if (-not $sumLine -or $sumLine -notmatch '^(?<hash>[A-Fa-f0-9]{64})\s+(?:\*)?SpatialViewer_0\.3\.2\.0_x64\.msixbundle$') { throw 'v0.3.2 SHA256SUMS entry is missing.' }
+          $bundleHash = (Get-FileHash -LiteralPath $v32Bundle -Algorithm SHA256).Hash
+          if ($bundleHash -cne $matches.hash.ToUpperInvariant()) { throw 'v0.3.2 SHA256SUMS verification failed.' }
+          if ($bundleHash -cne '7EE49163EB4E5F5C19A4B260C39E983972476C93B050A9D6BAAAA5054FF751D6') { throw "Unexpected official v0.3.2 bundle hash: $bundleHash" }
+
+          "ACCEPTANCE_ROOT=$root" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "V031_BUNDLE=$v31Bundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "V031_INSTALLER=$v31Installer" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "V032_BUNDLE=$v32Bundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "V032_BUNDLE_SHA256=$($bundleHash.ToLowerInvariant())" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'Official v0.3.1/v0.3.2 release asset download + digest contract PASS.'
+
+      - name: Verify official v0.3.2 signer and prepare trust
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signature = Get-AuthenticodeSignature -FilePath $env:V032_BUNDLE
+          if (-not $signature.SignerCertificate) { throw 'v0.3.2 MSIXBundle has no signer certificate.' }
+          $certificate = $signature.SignerCertificate
+          if ($certificate.Subject -cne 'CN=AppPublisher') { throw "Unexpected signer subject: $($certificate.Subject)" }
+          if ($certificate.Thumbprint -cne 'BD85AD77A651C86CA01A480C8E9BC64952993F98') { throw "Unexpected signer thumbprint: $($certificate.Thumbprint)" }
+
+          $installerRoot = Join-Path $env:ACCEPTANCE_ROOT 'v031-one-click'
+          Expand-Archive -LiteralPath $env:V031_INSTALLER -DestinationPath $installerRoot -Force
+          $cer = Get-ChildItem -LiteralPath $installerRoot -Recurse -Filter '*.cer' | Select-Object -First 1
+          if (-not $cer) { throw 'v0.3.1 one-click package does not contain the public release certificate.' }
+          $public = [Security.Cryptography.X509Certificates.X509Certificate2]::new($cer.FullName)
+          if ($public.Subject -cne $certificate.Subject -or $public.Thumbprint -cne $certificate.Thumbprint -or $public.HasPrivateKey) { throw 'One-click public certificate does not match the v0.3.2 signer.' }
+
+          $trusted = Get-ChildItem Cert:\LocalMachine\TrustedPeople -ErrorAction SilentlyContinue | Where-Object Thumbprint -eq $public.Thumbprint
+          if (-not $trusted) { Import-Certificate -FilePath $cer.FullName -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null }
+          "RELEASE_CERT_THUMBPRINT=$($public.Thumbprint)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'Official v0.3.2 signer + trusted publisher certificate PASS.'
+
+      - name: Install Windows App Runtime 1.8.10 x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $env:RUNNER_TEMP 'WindowsAppRuntimeInstall-1.8.260710003-x64.exe'
+          $uri = 'https://aka.ms/windowsappsdk/1.8/1.8.260710003/windowsappruntimeinstall-x64.exe'
+          Invoke-WebRequest -Uri $uri -OutFile $installer
+          $process = Start-Process -FilePath $installer -ArgumentList '--quiet' -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) { throw "Windows App Runtime installer failed: $($process.ExitCode)" }
+          $frameworks = @(Get-AppxPackage -AllUsers -Name 'Microsoft.WindowsAppRuntime.1.8' -ErrorAction SilentlyContinue | Where-Object { $_.Architecture -in @('X64','Neutral') })
+          if ($frameworks.Count -eq 0) { throw 'Microsoft.WindowsAppRuntime.1.8 was not installed.' }
+          $minimum = [version]'8000.921.1539.0'
+          $best = $frameworks | Sort-Object { [version]$_.Version } -Descending | Select-Object -First 1
+          if ([version]$best.Version -lt $minimum) { throw "Windows App Runtime 1.8 is too old: $($best.Version); need >= $minimum" }
+          Write-Host "Windows App Runtime dependency PASS: $($best.PackageFullName)"
+
+      - name: Install official v0.3.1 baseline
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Get-AppxPackage -Name SpatialViewer -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
+          Add-AppxPackage -Path $env:V031_BUNDLE -ErrorAction Stop
+          $package = @(Get-AppxPackage -Name SpatialViewer | Where-Object Publisher -ceq 'CN=AppPublisher')
+          if ($package.Count -ne 1) { throw "Expected one SpatialViewer package after baseline install; found $($package.Count)." }
+          if ([string]$package[0].Version -cne '0.3.1.0' -or [string]$package[0].Architecture -cne 'X64' -or [string]$package[0].Status -cne 'Ok') { throw "Unexpected v0.3.1 baseline identity: $($package[0].PackageFullName) / $($package[0].Status)" }
+          Write-Host "Baseline installed: $($package[0].PackageFullName)"
+
+      - name: Build PackageManager upgrade harness
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'SpatialViewer-PackageUpgradeHarness'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          @'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+          </Project>
+          '@ | Set-Content -LiteralPath (Join-Path $root 'PackageUpgradeHarness.csproj') -Encoding utf8
+          @'
+          using Windows.Management.Deployment;
+
+          if (args.Length != 1) throw new ArgumentException("Expected one MSIXBundle path.");
+          var path = Path.GetFullPath(args[0]);
+          if (!File.Exists(path)) throw new FileNotFoundException("MSIXBundle not found.", path);
+          var manager = new PackageManager();
+          var operation = manager.AddPackageAsync(new Uri(path), null, DeploymentOptions.ForceApplicationShutdown);
+          var progress = new Progress<DeploymentProgress>(value => Console.WriteLine($"deployment:{value.state}:{value.percentage}"));
+          var result = await operation.AsTask(progress);
+          Console.WriteLine($"registered:{result.IsRegistered};error:{result.ExtendedErrorCode};text:{result.ErrorText}");
+          if (!result.IsRegistered) Environment.Exit(2);
+          '@ | Set-Content -LiteralPath (Join-Path $root 'Program.cs') -Encoding utf8
+          dotnet build (Join-Path $root 'PackageUpgradeHarness.csproj') -c Release
+          if ($LASTEXITCODE -ne 0) { throw "PackageManager upgrade harness build failed: $LASTEXITCODE" }
+          "UPGRADE_HARNESS=$root" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upgrade v0.3.1 to official v0.3.2 with PackageManager
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $before = @(Get-AppxPackage -Name SpatialViewer | Where-Object Publisher -ceq 'CN=AppPublisher')
+          if ($before.Count -ne 1 -or [string]$before[0].Version -cne '0.3.1.0') { throw 'v0.3.1 baseline disappeared before upgrade.' }
+          dotnet run --project (Join-Path $env:UPGRADE_HARNESS 'PackageUpgradeHarness.csproj') -c Release --no-build -- $env:V032_BUNDLE
+          if ($LASTEXITCODE -ne 0) { throw "PackageManager upgrade failed: $LASTEXITCODE" }
+          Start-Sleep -Seconds 2
+          $after = @(Get-AppxPackage -Name SpatialViewer | Where-Object Publisher -ceq 'CN=AppPublisher')
+          if ($after.Count -ne 1) { throw "Expected one SpatialViewer package after upgrade; found $($after.Count)." }
+          if ([string]$after[0].Version -cne '0.3.2.0' -or [string]$after[0].Architecture -cne 'X64' -or [string]$after[0].Status -cne 'Ok') { throw "Unexpected v0.3.2 upgraded identity: $($after[0].PackageFullName) / $($after[0].Status)" }
+          Write-Host "PackageManager upgrade PASS: 0.3.1.0 -> $($after[0].Version)."
+
+      - name: Write acceptance evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:ACCEPTANCE_ROOT | Out-Null
+          $package = Get-AppxPackage -Name SpatialViewer -ErrorAction SilentlyContinue | Where-Object Publisher -ceq 'CN=AppPublisher' | Select-Object -First 1
+          @(
+            'SpatialViewer v0.3.2 application-update acceptance',
+            "Acceptance source commit: $env:GITHUB_SHA",
+            'Release source commit: 23c7c3430c488e9fb1d5a38f7d4d504bdf5e8179',
+            'Baseline: official SpatialViewer v0.3.1 / 0.3.1.0',
+            'Target: official SpatialViewer v0.3.2 / 0.3.2.0',
+            "Target bundle SHA256: $env:V032_BUNDLE_SHA256",
+            "Signer thumbprint: $env:RELEASE_CERT_THUMBPRINT",
+            "Installed version after run: $($package.Version)",
+            "Installed status after run: $($package.Status)",
+            'Deployment API: Windows.Management.Deployment.PackageManager.AddPackageAsync',
+            'Deployment option: ForceApplicationShutdown'
+          ) | Set-Content -LiteralPath (Join-Path $env:ACCEPTANCE_ROOT 'acceptance.txt') -Encoding utf8
+
+      - name: Cleanup installed package and temporary trust
+        if: always()
+        shell: pwsh
+        run: |
+          Get-AppxPackage -Name SpatialViewer -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
+          if (-not [string]::IsNullOrWhiteSpace($env:RELEASE_CERT_THUMBPRINT)) {
+            Get-ChildItem Cert:\LocalMachine\TrustedPeople -ErrorAction SilentlyContinue | Where-Object Thumbprint -eq $env:RELEASE_CERT_THUMBPRINT | Remove-Item -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpatialViewer-0.3.2-app-update-acceptance
+          path: ${{ runner.temp }}\SpatialViewer-v032-update-acceptance\acceptance.txt
+          if-no-files-found: error
