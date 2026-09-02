@@ -11,6 +11,7 @@ using SpatialViewer.Core;
 using SpatialViewer.Presentation;
 using SpatialViewer.Rendering;
 using SpatialViewer.Rendering.Windows;
+using Windows.UI.Input;
 
 namespace SpatialViewer.Product;
 
@@ -22,7 +23,12 @@ public sealed partial class MainWindow
 
     private void ConfigureTabInteractions(Border container, object tag, string title, double targetWidth)
     {
+        // Use both the routed pressed event and a released fallback. Some mouse
+        // drivers report the wheel-button transition only through PointerUpdateKind,
+        // even though IsMiddleButtonPressed is already false by the time the routed
+        // event reaches the detached tab container.
         container.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(ShellTab_PointerPressed), true);
+        container.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(ShellTab_PointerReleased), true);
         ToolTipService.SetPlacement(container, PlacementMode.Bottom);
         ToolTipService.SetToolTip(container, CreateTabPreviewToolTip(tag, title));
         AnimateTabOpen(container, targetWidth);
@@ -81,11 +87,23 @@ public sealed partial class MainWindow
     private void ShellTab_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (sender is not Border { Tag: { } tag } container) return;
-        var point = e.GetCurrentPoint(container);
-        if (!point.Properties.IsMiddleButtonPressed) return;
+        var properties = e.GetCurrentPoint(container).Properties;
+        if (!properties.IsMiddleButtonPressed && properties.PointerUpdateKind != PointerUpdateKind.MiddleButtonPressed) return;
 
-        // Match desktop browser semantics: middle-click closes a background tab
-        // without activating it first and reuses the existing close behavior.
+        // "Middle click" here explicitly means pressing the mouse wheel button.
+        // Match browser semantics and close a background tab without activating it.
+        e.Handled = true;
+        CloseTabFromMiddleClick(tag);
+    }
+
+    private void ShellTab_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not Border { Tag: { } tag } container) return;
+        if (e.GetCurrentPoint(container).Properties.PointerUpdateKind != PointerUpdateKind.MiddleButtonReleased) return;
+
+        // Fallback for mouse/driver combinations that do not expose a reliable
+        // middle-button state during PointerPressed. If the pressed path already
+        // closed the tab, this detached container no longer receives the release.
         e.Handled = true;
         CloseTabFromMiddleClick(tag);
     }
@@ -138,7 +156,30 @@ public sealed partial class MainWindow
             ? new DocumentTabPreviewControl(document)
             : CreateHomeTabPreview(title));
 
-        return new ToolTip { Content = content };
+        // Keep the existing ToolTip geometry, typography, border and preview
+        // content untouched. Only replace its flat fill with the native Mica
+        // layering brush used on top of a Mica-backed window.
+        return new ToolTip
+        {
+            Content = content,
+            Background = ResolveTabPreviewMicaBrush()
+        };
+    }
+
+    private static Brush ResolveTabPreviewMicaBrush()
+    {
+        if (Application.Current.Resources.TryGetValue("LayerOnMicaBaseAltFillColorDefaultBrush", out var micaLayer)
+            && micaLayer is Brush micaBrush)
+            return micaBrush;
+
+        if (Application.Current.Resources.TryGetValue("LayerFillColorDefaultBrush", out var layer)
+            && layer is Brush layerBrush)
+            return layerBrush;
+
+        // This path is only a compatibility fallback for runtimes that do not
+        // expose the WinUI Mica layer resource. It remains translucent so the
+        // MainWindow Mica backdrop is visible rather than becoming flat gray.
+        return new SolidColorBrush(ColorHelper.FromArgb(176, 32, 40, 40));
     }
 
     private static Grid CreateHomeTabPreview(string title)
