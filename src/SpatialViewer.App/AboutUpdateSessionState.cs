@@ -2,16 +2,16 @@ namespace SpatialViewer.Product;
 
 /// <summary>
 /// Process-lifetime update state shared by every AboutView instance.
-/// This mirrors UrbanPlanToolbox's default UpdateViewModel session: navigating
-/// away from About and returning must render the last check instead of resetting
-/// the card to NotChecked. The CadCore service itself also belongs to this
-/// session so an UpdateAvailable result can still be downloaded after navigation.
+/// Navigating away from About and returning must render the last check/download
+/// state instead of resetting the update card.
 /// </summary>
 internal sealed class AboutUpdateSessionState
 {
     private static readonly Lazy<AboutUpdateSessionState> LazyDefault = new(() => new AboutUpdateSessionState());
     private ProductUpdateCheckState _productState = ProductUpdateCheckState.NotChecked;
     private GitHubReleaseInfo? _latestProductRelease;
+    private double? _productDownloadProgress;
+    private string? _productErrorDetail;
     private CadCoreUpdateResult _cadCoreResult;
 
     private AboutUpdateSessionState()
@@ -44,6 +44,28 @@ internal sealed class AboutUpdateSessionState
         }
     }
 
+    public double? ProductDownloadProgress
+    {
+        get => _productDownloadProgress;
+        set
+        {
+            if (_productDownloadProgress == value) return;
+            _productDownloadProgress = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public string? ProductErrorDetail
+    {
+        get => _productErrorDetail;
+        set
+        {
+            if (string.Equals(_productErrorDetail, value, StringComparison.Ordinal)) return;
+            _productErrorDetail = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public CadCoreUpdateService CadCoreUpdateService { get; } = new();
 
     public CadCoreUpdateResult CadCoreResult
@@ -64,7 +86,11 @@ internal enum ProductUpdateCheckState
     Checking,
     NoRelease,
     NewVersion,
+    Downloading,
+    LaunchingInstaller,
+    InstallerLaunched,
     Latest,
     NetworkFailed,
-    Timeout
+    Timeout,
+    Failed
 }
