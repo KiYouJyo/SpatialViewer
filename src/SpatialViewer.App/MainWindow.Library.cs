@@ -23,6 +23,7 @@ public sealed partial class MainWindow
     {
         if (args.InvokedItemContainer is not NavigationViewItem item || item.Tag is not string tag) return;
         EnsureHomeTabPresentationTracking();
+        RememberSelectedHomeTabRoute(tag);
         switch (tag)
         {
             case "Home":

@@ -1,9 +1,10 @@
 using System.ComponentModel;
 using Microsoft.Graphics.Canvas.UI.Xaml;
-using Microsoft.UI;
+using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -11,7 +12,8 @@ using SpatialViewer.Core;
 using SpatialViewer.Presentation;
 using SpatialViewer.Rendering;
 using SpatialViewer.Rendering.Windows;
-using Windows.UI.Input;
+using Windows.Foundation;
+using Windows.Graphics;
 
 namespace SpatialViewer.Product;
 
@@ -19,18 +21,29 @@ public sealed partial class MainWindow
 {
     private const double TabPreviewWidth = 320;
     private const double TabPreviewHeight = 180;
+    private const double TabPreviewOuterWidth = 344;
+    private const double TabPreviewOuterHeight = 252;
     private static readonly Duration TabOpenDuration = new(TimeSpan.FromMilliseconds(190));
+
+    private DispatcherQueueTimer? _tabPreviewTimer;
+    private Border? _pendingPreviewTab;
+    private DocumentSession? _pendingPreviewSession;
+    private string? _pendingPreviewTitle;
+    private DocumentTabPreviewWindow? _tabPreviewWindow;
 
     private void ConfigureTabInteractions(Border container, object tag, string title, double targetWidth)
     {
-        // Use both the routed pressed event and a released fallback. Some mouse
-        // drivers report the wheel-button transition only through PointerUpdateKind,
-        // even though IsMiddleButtonPressed is already false by the time the routed
-        // event reaches the detached tab container.
-        container.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(ShellTab_PointerPressed), true);
-        container.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(ShellTab_PointerReleased), true);
-        ToolTipService.SetPlacement(container, PlacementMode.Bottom);
-        ToolTipService.SetToolTip(container, CreateTabPreviewToolTip(tag, title));
+        // Shell/home tabs intentionally have no hover card. Only real documents
+        // expose a preview, matching the browser-like behavior requested for files.
+        if (tag is DocumentSession session)
+        {
+            container.AddHandler(UIElement.PointerEnteredEvent, new PointerEventHandler(DocumentTab_PointerEntered), true);
+            container.AddHandler(UIElement.PointerExitedEvent, new PointerEventHandler(DocumentTab_PointerExited), true);
+            container.Unloaded += DocumentTab_Unloaded;
+            container.Tag = tag;
+            container.Resources["DocumentPreviewTitle"] = title;
+        }
+
         AnimateTabOpen(container, targetWidth);
     }
 
@@ -84,53 +97,117 @@ public sealed partial class MainWindow
         storyboard.Begin();
     }
 
-    private void ShellTab_PointerPressed(object sender, PointerRoutedEventArgs e)
+    private void DocumentTab_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is not Border { Tag: { } tag } container) return;
-        var properties = e.GetCurrentPoint(container).Properties;
-        if (!properties.IsMiddleButtonPressed && !properties.PointerUpdateKind.Equals(PointerUpdateKind.MiddleButtonPressed)) return;
+        if (sender is not Border { Tag: DocumentSession session } container) return;
 
-        // "Middle click" here explicitly means pressing the mouse wheel button.
-        // Match browser semantics and close a background tab without activating it.
-        e.Handled = true;
-        CloseTabFromMiddleClick(tag);
+        CloseDocumentTabPreview();
+        _pendingPreviewTab = container;
+        _pendingPreviewSession = session;
+        _pendingPreviewTitle = container.Resources.TryGetValue("DocumentPreviewTitle", out var value)
+            ? value?.ToString() ?? session.DisplayName
+            : session.DisplayName;
+
+        _tabPreviewTimer?.Stop();
+        _tabPreviewTimer = DispatcherQueue.CreateTimer();
+        _tabPreviewTimer.Interval = TimeSpan.FromMilliseconds(450);
+        _tabPreviewTimer.IsRepeating = false;
+        _tabPreviewTimer.Tick += DocumentTabPreviewTimer_Tick;
+        _tabPreviewTimer.Start();
     }
 
-    private void ShellTab_PointerReleased(object sender, PointerRoutedEventArgs e)
+    private void DocumentTab_PointerExited(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is not Border { Tag: { } tag } container) return;
-        if (!e.GetCurrentPoint(container).Properties.PointerUpdateKind.Equals(PointerUpdateKind.MiddleButtonReleased)) return;
-
-        // Fallback for mouse/driver combinations that do not expose a reliable
-        // middle-button state during PointerPressed. If the pressed path already
-        // closed the tab, this detached container no longer receives the release.
-        e.Handled = true;
-        CloseTabFromMiddleClick(tag);
+        if (sender is not Border container) return;
+        if (ReferenceEquals(_pendingPreviewTab, container)) CancelPendingDocumentTabPreview();
+        CloseDocumentTabPreview();
     }
 
-    private void CloseTabFromMiddleClick(object tag)
+    private void DocumentTab_Unloaded(object sender, RoutedEventArgs e)
     {
-        if (tag is DocumentSession session)
+        if (sender is Border container && ReferenceEquals(_pendingPreviewTab, container))
+            CancelPendingDocumentTabPreview();
+        CloseDocumentTabPreview();
+    }
+
+    private void DocumentTabPreviewTimer_Tick(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+        sender.Tick -= DocumentTabPreviewTimer_Tick;
+        if (!ReferenceEquals(_tabPreviewTimer, sender)) return;
+
+        var container = _pendingPreviewTab;
+        var session = _pendingPreviewSession;
+        var title = _pendingPreviewTitle;
+        _tabPreviewTimer = null;
+        if (container is null || session is null || string.IsNullOrWhiteSpace(title) || !container.IsLoaded) return;
+
+        var scale = container.XamlRoot?.RasterizationScale ?? 1d;
+        var tabBottom = container.TransformToVisual(RootGrid).TransformPoint(new Point(0, container.ActualHeight));
+        var x = AppWindow.Position.X + (int)Math.Round(tabBottom.X * scale);
+        var y = AppWindow.Position.Y + (int)Math.Round((tabBottom.Y + 6) * scale);
+
+        var preview = new DocumentTabPreviewWindow(session, title, RootGrid.ActualTheme);
+        _tabPreviewWindow = preview;
+        preview.Closed += (_, _) =>
         {
-            CloseSession(session);
-            return;
+            if (ReferenceEquals(_tabPreviewWindow, preview)) _tabPreviewWindow = null;
+        };
+        preview.ShowAt(
+            x,
+            y,
+            Math.Max(1, (int)Math.Round(TabPreviewOuterWidth * scale)),
+            Math.Max(1, (int)Math.Round(TabPreviewOuterHeight * scale)));
+    }
+
+    private void CancelPendingDocumentTabPreview()
+    {
+        if (_tabPreviewTimer is not null)
+        {
+            _tabPreviewTimer.Stop();
+            _tabPreviewTimer.Tick -= DocumentTabPreviewTimer_Tick;
+            _tabPreviewTimer = null;
+        }
+        _pendingPreviewTab = null;
+        _pendingPreviewSession = null;
+        _pendingPreviewTitle = null;
+    }
+
+    private void CloseDocumentTabPreview()
+    {
+        if (_tabPreviewWindow is null) return;
+        var preview = _tabPreviewWindow;
+        _tabPreviewWindow = null;
+        preview.Close();
+    }
+}
+
+/// <summary>
+/// Non-activating document hover card backed by a real WinUI Mica window.
+/// A normal ToolTip/Popup can only be made translucent over the parent window;
+/// it cannot host a SystemBackdrop. Using a tiny secondary Window keeps the
+/// approved preview content while making the surface genuine Mica rather than
+/// transparent pseudo-Mica.
+/// </summary>
+internal sealed class DocumentTabPreviewWindow : Window
+{
+    public DocumentTabPreviewWindow(DocumentSession session, string title, ElementTheme theme)
+    {
+        SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
+        AppWindow.IsShownInSwitchers = false;
+
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.IsResizable = false;
+            presenter.IsMinimizable = false;
+            presenter.IsMaximizable = false;
+            presenter.IsAlwaysOnTop = true;
+            presenter.SetBorderAndTitleBar(true, false);
         }
 
-        if (tag is not string homeId || !_homeTabs.Remove(homeId, out var visual)) return;
-        _homeViews.Remove(homeId);
-        ShellTabItems.Children.Remove(visual.Container);
-        if (!Equals(_selectedTab, homeId)) return;
-
-        if (_documentTabs.Keys.FirstOrDefault() is { } document) ShowDocument(document);
-        else if (_homeTabs.Keys.FirstOrDefault() is { } nextHome) ShowHome(nextHome);
-        else CreateHomeTab(select: true);
-    }
-
-    private static ToolTip CreateTabPreviewToolTip(object tag, string title)
-    {
         var content = new StackPanel
         {
-            Width = TabPreviewWidth,
+            Width = 320,
             Spacing = 7
         };
         content.Children.Add(new TextBlock
@@ -141,66 +218,29 @@ public sealed partial class MainWindow
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxLines = 1
         });
-
-        var subtitle = tag is DocumentSession session ? session.FilePath : title;
         content.Children.Add(new TextBlock
         {
-            Text = subtitle,
+            Text = session.FilePath,
             FontSize = 11,
             Opacity = 0.68,
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxLines = 1
         });
+        content.Children.Add(new DocumentTabPreviewControl(session));
 
-        content.Children.Add(tag is DocumentSession document
-            ? new DocumentTabPreviewControl(document)
-            : CreateHomeTabPreview(title));
-
-        // Keep the existing ToolTip geometry, typography, border and preview
-        // content untouched. Only replace its flat fill with the native Mica
-        // layering brush used on top of a Mica-backed window.
-        return new ToolTip
+        Content = new Border
         {
-            Content = content,
-            Background = ResolveTabPreviewMicaBrush()
+            RequestedTheme = theme,
+            Padding = new Thickness(12),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Child = content
         };
     }
 
-    private static Brush ResolveTabPreviewMicaBrush()
+    public void ShowAt(int x, int y, int width, int height)
     {
-        if (Application.Current.Resources.TryGetValue("LayerOnMicaBaseAltFillColorDefaultBrush", out var micaLayer)
-            && micaLayer is Brush micaBrush)
-            return micaBrush;
-
-        if (Application.Current.Resources.TryGetValue("LayerFillColorDefaultBrush", out var layer)
-            && layer is Brush layerBrush)
-            return layerBrush;
-
-        // This path is only a compatibility fallback for runtimes that do not
-        // expose the WinUI Mica layer resource. It remains translucent so the
-        // MainWindow Mica backdrop is visible rather than becoming flat gray.
-        return new SolidColorBrush(ColorHelper.FromArgb(176, 32, 40, 40));
-    }
-
-    private static Grid CreateHomeTabPreview(string title)
-    {
-        var grid = new Grid
-        {
-            Width = TabPreviewWidth,
-            Height = TabPreviewHeight
-        };
-        grid.Children.Add(new StackPanel
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Spacing = 8,
-            Children =
-            {
-                new FontIcon { Glyph = "\uE80F", FontSize = 34, Opacity = 0.72 },
-                new TextBlock { Text = title, FontSize = 12, Opacity = 0.72, HorizontalAlignment = HorizontalAlignment.Center }
-            }
-        });
-        return grid;
+        AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
+        AppWindow.Show(false);
     }
 }
 
@@ -304,7 +344,7 @@ internal sealed class DocumentTabPreviewControl : UserControl
             _ => ActualTheme == ElementTheme.Light
         };
         var canvasColor = lightCanvas ? "#FFFFFF" : "#000000";
-        _root.Background = new SolidColorBrush(lightCanvas ? Colors.White : Colors.Black);
+        _root.Background = new SolidColorBrush(lightCanvas ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black);
         if (_renderer is not null) _renderer.CanvasColor = canvasColor;
     }
 
