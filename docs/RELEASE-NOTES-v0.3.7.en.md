@@ -1,6 +1,8 @@
-# SpatialViewer v0.3.7 Startup Screen
+# SpatialViewer v0.3.7 Startup Screen and Theme Fix
 
-SpatialViewer v0.3.7 now follows the current two-stage startup design used by UrbanPlanToolbox and PageArc: the native Windows splash covers earliest process startup, then the real WinUI window takes over with a transparent in-window startup layer on Mica until the shell is ready.
+[简体中文](RELEASE-NOTES-v0.3.7.md) | [日本語](RELEASE-NOTES-v0.3.7.ja.md) | English
+
+SpatialViewer v0.3.7 now follows the current two-stage startup design used by UrbanPlanToolbox and PageArc: the native Windows splash covers earliest process startup, then the real WinUI window takes over with a transparent in-window startup layer on Mica until the shell is ready. This release also includes the light-theme propagation regression fix discovered after the startup wrapper was introduced.
 
 ## Highlights
 
@@ -11,8 +13,9 @@ SpatialViewer v0.3.7 now follows the current two-stage startup design used by Ur
 - Once the shell, logo, and minimum display time are ready, reveals the complete shell first and fades the startup layer out over about 200 ms with EaseOut timing.
 - Adds a 1-second logo-decode fallback and a 5-second startup watchdog so the startup layer can never become a permanent blocking state.
 - Replaces the old native-only startup contract with a hybrid Stage 1 + Mica Stage 2 contract and explicitly locks the accepted title-bar geometry against regression.
+- Fixes the theme tree split introduced by the startup wrapper: `WindowRoot` is now the sole theme owner and `RootGrid` inherits it, restoring consistent Light / Dark / System behavior across the whole window.
 
 ## Preserved
 
-- The title bar, hamburger menu, NavigationView, page surfaces, tabs, CAD rendering, and Cad Core behavior remain unchanged.
+- The light/dark palette itself is not redesigned; the title bar, hamburger menu, NavigationView, page layout, tabs, CAD rendering, and Cad Core behavior remain unchanged.
 - No second standalone WinUI window, text, controls, or fake progress indicator is introduced.
