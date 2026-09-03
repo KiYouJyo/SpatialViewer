@@ -73,7 +73,7 @@ public sealed partial class MainWindow
         if (sender is FrameworkElement element) element.Unloaded -= ShellTab_Unloaded;
         // UIElementCollection removal completes before this callback is dispatched.
         // Re-expand the remaining tabs only after the closed tab has left the panel.
-        DispatcherQueue.TryEnqueue(ApplyAdaptiveTabWidths);
+        DispatcherQueue.TryEnqueue(() => ApplyAdaptiveTabWidths());
     }
 
     private double ApplyAdaptiveTabWidths(Border? openingTab = null, double preferredWidth = PreferredTabWidth)
