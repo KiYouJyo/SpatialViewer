@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using SpatialViewer.Core;
+using SpatialViewer.Formats.Cad;
 using SpatialViewer.Presentation;
 using SpatialViewer.Rendering;
 using SpatialViewer.Rendering.Windows;
@@ -49,11 +50,36 @@ public sealed partial class CadViewportControl : UserControl, IDisposable
         Unloaded += (_, _) => DisposeRenderer();
     }
 
-    public void Fit() { if (_session?.Document is { } document) { _session.Camera.Fit(document.Bounds, Size); Draw(); } }
+    public void Fit()
+    {
+        if (_session?.Document is not { } document) return;
+        _session.Camera.Fit(DisplayScene(document).GetBounds(), Size);
+        Draw();
+    }
+
     public void Draw()
     {
         if (_renderer is null || _session?.Document is not { } document || _session.State != DocumentSessionState.Ready) return;
-        _renderer.Render(RenderPreparation.Prepare(document.Scene, _session.Camera), _session.Camera, Size, _session.Selection);
+        var scene = DisplayScene(document);
+        _renderer.Render(RenderPreparation.Prepare(scene, _session.Camera), _session.Camera, Size, _session.Selection);
+    }
+
+    private static Scene2D DisplayScene(IDocument document)
+    {
+        if (document is not CadDocument cad) return document.Scene;
+
+        // A default, otherwise-empty Layout1/Layout2 commonly contains only a generated viewport.
+        // Do not switch away from Model Space for that case. A paper layout becomes the preferred
+        // sheet only when it contains actual paper-space entities (frame/title block/etc.) and at
+        // least one active model viewport. This is the same content pattern shown by AutoCAD when
+        // presenting a composed architectural sheet.
+        var layout = cad.Layouts
+            .Where(candidate => candidate.IsPaperSpace
+                && candidate.Entities.Count > 0
+                && candidate.Viewports.Any(viewport => viewport.IsOn && !viewport.RepresentsPaper && !viewport.PaperBounds.IsEmpty))
+            .OrderBy(candidate => candidate.TabOrder)
+            .FirstOrDefault();
+        return layout is null ? cad.Scene : cad.GetLayoutScene(layout.Name);
     }
 
     private Win2DSceneRenderer CreateRenderer() => new(ViewportCanvas) { CanvasColor = _canvasColor, SelectionColor = "#42B8E3" };
@@ -131,7 +157,8 @@ public sealed partial class CadViewportControl : UserControl, IDisposable
     private void Select(Point position)
     {
         if (_session?.Document is not { } document) return;
-        var hit = HitTesting.HitTest(document.Scene, _session.Camera.ScreenToWorld(new Point2D(position.X, position.Y), Size), 6 / _session.Camera.Zoom);
+        var scene = DisplayScene(document);
+        var hit = HitTesting.HitTest(scene, _session.Camera.ScreenToWorld(new Point2D(position.X, position.Y), Size), 6 / _session.Camera.Zoom);
         _session.Selection = hit?.Id;
         SelectionChanged?.Invoke(this, hit);
         Draw();
