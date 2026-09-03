@@ -1,0 +1,53 @@
+name: Repair Unpublished v0.3.7 Release Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-unpublished-v037-release.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  repair-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Retarget unpublished v0.3.7 tag to current release source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='v0.3.7'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already has a published GitHub Release; refusing to rewrite it."
+            exit 1
+          fi
+
+          git fetch --tags --force
+          current="$(git rev-parse HEAD)"
+          existing="$(git rev-list -n 1 "refs/tags/$tag" 2>/dev/null || true)"
+          if [[ "$existing" != "$current" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -f -a "$tag" "$current" -m "Spatial Viewer $tag"
+            git push origin --force "refs/tags/$tag"
+            echo "Retargeted $tag from $existing to $current before first publication."
+          else
+            echo "$tag already points at current release source $current."
+          fi
+
+      - name: Dispatch normal release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish-github-release.yml -f version=0.3.7 -f dry_run=false
+          echo 'Dispatched Publish GitHub Release for v0.3.7.'
