@@ -17,7 +17,7 @@ function Assert-Png([string]$Name, [int]$Width, [int]$Height) {
     $image = [Drawing.Image]::FromFile($path)
     try {
         if ($image.Width -ne $Width -or $image.Height -ne $Height) {
-            throw "Unexpected dimensions for $Name: $($image.Width)x$($image.Height), expected ${Width}x${Height}."
+            throw "Unexpected dimensions for ${Name}: $($image.Width)x$($image.Height), expected ${Width}x${Height}."
         }
     }
     finally { $image.Dispose() }
@@ -53,13 +53,13 @@ foreach ($entry in $scaleExpectations.GetEnumerator()) {
 $icoPath = Join-Path $assets 'AppIcon.ico'
 if (-not (Test-Path -LiteralPath $icoPath -PathType Leaf)) { throw 'Missing AppIcon.ico.' }
 $stream = [IO.File]::OpenRead($icoPath)
-$reader = [IO.BinaryReader]::new($stream)
+$reader = New-Object IO.BinaryReader($stream)
 try {
     $reserved = $reader.ReadUInt16()
     $type = $reader.ReadUInt16()
     $count = $reader.ReadUInt16()
     if ($reserved -ne 0 -or $type -ne 1 -or $count -lt 9) { throw "Invalid multi-resolution ICO header: reserved=$reserved type=$type count=$count" }
-    $sizes = [Collections.Generic.HashSet[int]]::new()
+    $sizes = New-Object 'System.Collections.Generic.HashSet[int]'
     for ($i = 0; $i -lt $count; $i++) {
         $widthByte = $reader.ReadByte()
         $heightByte = $reader.ReadByte()
@@ -72,7 +72,7 @@ try {
         $width = if ($widthByte -eq 0) { 256 } else { [int]$widthByte }
         $height = if ($heightByte -eq 0) { 256 } else { [int]$heightByte }
         if ($width -ne $height) { throw "Non-square ICO frame: ${width}x${height}." }
-        $sizes.Add($width) | Out-Null
+        [void]$sizes.Add($width)
     }
     foreach ($required in @(16, 20, 24, 32, 40, 48, 64, 128, 256)) {
         if (-not $sizes.Contains($required)) { throw "AppIcon.ico is missing ${required}x${required} frame." }
