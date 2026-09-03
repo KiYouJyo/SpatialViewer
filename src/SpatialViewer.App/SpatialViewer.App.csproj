@@ -27,13 +27,15 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.0" />
   </ItemGroup>
 
-  <!-- Always regenerate pixel-specific Windows shell assets before compile/package.
-       This prevents Windows from scaling one oversized PNG for Start, taskbar,
-       Open With and thumbnail surfaces. The custom title bar is not touched. -->
+  <!-- Always regenerate and validate pixel-specific Windows shell assets before
+       compile/package. This prevents Windows from scaling one oversized PNG for
+       Start, taskbar, Open With and thumbnail surfaces. The custom title bar is
+       explicitly protected by the branding contract and remains unchanged. -->
   <Target Name="GenerateSpatialViewerPackageAssets"
           BeforeTargets="PrepareForBuild"
           Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\New-SpatialViewerPackageAssets.ps1&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
+    <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\Test-SpatialViewerBrandingContract.ps1&quot; -AssetsDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
   </Target>
 
   <!--
