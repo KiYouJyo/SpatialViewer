@@ -136,7 +136,7 @@ public sealed partial class CadViewerView : UserControl, IDisposable
             PropertiesEmpty.Text = _session.ErrorMessage ?? T("Cad_Status_OpenFailed");
             return;
         }
-        LayerList.ItemsSource = _session.Layers;
+        LayerList.ItemsSource = _session.Layers.OrderBy(layer => layer.Name, CadLayerNameComparer.Instance).ToArray();
         ZoomText.Text = string.Format(CultureInfo.CurrentCulture, T("Cad_Status_Zoom"), _session.Camera.Zoom);
         UnitsText.Text = _session.Document is CadDocument cad ? cad.Units.ToString() : T("Cad_Unitless");
         var groups = DiagnosticsPresenter.Aggregate(_session.Diagnostics.Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning));
