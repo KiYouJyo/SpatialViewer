@@ -1,18 +1,37 @@
-# SpatialViewer v0.3.7 起動画面
+# SpatialViewer v0.3.7 起動画面と CadCore v0.12.3 統合
 
-SpatialViewer v0.3.7 は、UrbanPlanToolbox と PageArc の現行実装と同じ2段階の起動方式へ修正しました。Windows ネイティブの SplashScreen が最初のプロセス起動を覆い、その後は実際の WinUI メインウィンドウ上で Mica を透過表示する起動レイヤーへ引き継ぎ、Shell の準備完了後に滑らかに消えます。
+SpatialViewer v0.3.7 は UrbanPlanToolbox と PageArc と同じ2段階起動方式を維持すると同時に、CAD 実図面修正の検証で見つかった重要な問題を修正します。これまでテストしていた Viewer は、実際には CadCore v0.12.3 のコードを実行していませんでした。
 
-## 主な変更
+## 起動画面
 
 - Stage 1 として MSIX `uap:SplashScreen` を残し、100%、125%、150%、200%、400% の DPI リソースと `uap5:Optional="true"` を維持します。
-- Stage 2 として実際のメインウィンドウ内に透明な `StartupOverlay` を追加し、固定 `#202020` 画像から完成済み UI へ直接切り替えるのではなく、ウィンドウ自身の `MicaBackdrop` を起動直後から見せます。
+- Stage 2 では実際の WinUI メインウィンドウ内に透明な `StartupOverlay` を使用し、ウィンドウ自身の `MicaBackdrop` を起動直後から表示します。
 - 実際の Shell は Logo の背後で初期化し、起動画面終了までは操作を受け付けません。
-- Logo が実際に1フレーム描画された後に最短表示時間を計測し、高速起動時でも約 500 ms は完全な Logo を表示します。初期化が長い場合は追加の固定待機を入れず、そのまま Shell 完了を待ちます。
-- Shell・Logo・最短表示時間がそろった後、完成した UI を先に表示し、約 200 ms の EaseOut で起動レイヤーをフェードアウトします。
-- 1 秒の Logo デコード・フォールバックと 5 秒の startup watchdog を追加し、起動レイヤー自体が停止原因にならないよう fail-open します。
-- ビルド契約を「ネイティブ Stage 1 + Mica Stage 2」に変更し、既存タイトルバーのジオメトリも回帰防止対象にします。
+- Logo の実描画後に最短表示時間を計測し、高速起動時でも約 500 ms 表示した後、約 200 ms の EaseOut でフェードアウトします。
+- 1 秒の Logo フォールバックと 5 秒の fail-open watchdog を維持します。
+
+## CadCore 配布経路の修正
+
+CadCore v0.12.3 の単体テストが通っていても Viewer の表示不具合が直ったことにはなりませんでした。実際の製品側は古いカーネルを使用していたためです。
+
+- 公開済み SpatialViewer v0.3.6 は CadCore v0.12.2 を同梱していました。
+- v0.3.7 のソースプロジェクトは `CadCoreBundledVersion=0.9.0` のままでした。
+- CadCore submodule も v0.9.0 を指したままでした。
+
+v0.3.7 ではソース submodule と source-build の bundled version を **CadCore v0.12.3 / commit `2f150fbdcf380fba6f60df7f8a41361322afdd8f`** に固定します。Acceptance には次の2つの強制 gate を追加します。
+
+1. 宣言された version または gitlink が v0.12.3 でなければ source build を失敗させます。
+2. 最終 MSIXBundle を展開し、`Kernels/Bundled/0.12.3` 内の5つの assembly が公開済み CadCore v0.12.3 release payload と SHA-256 で完全一致することを確認します。
+
+これにより「カーネルリポジトリだけ修正したが Viewer は旧カーネルを実行している」という偽の修正完了を防ぎます。
+
+## 実図面 Acceptance の境界
+
+長い直角線、寸法文字の anchor / color / architectural tick、旧式 CJK SHX fallback に対する v0.12.3 の変更は、v0.3.7 で初めて実際にアプリへ同梱されます。ただし問題を再現する元 DWG がない状態では、これらは **candidate fix** であり、視覚的な修正完了とは扱いません。
+
+最終 Acceptance は元図面を AutoCAD と SpatialViewer で直接比較し、3つの差異が実際に消えた時点でのみ完了とします。
 
 ## 変更しない範囲
 
-- タイトルバー、ハンバーガーメニュー、NavigationView、ページ背景、タブ、CAD 描画、Cad Core の挙動は変更しません。
+- 既存のタイトルバー、ハンバーガーメニュー、NavigationView、ページ背景、タブ、既存インタラクションのレイアウトは本統合で再設計しません。
 - 第2の独立 WinUI ウィンドウ、文字、ボタン、疑似プログレスバーは追加しません。

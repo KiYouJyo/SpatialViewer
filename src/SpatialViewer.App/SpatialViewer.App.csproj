@@ -14,7 +14,7 @@
     <InformationalVersion>0.3.7</InformationalVersion>
     <DefaultLanguage>zh-CN</DefaultLanguage>
     <AppxBundleAutoResourcePackageQualifiers>Scale|DXFeatureLevel</AppxBundleAutoResourcePackageQualifiers>
-    <CadCoreBundledVersion>0.9.0</CadCoreBundledVersion>
+    <CadCoreBundledVersion>0.12.3</CadCoreBundledVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Core\SpatialViewer.Core.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
