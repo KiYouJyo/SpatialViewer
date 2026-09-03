@@ -1,5 +1,7 @@
 # SpatialViewer v0.3.7 起動画面
 
+[简体中文](RELEASE-NOTES-v0.3.7.md) | 日本語 | [English](RELEASE-NOTES-v0.3.7.en.md)
+
 SpatialViewer v0.3.7 では、UrbanPlanToolbox と PageArc と同じ考え方で Windows ネイティブの起動画面を追加します。
 
 ## 主な変更
