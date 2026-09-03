@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.3.5",
-    "packageVersion": "0.3.5.0"
+    "version": "0.3.6",
+    "packageVersion": "0.3.6.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3.5 CAD 图层排序",
-    "ja-JP": "SpatialViewer v0.3.5 CAD レイヤー並び順",
-    "en-US": "SpatialViewer v0.3.5 CAD Layer Sorting"
+    "zh-CN": "SpatialViewer v0.3.6 应用图标",
+    "ja-JP": "SpatialViewer v0.3.6 アプリアイコン",
+    "en-US": "SpatialViewer v0.3.6 App Icon"
   }
 }
