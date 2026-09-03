@@ -2,7 +2,9 @@ name: SpatialViewer v0.3.7 Acceptance Package
 
 on:
   push:
-    branches: ['codex/v0.3.7-startup-screen']
+    branches:
+      - 'codex/v0.3.7-startup-screen'
+      - 'codex/v0.3.7-cadcore-v0.12.3-integration'
   workflow_dispatch:
 
 permissions:
@@ -37,15 +39,19 @@ jobs:
           $release = Get-Content release/release.json -Raw | ConvertFrom-Json
           $version = @($project.Project.PropertyGroup | ForEach-Object Version | Where-Object { $_ })[0]
           $assemblyVersion = @($project.Project.PropertyGroup | ForEach-Object AssemblyVersion | Where-Object { $_ })[0]
+          $bundledCadCoreVersion = @($project.Project.PropertyGroup | ForEach-Object CadCoreBundledVersion | Where-Object { $_ })[0]
+          $sourceCadCoreCommit = (git rev-parse HEAD:external/SpatialViewer.CadCore).Trim()
           if ([string]$version -cne '0.3.7') { throw "Project version is not 0.3.7: $version" }
           if ([string]$assemblyVersion -cne '0.3.7.0') { throw "Assembly version is not 0.3.7.0: $assemblyVersion" }
           if ([string]$manifest.Package.Identity.Version -cne '0.3.7.0' -or [string]$manifest.Package.Identity.Publisher -cne 'CN=AppPublisher') { throw 'MSIX identity is not the v0.3.7 release identity.' }
           if ([string]$release.product.version -cne '0.3.7' -or [string]$release.product.packageVersion -cne '0.3.7.0') { throw 'Release metadata is not v0.3.7.' }
+          if ([string]$bundledCadCoreVersion -cne '0.12.3') { throw "Source build still declares an obsolete CadCore bundle: $bundledCadCoreVersion" }
+          if ($sourceCadCoreCommit -cne '2f150fbdcf380fba6f60df7f8a41361322afdd8f') { throw "Source submodule is not CadCore v0.12.3: $sourceCadCoreCommit" }
           foreach ($asset in @('Square44x44Logo.png','Square150x150Logo.png','StoreLogo.png','SplashScreen.png','Square44x44Logo.targetsize-24.png','Square44x44Logo.targetsize-24_altform-unplated.png','AppIcon.ico')) {
             $path = Join-Path 'src/SpatialViewer.App/Assets' $asset
             if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -le 0) { throw "Required branding/startup asset missing or empty: $asset" }
           }
-          Write-Host 'v0.3.7 source, localization, update, branding, and startup contracts PASS.'
+          Write-Host "v0.3.7 source contracts PASS; source CadCore=v$bundledCadCoreVersion @ $sourceCadCoreCommit."
 
       - name: Restore and test
         shell: pwsh
@@ -68,6 +74,8 @@ jobs:
           $payload = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-CadCore'
           $resolved = @(./packaging/Resolve-LatestIntegratedCadCore.ps1 -OutputDirectory $payload) | Select-Object -Last 1
           if (-not $resolved -or [string]::IsNullOrWhiteSpace([string]$resolved.version)) { throw 'Latest integrated CadCore resolution failed.' }
+          if ([string]$resolved.version -cne '0.12.3') { throw "v0.3.7 acceptance must exercise CadCore v0.12.3, resolved v$($resolved.version)." }
+          if ([string]$resolved.commit -cne '2f150fbdcf380fba6f60df7f8a41361322afdd8f') { throw "Resolved CadCore v0.12.3 commit mismatch: $($resolved.commit)" }
           "CADCORE_PAYLOAD=$payload" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "CADCORE_VERSION=$($resolved.version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "CADCORE_ABI=$($resolved.abiVersion)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -92,6 +100,30 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Cad Core MSIX layout rewrite failed: $LASTEXITCODE" }
           "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify v0.12.3 is physically bundled
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $makeappx = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter makeappx.exe | Where-Object FullName -match '\\x64\\makeappx.exe$' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $makeappx) { throw 'x64 makeappx.exe was not found.' }
+          $unbundle = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-unbundle'
+          $unpack = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-unpack'
+          Remove-Item $unbundle, $unpack -Recurse -Force -ErrorAction SilentlyContinue
+          & $makeappx.FullName unbundle /p $env:BUNDLE_PATH /d $unbundle /o | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unbundle failed: $LASTEXITCODE" }
+          $inner = @(Get-ChildItem $unbundle -Filter '*.msix' -File) | Select-Object -First 1
+          if (-not $inner) { throw 'Inner x64 MSIX was not found.' }
+          & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
+          foreach ($name in @('SpatialViewer.Core.dll','SpatialViewer.Rendering.dll','SpatialViewer.Rendering.Windows.dll','SpatialViewer.Formats.Cad.dll','SpatialViewer.Formats.Cad.ACadSharp.dll')) {
+            if (Test-Path -LiteralPath (Join-Path $unpack $name) -PathType Leaf) { throw "CadCore resolver isolation failed; root copy still packaged: $name" }
+            $source = Join-Path $env:CADCORE_PAYLOAD $name
+            $bundled = Join-Path $unpack "Kernels\Bundled\0.12.3\$name"
+            if (-not (Test-Path -LiteralPath $bundled -PathType Leaf)) { throw "CadCore v0.12.3 payload missing from bundle: $bundled" }
+            if ((Get-FileHash $source -Algorithm SHA256).Hash -cne (Get-FileHash $bundled -Algorithm SHA256).Hash) { throw "Bundled CadCore differs from the published v0.12.3 payload: $name" }
+          }
+          Write-Host 'Physical bundle verification PASS: SpatialViewer v0.3.7 contains CadCore v0.12.3 byte-for-byte.'
 
       - name: Sign bundle and export public certificate
         shell: pwsh
@@ -153,6 +185,8 @@ jobs:
             "CadCore version: $env:CADCORE_VERSION",
             "CadCore ABI: $env:CADCORE_ABI",
             "CadCore commit: $env:CADCORE_COMMIT",
+            'CadCore source submodule pinned to v0.12.3: PASS',
+            'CadCore v0.12.3 physical MSIX payload hash verification: PASS',
             'Signer subject: CN=AppPublisher',
             "Signer thumbprint: $env:CERTIFICATE_THUMBPRINT",
             "Bundle SHA256: $bundleHash",
