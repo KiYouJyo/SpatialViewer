@@ -86,6 +86,8 @@ if (-not $xaml.Contains('<TextBlock Text="SpatialViewer" Style="{StaticResource 
 $startupCodePath = Join-Path $PSScriptRoot '..\src\SpatialViewer.App\MainWindow.Startup.cs'
 $startupCode = Get-Content -LiteralPath $startupCodePath -Raw
 foreach ($required in @(
+    'WindowRoot.RequestedTheme = RootGrid.RequestedTheme;',
+    'RootGrid.RequestedTheme = ElementTheme.Default;',
     'CompositionTarget.Rendering += OnStartupOverlayRendered;',
     'Task.Delay(TimeSpan.FromSeconds(1))',
     'Task.Delay(TimeSpan.FromSeconds(5))',
@@ -97,6 +99,15 @@ foreach ($required in @(
     'ShellContent.IsHitTestVisible = true;'
 )) {
     if (-not $startupCode.Contains($required)) { throw "Stage-2 startup runtime contract missing: $required" }
+}
+
+# Theme ownership must live at XamlRoot after introducing WindowRoot. Keeping an explicit
+# theme on nested RootGrid splits Mica/title/navigation from page resources and recreates
+# the light-mode regression seen in v0.3.7.
+$settingsCodePath = Join-Path $PSScriptRoot '..\src\SpatialViewer.App\Views\SettingsView.xaml.cs'
+$settingsCode = Get-Content -LiteralPath $settingsCodePath -Raw
+if (-not $settingsCode.Contains('root.RequestedTheme = theme;')) {
+    throw 'Theme switching no longer targets the XamlRoot content.'
 }
 
 $timingPath = Join-Path $PSScriptRoot '..\src\SpatialViewer.App\StartupSplashTiming.cs'
@@ -118,4 +129,4 @@ if ($project -notmatch 'New-SpatialViewerStartupScreen\.ps1' -or $project -notma
     throw 'Startup generation/validation hooks are not wired into the app build.'
 }
 
-Write-Host 'SpatialViewer startup contract PASS: optional native bootstrap + Mica in-window overlay + 500 ms render-gated presentation + 200 ms fade + fail-open watchdog.'
+Write-Host 'SpatialViewer startup contract PASS: optional native bootstrap + root-owned theme/Mica + 500 ms render-gated presentation + 200 ms fade + fail-open watchdog.'

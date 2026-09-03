@@ -18,6 +18,15 @@ public sealed partial class MainWindow
 
     private void StartupRoot_Loaded(object sender, RoutedEventArgs e)
     {
+        // Before v0.3.7 the persisted theme was applied directly to RootGrid because it
+        // was the XamlRoot content. The startup wrapper introduced WindowRoot above it,
+        // so leaving the explicit theme on RootGrid splits the visual tree: cards use the
+        // persisted theme while the transparent title bar/navigation/Mica follow the
+        // WindowRoot/system theme. Move the preference to the real root before the first
+        // rendered frame, then let RootGrid inherit it so live theme switches stay atomic.
+        WindowRoot.RequestedTheme = RootGrid.RequestedTheme;
+        RootGrid.RequestedTheme = ElementTheme.Default;
+
         StartStartupSafetyNets();
     }
 
