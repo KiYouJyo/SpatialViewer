@@ -63,9 +63,9 @@
          fades away only after the shell is loaded and the minimum display time elapsed. -->
     <Grid x:Name="StartupOverlay" Background="Transparent" Canvas.ZIndex="100">
       <Image x:Name="StartupLogo"
-             Source="ms-appx:///Assets/StartupLogo.png"
-             Width="183"
-             Height="183"
+             Source="ms-appx:///Assets/Square150x150Logo.png"
+             Width="150"
+             Height="150"
              Stretch="Uniform"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"
