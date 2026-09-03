@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.7] - 2026-09-03
+
+### Added
+
+- Added a native Windows startup screen using the same MSIX `uap:SplashScreen` approach as UrbanPlanToolbox and PageArc instead of creating an extra authored splash window.
+- Added dedicated 100%, 125%, 150%, 200%, and 400% startup bitmaps on a 620×300 logical canvas so high-DPI launches resolve a native resource instead of scaling one bitmap.
+- Added startup-screen build contracts covering resource dimensions, the fixed `#202020` background, centered product mark, scale resource qualifiers, and `uap5:Optional="true"` manifest wiring.
+
+### Changed
+
+- Advanced the product and MSIX package identities to `0.3.7` / `0.3.7.0`.
+
+### Preserved
+
+- The main window, custom title bar, hamburger menu, NavigationView, page surfaces, tabs, CAD rendering, and Cad Core behavior remain unchanged; no extra overlay, fake progress bar, or startup delay is introduced.
+
 ## [0.3.6] - 2026-09-03
 
 ### Changed

@@ -8,10 +8,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
-    <Version>0.3.6</Version>
-    <AssemblyVersion>0.3.6.0</AssemblyVersion>
-    <FileVersion>0.3.6.0</FileVersion>
-    <InformationalVersion>0.3.6</InformationalVersion>
+    <Version>0.3.7</Version>
+    <AssemblyVersion>0.3.7.0</AssemblyVersion>
+    <FileVersion>0.3.7.0</FileVersion>
+    <InformationalVersion>0.3.7</InformationalVersion>
     <DefaultLanguage>zh-CN</DefaultLanguage>
     <AppxBundleAutoResourcePackageQualifiers>Scale|DXFeatureLevel</AppxBundleAutoResourcePackageQualifiers>
     <CadCoreBundledVersion>0.9.0</CadCoreBundledVersion>
@@ -28,14 +28,16 @@
   </ItemGroup>
 
   <!-- Always regenerate and validate pixel-specific Windows shell assets before
-       compile/package. This prevents Windows from scaling one oversized PNG for
-       Start, taskbar, Open With and thumbnail surfaces. The custom title bar is
-       explicitly protected by the branding contract and remains unchanged. -->
+       compile/package. The startup screen is generated as a separate native MSIX
+       resource family so Windows can select the correct DPI resource without a
+       custom splash window or a blurred runtime scale operation. -->
   <Target Name="GenerateSpatialViewerPackageAssets"
           BeforeTargets="PrepareForBuild"
           Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\New-SpatialViewerPackageAssets.ps1&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
+    <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\New-SpatialViewerStartupScreen.ps1&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
     <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\Test-SpatialViewerBrandingContract.ps1&quot; -AssetsDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
+    <Exec Command="powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\packaging\Test-SpatialViewerStartupContract.ps1&quot; -AssetsDirectory &quot;$(MSBuildThisFileDirectory)Assets&quot;" />
   </Target>
 
   <!--

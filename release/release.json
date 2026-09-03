@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.3.6",
-    "packageVersion": "0.3.6.0"
+    "version": "0.3.7",
+    "packageVersion": "0.3.7.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3.6 应用图标",
-    "ja-JP": "SpatialViewer v0.3.6 アプリアイコン",
-    "en-US": "SpatialViewer v0.3.6 App Icon"
+    "zh-CN": "SpatialViewer v0.3.7 启动界面",
+    "ja-JP": "SpatialViewer v0.3.7 起動画面",
+    "en-US": "SpatialViewer v0.3.7 Startup Screen"
   }
 }

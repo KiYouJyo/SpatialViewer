@@ -4,8 +4,8 @@ namespace SpatialViewer.Product;
 
 internal static class AppVersionProvider
 {
-    public const string Version = "0.3.6";
-    public const string DisplayVersion = "v0.3.6";
+    public const string Version = "0.3.7";
+    public const string DisplayVersion = "v0.3.7";
 
     public static Version GetCurrentVersion()
     {
@@ -16,7 +16,7 @@ internal static class AppVersionProvider
         }
         catch (Exception) when (OperatingSystem.IsWindows())
         {
-            var assemblyVersion = typeof(AppVersionProvider).Assembly.GetName().Version ?? new Version(0, 3, 6, 0);
+            var assemblyVersion = typeof(AppVersionProvider).Assembly.GetName().Version ?? new Version(0, 3, 7, 0);
             return new Version(assemblyVersion.Major, assemblyVersion.Minor, Math.Max(0, assemblyVersion.Build), Math.Max(0, assemblyVersion.Revision));
         }
     }
