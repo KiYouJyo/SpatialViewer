@@ -1,6 +1,8 @@
-# SpatialViewer v0.3.7 起動画面
+# SpatialViewer v0.3.7 起動画面とテーマ修正
 
-SpatialViewer v0.3.7 は、UrbanPlanToolbox と PageArc の現行実装と同じ2段階の起動方式へ修正しました。Windows ネイティブの SplashScreen が最初のプロセス起動を覆い、その後は実際の WinUI メインウィンドウ上で Mica を透過表示する起動レイヤーへ引き継ぎ、Shell の準備完了後に滑らかに消えます。
+[简体中文](RELEASE-NOTES-v0.3.7.md) | 日本語 | [English](RELEASE-NOTES-v0.3.7.en.md)
+
+SpatialViewer v0.3.7 は、UrbanPlanToolbox と PageArc の現行実装と同じ2段階の起動方式へ修正しました。Windows ネイティブの SplashScreen が最初のプロセス起動を覆い、その後は実際の WinUI メインウィンドウ上で Mica を透過表示する起動レイヤーへ引き継ぎ、Shell の準備完了後に滑らかに消えます。正式リリースには、起動ラッパー導入後に判明したライトテーマ伝播の回帰修正も含まれます。
 
 ## 主な変更
 
@@ -11,8 +13,9 @@ SpatialViewer v0.3.7 は、UrbanPlanToolbox と PageArc の現行実装と同じ
 - Shell・Logo・最短表示時間がそろった後、完成した UI を先に表示し、約 200 ms の EaseOut で起動レイヤーをフェードアウトします。
 - 1 秒の Logo デコード・フォールバックと 5 秒の startup watchdog を追加し、起動レイヤー自体が停止原因にならないよう fail-open します。
 - ビルド契約を「ネイティブ Stage 1 + Mica Stage 2」に変更し、既存タイトルバーのジオメトリも回帰防止対象にします。
+- 起動ラッパーで分断されていたテーマ所有権を修正し、`WindowRoot` を唯一のテーマルート、`RootGrid` を継承側へ戻して Light / Dark / System をウィンドウ全体で一貫して適用します。
 
 ## 変更しない範囲
 
-- タイトルバー、ハンバーガーメニュー、NavigationView、ページ背景、タブ、CAD 描画、Cad Core の挙動は変更しません。
+- ライト/ダーク配色そのものは再設計せず、タイトルバー、ハンバーガーメニュー、NavigationView、ページレイアウト、タブ、CAD 描画、Cad Core の挙動は変更しません。
 - 第2の独立 WinUI ウィンドウ、文字、ボタン、疑似プログレスバーは追加しません。
