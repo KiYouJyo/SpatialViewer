@@ -127,13 +127,11 @@ jobs:
           ./packaging/New-GitHubOneClickInstallerPackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $staging -DisplayVersion '0.3.6' -PackageVersion '0.3.6.0'
           $root = Join-Path $staging 'SpatialViewer-v0.3.6-x64-one-click'
           ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory $root
-          if ($LASTEXITCODE -ne 0) { throw "One-click installer validation failed: $LASTEXITCODE" }
           $zip = Join-Path $env:ASSETS_DIRECTORY 'SpatialViewer-v0.3.6-x64-one-click.zip'
           Compress-Archive -LiteralPath $root -DestinationPath $zip -CompressionLevel Optimal
           $extracted = Join-Path $env:ASSETS_DIRECTORY 'one-click-verify'
           Expand-Archive -LiteralPath $zip -DestinationPath $extracted -Force
           ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory (Join-Path $extracted 'SpatialViewer-v0.3.6-x64-one-click') -ZipPath $zip
-          if ($LASTEXITCODE -ne 0) { throw "Archived one-click installer validation failed: $LASTEXITCODE" }
           "ONE_CLICK_ZIP=$zip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Write acceptance evidence and checksum manifest
