@@ -4,54 +4,73 @@
   <Window.SystemBackdrop>
     <MicaBackdrop />
   </Window.SystemBackdrop>
-  <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" Loaded="LocalizationShell_Loaded" UseLayoutRounding="True">
-    <!-- Title bar and navigation pane intentionally share the window Mica layer.
-         NavigationView keeps its native theme-aware content surface. -->
-    <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
-      <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
-      <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
-      <ScrollViewer Grid.Column="1" Height="32" Margin="0,8,12,8"
-                    HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
-                    VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" IsTabStop="False">
-        <StackPanel x:Name="ShellTabs" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
-          <StackPanel x:Name="ShellTabItems" Orientation="Horizontal" Spacing="8" />
-          <Button x:Name="ShellNewTabButton" Width="32" Height="32" MinWidth="32" Padding="0"
-                  Background="Transparent" BorderThickness="0" CornerRadius="7"
-                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                  Click="ShellNewTabButton_Click">
-            <TextBlock Text="+" FontSize="17" Opacity="0.68" />
-          </Button>
-        </StackPanel>
-      </ScrollViewer>
+  <Grid x:Name="WindowRoot" Background="Transparent" Loaded="StartupRoot_Loaded">
+    <Grid x:Name="ShellContent" Opacity="0" IsHitTestVisible="False" Loaded="StartupShell_Loaded">
+      <Grid x:Name="RootGrid" Background="Transparent" RowDefinitions="48,*" KeyDown="RootGrid_KeyDown" SizeChanged="RootGrid_SizeChanged" Loaded="LocalizationShell_Loaded" UseLayoutRounding="True">
+        <!-- Title bar and navigation pane intentionally share the window Mica layer.
+             NavigationView keeps its native theme-aware content surface. -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
+          <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
+          <ScrollViewer Grid.Column="1" Height="32" Margin="0,8,12,8"
+                        HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
+                        VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" IsTabStop="False">
+            <StackPanel x:Name="ShellTabs" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <StackPanel x:Name="ShellTabItems" Orientation="Horizontal" Spacing="8" />
+              <Button x:Name="ShellNewTabButton" Width="32" Height="32" MinWidth="32" Padding="0"
+                      Background="Transparent" BorderThickness="0" CornerRadius="7"
+                      HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                      Click="ShellNewTabButton_Click">
+                <TextBlock Text="+" FontSize="17" Opacity="0.68" />
+              </Button>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+
+        <NavigationView x:Name="ShellNavigation" Grid.Row="1" Background="Transparent"
+                        AlwaysShowHeader="False"
+                        IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                        Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_V03ItemInvoked">
+          <NavigationView.Resources>
+            <!-- Do not override NavigationViewContentBackground here. WinUI defines that
+                 resource in its own Light/Dark/HighContrast theme dictionaries, so it
+                 re-resolves correctly when RequestedTheme changes after InitializeComponent. -->
+            <!-- The shell owns the outer edge, so only the internal layer transition
+                 is visible; no extra rounded SplitView frame is introduced. -->
+            <Thickness x:Key="NavigationViewBorderThickness">0</Thickness>
+            <Thickness x:Key="NavigationViewPaneContentGridMargin">0</Thickness>
+            <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
+            <Thickness x:Key="NavigationViewMinimalContentGridBorderThickness">0</Thickness>
+            <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="ShellNavigationPaneBackgroundBrush" />
+          </NavigationView.Resources>
+          <NavigationView.MenuItems>
+            <NavigationViewItem x:Name="HomeNav" x:Uid="NavHome" Tag="Home" Content="主页" IsSelected="True"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
+            <NavigationViewItem x:Name="ProjectsNav" x:Uid="NavProjects" Tag="Projects" Content="项目"><NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon></NavigationViewItem>
+            <NavigationViewItem x:Name="FavoritesNav" x:Uid="NavFavorites" Tag="Favorites" Content="收藏"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite" /></NavigationViewItem.Icon></NavigationViewItem>
+          </NavigationView.MenuItems>
+          <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="ImportFolderNav" x:Uid="NavImportFolder" Tag="ImportFolder" Content="导入文件夹"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
+            <NavigationViewItem x:Name="AboutNav" x:Uid="NavAbout" Tag="About" Content="关于图览"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
+            <NavigationViewItem x:Name="SettingsNav" x:Uid="NavSettings" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
+          </NavigationView.FooterMenuItems>
+          <ContentControl x:Name="MainContent" Background="Transparent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </NavigationView>
+      </Grid>
     </Grid>
 
-    <NavigationView x:Name="ShellNavigation" Grid.Row="1" Background="Transparent"
-                    AlwaysShowHeader="False"
-                    IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
-                    Loaded="ShellNavigation_Loaded" ItemInvoked="ShellNavigation_V03ItemInvoked">
-      <NavigationView.Resources>
-        <!-- Do not override NavigationViewContentBackground here. WinUI defines that
-             resource in its own Light/Dark/HighContrast theme dictionaries, so it
-             re-resolves correctly when RequestedTheme changes after InitializeComponent. -->
-        <!-- The shell owns the outer edge, so only the internal layer transition
-             is visible; no extra rounded SplitView frame is introduced. -->
-        <Thickness x:Key="NavigationViewBorderThickness">0</Thickness>
-        <Thickness x:Key="NavigationViewPaneContentGridMargin">0</Thickness>
-        <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
-        <Thickness x:Key="NavigationViewMinimalContentGridBorderThickness">0</Thickness>
-        <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="ShellNavigationPaneBackgroundBrush" />
-      </NavigationView.Resources>
-      <NavigationView.MenuItems>
-        <NavigationViewItem x:Name="HomeNav" x:Uid="NavHome" Tag="Home" Content="主页" IsSelected="True"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="ProjectsNav" x:Uid="NavProjects" Tag="Projects" Content="项目"><NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="FavoritesNav" x:Uid="NavFavorites" Tag="Favorites" Content="收藏"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite" /></NavigationViewItem.Icon></NavigationViewItem>
-      </NavigationView.MenuItems>
-      <NavigationView.FooterMenuItems>
-        <NavigationViewItem x:Name="ImportFolderNav" x:Uid="NavImportFolder" Tag="ImportFolder" Content="导入文件夹"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="AboutNav" x:Uid="NavAbout" Tag="About" Content="关于图览"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
-        <NavigationViewItem x:Name="SettingsNav" x:Uid="NavSettings" Tag="Settings" Content="设置"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
-      </NavigationView.FooterMenuItems>
-      <ContentControl x:Name="MainContent" Background="Transparent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    </NavigationView>
+    <!-- Stage 2 startup surface: the real application Mica is already visible here.
+         The complete shell initializes behind this transparent overlay, then the logo
+         fades away only after the shell is loaded and the minimum display time elapsed. -->
+    <Grid x:Name="StartupOverlay" Background="Transparent" Canvas.ZIndex="100">
+      <Image x:Name="StartupLogo"
+             Source="ms-appx:///Assets/StartupLogo.png"
+             Width="183"
+             Height="183"
+             Stretch="Uniform"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"
+             ImageOpened="OnStartupLogoImageOpened"
+             ImageFailed="OnStartupLogoImageFailed" />
+    </Grid>
   </Grid>
 </Window>
