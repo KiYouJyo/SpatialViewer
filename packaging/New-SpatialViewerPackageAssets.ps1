@@ -225,8 +225,9 @@ function Save-Ico([string]$Path, [int[]]$Sizes) {
         $offset = 6 + (16 * $Sizes.Count)
         for ($i = 0; $i -lt $Sizes.Count; $i++) {
             $size = $Sizes[$i]
-            $writer.Write([byte](if ($size -ge 256) { 0 } else { $size }))
-            $writer.Write([byte](if ($size -ge 256) { 0 } else { $size }))
+            $dimensionByte = if ($size -ge 256) { [byte]0 } else { [byte]$size }
+            $writer.Write($dimensionByte)
+            $writer.Write($dimensionByte)
             $writer.Write([byte]0)
             $writer.Write([byte]0)
             $writer.Write([uint16]1)
