@@ -8,7 +8,10 @@
     <!-- Title bar and navigation pane intentionally share the window Mica layer.
          NavigationView keeps its native theme-aware content surface. -->
     <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" ColumnDefinitions="104,*,132" Padding="16,0,12,0">
-      <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Image Width="16" Height="16" Source="ms-appx:///Assets/Square44x44Logo.png" Stretch="Uniform" />
+        <TextBlock Text="SpatialViewer" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </StackPanel>
       <!-- Directly matches PageArc's proven detached 32-DIP title-bar tab shell. -->
       <ScrollViewer Grid.Column="1" Height="32" Margin="0,8,12,8"
                     HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
