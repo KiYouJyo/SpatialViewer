@@ -1,6 +1,8 @@
-# SpatialViewer v0.3.7 启动界面
+# SpatialViewer v0.3.7 启动界面与主题修复
 
-SpatialViewer v0.3.7 采用与 UrbanPlanToolbox、PageArc 当前版本一致的两阶段启动机制：Windows 原生启动页负责最早期进程启动，主窗口创建后立即切换到 Mica 上的应用内启动层，并在真实界面准备完成后平滑淡出。
+简体中文 | [日本語](RELEASE-NOTES-v0.3.7.ja.md) | [English](RELEASE-NOTES-v0.3.7.en.md)
+
+SpatialViewer v0.3.7 采用与 UrbanPlanToolbox、PageArc 当前版本一致的两阶段启动机制：Windows 原生启动页负责最早期进程启动，主窗口创建后立即切换到 Mica 上的应用内启动层，并在真实界面准备完成后平滑淡出。本次正式发布同时包含启动层引入后发现的浅色模式主题传播回归修复。
 
 ## 主要变化
 
@@ -11,8 +13,9 @@ SpatialViewer v0.3.7 采用与 UrbanPlanToolbox、PageArc 当前版本一致的�
 - Shell、Logo 与最短展示时间均满足后，先显示完整主界面，再以约 200 ms EaseOut 淡出启动层。
 - 增加 1 秒 Logo 解码兜底和 5 秒启动 watchdog；任何异常都必须 fail-open，启动界面本身不能成为卡死点。
 - 将构建门禁改为验证“原生 Stage 1 + Mica Stage 2”的混合启动契约，同时锁定现有标题栏几何，防止启动功能再次误改标题栏。
+- 修复启动包装层导致的浅色模式主题树断裂：`WindowRoot` 作为唯一主题所有者，`RootGrid` 恢复继承，Light / Dark / System 重新对整个窗口一致生效。
 
 ## 保持不变
 
-- 标题栏、汉堡菜单、NavigationView、页面背景、标签页、CAD 渲染与 Cad Core 行为保持原样。
+- 不重新设计浅色/深色配色，不改标题栏、汉堡菜单、NavigationView、页面布局、标签页、CAD 渲染与 Cad Core 行为。
 - 不创建第二个独立 WinUI 窗口，不加入文字、按钮或伪进度条。
