@@ -1,0 +1,191 @@
+name: SpatialViewer v0.3.7 Acceptance Package
+
+on:
+  push:
+    branches: ['codex/v0.3.7-startup-screen']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spatialviewer-v037-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate v0.3.7 source and contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./packaging/Test-LocalizationCompleteness.ps1
+          ./packaging/Test-AppUpdateContract.ps1
+          [xml]$project = Get-Content src/SpatialViewer.App/SpatialViewer.App.csproj -Raw
+          [xml]$manifest = Get-Content src/SpatialViewer.App/Package.appxmanifest -Raw
+          $release = Get-Content release/release.json -Raw | ConvertFrom-Json
+          $version = @($project.Project.PropertyGroup | ForEach-Object Version | Where-Object { $_ })[0]
+          $assemblyVersion = @($project.Project.PropertyGroup | ForEach-Object AssemblyVersion | Where-Object { $_ })[0]
+          if ([string]$version -cne '0.3.7') { throw "Project version is not 0.3.7: $version" }
+          if ([string]$assemblyVersion -cne '0.3.7.0') { throw "Assembly version is not 0.3.7.0: $assemblyVersion" }
+          if ([string]$manifest.Package.Identity.Version -cne '0.3.7.0' -or [string]$manifest.Package.Identity.Publisher -cne 'CN=AppPublisher') { throw 'MSIX identity is not the v0.3.7 release identity.' }
+          if ([string]$release.product.version -cne '0.3.7' -or [string]$release.product.packageVersion -cne '0.3.7.0') { throw 'Release metadata is not v0.3.7.' }
+          foreach ($asset in @('Square44x44Logo.png','Square150x150Logo.png','StoreLogo.png','SplashScreen.png','Square44x44Logo.targetsize-24.png','Square44x44Logo.targetsize-24_altform-unplated.png','AppIcon.ico')) {
+            $path = Join-Path 'src/SpatialViewer.App/Assets' $asset
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -le 0) { throw "Required branding/startup asset missing or empty: $asset" }
+          }
+          Write-Host 'v0.3.7 source, localization, update, branding, and startup contracts PASS.'
+
+      - name: Restore and test
+        shell: pwsh
+        run: |
+          dotnet restore SpatialViewer.sln -p:Configuration=Release -p:Platform=x64
+          if ($LASTEXITCODE -ne 0) { throw "Restore failed: $LASTEXITCODE" }
+          dotnet build SpatialViewer.sln -c Debug -p:Platform=x64 --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "Debug build failed: $LASTEXITCODE" }
+          dotnet build SpatialViewer.sln -c Release -p:Platform=x64 --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "Release build failed: $LASTEXITCODE" }
+          dotnet test SpatialViewer.sln -c Release -p:Platform=x64 --no-build --verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "Tests failed: $LASTEXITCODE" }
+
+      - name: Resolve latest integrated CadCore
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $payload = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-CadCore'
+          $resolved = @(./packaging/Resolve-LatestIntegratedCadCore.ps1 -OutputDirectory $payload) | Select-Object -Last 1
+          if (-not $resolved -or [string]::IsNullOrWhiteSpace([string]$resolved.version)) { throw 'Latest integrated CadCore resolution failed.' }
+          "CADCORE_PAYLOAD=$payload" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_VERSION=$($resolved.version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_ABI=$($resolved.abiVersion)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CADCORE_COMMIT=$($resolved.commit)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Acceptance package will embed SpatialViewer.CadCore v$($resolved.version), ABI $($resolved.abiVersion)."
+
+      - name: Build and rewrite unsigned x64 MSIX bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-AppPackages'
+          dotnet build src/SpatialViewer.App/SpatialViewer.App.csproj -c Release -p:Platform=x64 -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false -p:AppxBundle=Always -p:AppxBundlePlatforms=x64 -p:UapAppxPackageBuildMode=SideloadOnly -p:AppxPackageDir="$output\"
+          if ($LASTEXITCODE -ne 0) { throw "MSIX bundle build failed: $LASTEXITCODE" }
+          $bundle = @(Get-ChildItem $output -Recurse -Filter '*.msixbundle') | Select-Object -First 1
+          if (-not $bundle) { throw 'MSIXBundle was not produced.' }
+          $assets = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v037-AcceptanceAssets'
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          $bundleName = 'SpatialViewer_0.3.7.0_x64.msixbundle'
+          $finalBundle = Join-Path $assets $bundleName
+          Copy-Item -LiteralPath $bundle.FullName -Destination $finalBundle -Force
+          ./packaging/Rewrite-CadCoreMsixBundleLayout.ps1 -BundlePath $finalBundle -BundledVersion $env:CADCORE_VERSION -PayloadDirectory $env:CADCORE_PAYLOAD
+          if ($LASTEXITCODE -ne 0) { throw "Cad Core MSIX layout rewrite failed: $LASTEXITCODE" }
+          "BUNDLE_PATH=$finalBundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "ASSETS_DIRECTORY=$assets" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign bundle and export public certificate
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.GH_RELEASE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.GH_RELEASE_CERTIFICATE_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64) -or [string]::IsNullOrWhiteSpace($env:CERTIFICATE_PASSWORD)) { throw 'GitHub release signing secrets are not configured.' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'spatialviewer-v037-signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          $password = ConvertTo-SecureString $env:CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if ($certificate.Subject -cne 'CN=AppPublisher' -or -not $certificate.HasPrivateKey) { throw "Unexpected release certificate: $($certificate.Subject)" }
+          if ($certificate.Thumbprint -cne 'BD85AD77A651C86CA01A480C8E9BC64952993F98') { throw "Unexpected release certificate thumbprint: $($certificate.Thumbprint)" }
+          $cer = Join-Path $env:ASSETS_DIRECTORY 'SpatialViewer-v0.3.7-Framework-Dependent.cer'
+          Export-Certificate -Cert $certificate -FilePath $cer | Out-Null
+          $signtool = Get-ChildItem (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin') -Recurse -Filter signtool.exe | Where-Object FullName -match '\\x64\\signtool.exe$' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'x64 signtool.exe was not found.' }
+          & $signtool.FullName sign /fd SHA256 /sha1 $certificate.Thumbprint /tr http://timestamp.digicert.com /td SHA256 $env:BUNDLE_PATH
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed: $LASTEXITCODE" }
+          $signature = Get-AuthenticodeSignature -FilePath $env:BUNDLE_PATH
+          if (-not $signature.SignerCertificate -or $signature.SignerCertificate.Subject -cne 'CN=AppPublisher' -or $signature.SignerCertificate.Thumbprint -cne $certificate.Thumbprint) { throw 'Signed bundle identity mismatch.' }
+          if ($signature.Status -notin @('Valid', 'UnknownError')) { throw "Unexpected Authenticode status: $($signature.Status)" }
+          "CERTIFICATE_PATH=$cer" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CERTIFICATE_THUMBPRINT=$($certificate.Thumbprint)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create and validate one-click installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $staging = Join-Path $env:ASSETS_DIRECTORY 'staging'
+          ./packaging/New-GitHubOneClickInstallerPackage.ps1 -SignedBundlePath $env:BUNDLE_PATH -PublicCertificatePath $env:CERTIFICATE_PATH -OutputDirectory $staging -DisplayVersion '0.3.7' -PackageVersion '0.3.7.0'
+          $root = Join-Path $staging 'SpatialViewer-v0.3.7-x64-one-click'
+          ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory $root
+          $zip = Join-Path $env:ASSETS_DIRECTORY 'SpatialViewer-v0.3.7-x64-one-click.zip'
+          Compress-Archive -LiteralPath $root -DestinationPath $zip -CompressionLevel Optimal
+          $extracted = Join-Path $env:ASSETS_DIRECTORY 'one-click-verify'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extracted -Force
+          ./packaging/Test-GitHubOneClickInstallerPackage.ps1 -ReleaseDirectory (Join-Path $extracted 'SpatialViewer-v0.3.7-x64-one-click') -ZipPath $zip
+          "ONE_CLICK_ZIP=$zip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Write acceptance evidence and checksum manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundleHash = (Get-FileHash -LiteralPath $env:BUNDLE_PATH -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipHash = (Get-FileHash -LiteralPath $env:ONE_CLICK_ZIP -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "$bundleHash  SpatialViewer_0.3.7.0_x64.msixbundle",
+            "$zipHash  SpatialViewer-v0.3.7-x64-one-click.zip"
+          ) | Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Encoding ascii
+          @(
+            'SpatialViewer v0.3.7 acceptance package',
+            "Source commit: $env:GITHUB_SHA",
+            'Product version: 0.3.7',
+            'MSIX version: 0.3.7.0',
+            'Architecture: x64',
+            "CadCore version: $env:CADCORE_VERSION",
+            "CadCore ABI: $env:CADCORE_ABI",
+            "CadCore commit: $env:CADCORE_COMMIT",
+            'Signer subject: CN=AppPublisher',
+            "Signer thumbprint: $env:CERTIFICATE_THUMBPRINT",
+            "Bundle SHA256: $bundleHash",
+            "One-click ZIP SHA256: $zipHash",
+            'Localization contract: PASS',
+            'Application update contract: PASS',
+            'Debug build: PASS',
+            'Release build: PASS',
+            'Automated tests: PASS',
+            'Branding asset contract: PASS',
+            'Native startup screen contract: PASS',
+            'One-click installer validation: PASS'
+          ) | Set-Content -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'ACCEPTANCE.txt') -Encoding utf8
+
+      - name: Assemble acceptance package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v0.3.7-x64-acceptance'
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          Copy-Item -LiteralPath $env:BUNDLE_PATH -Destination $packageRoot -Force
+          Copy-Item -LiteralPath $env:ONE_CLICK_ZIP -Destination $packageRoot -Force
+          Copy-Item -LiteralPath $env:CERTIFICATE_PATH -Destination $packageRoot -Force
+          Copy-Item -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'SHA256SUMS.txt') -Destination $packageRoot -Force
+          Copy-Item -LiteralPath (Join-Path $env:ASSETS_DIRECTORY 'ACCEPTANCE.txt') -Destination $packageRoot -Force
+          $finalZip = Join-Path $env:RUNNER_TEMP 'SpatialViewer-v0.3.7-x64-acceptance.zip'
+          Compress-Archive -LiteralPath $packageRoot -DestinationPath $finalZip -CompressionLevel Optimal
+          "FINAL_ACCEPTANCE_ZIP=$finalZip" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload v0.3.7 acceptance package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpatialViewer-v0.3.7-x64-acceptance
+          path: ${{ env.FINAL_ACCEPTANCE_ZIP }}
+          if-no-files-found: error
+          retention-days: 14
