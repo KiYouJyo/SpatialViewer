@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.6] - 2026-09-03
+
+### Changed
+
+- Replaced the SpatialViewer product icon with the selected low-saturation architectural/urban-viewer mark combining CAD plan, GIS map, Rhino surface, BIM massing, and a central viewing magnifier.
+- Updated the Windows package logos used by Start, pinned/taskbar surfaces, Store metadata, and splash presentation while preserving transparent icon corners.
+- Embedded a Windows executable icon for unpackaged/debug window and taskbar fallback, and surfaced the same product mark in the custom title bar and About page.
+- Advanced the product and MSIX package identities to `0.3.6` / `0.3.6.0`.
+
+### Preserved
+
+- No CAD rendering, document-tab interaction, NavigationView behavior, page layout, theme behavior, or Cad Core integration was changed by this branding-only release.
+
 ## [0.3.3] - 2026-09-02
 
 ### Added

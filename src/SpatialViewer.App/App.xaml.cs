@@ -17,6 +17,19 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         _window = new MainWindow();
+
+        // The custom title bar stays untouched. Set only the native window icon so
+        // taskbar buttons, Alt+Tab and taskbar thumbnail headers use the product icon.
+        try
+        {
+            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
+            if (File.Exists(iconPath)) _window.AppWindow.SetIcon(iconPath);
+        }
+        catch
+        {
+            // A missing/non-loadable icon must never block app startup.
+        }
+
         _window.Activate();
     }
 }

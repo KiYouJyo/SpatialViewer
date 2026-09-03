@@ -11,8 +11,8 @@
         <Border Style="{StaticResource SettingsSectionCardStyle}">
           <StackPanel Spacing="14">
             <Grid ColumnDefinitions="58,16,*" MinHeight="58">
-              <Border Width="58" Height="58" Background="{ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
-                <TextBlock Text="◇" FontSize="34" FontWeight="Light" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <Border Width="58" Height="58" Background="Transparent" BorderThickness="0" CornerRadius="12">
+                <Image Source="ms-appx:///Assets/Square150x150Logo.png" Width="58" Height="58" Stretch="Uniform" />
               </Border>
               <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
                 <TextBlock x:Name="ProductNameText" Text="图览" FontSize="22" FontWeight="SemiBold" />
