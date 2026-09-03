@@ -23,6 +23,10 @@ public sealed partial class MainWindow
     private const double TabPreviewHeight = 180;
     private const double TabPreviewOuterWidth = 344;
     private const double TabPreviewOuterHeight = 252;
+    private const double PreferredTabWidth = 220;
+    private const double MinimumTabWidth = 72;
+    private const double ShellTabSpacing = 8;
+    private const double NewTabButtonWidth = 32;
     private static readonly Duration TabOpenDuration = new(TimeSpan.FromMilliseconds(190));
 
     private DispatcherQueueTimer? _tabPreviewTimer;
@@ -30,9 +34,13 @@ public sealed partial class MainWindow
     private DocumentSession? _pendingPreviewSession;
     private string? _pendingPreviewTitle;
     private DocumentTabPreviewWindow? _tabPreviewWindow;
+    private bool _adaptiveTabSizingInitialized;
 
     private void ConfigureTabInteractions(Border container, object tag, string title, double targetWidth)
     {
+        EnsureAdaptiveTabSizing();
+        container.Unloaded += ShellTab_Unloaded;
+
         // Shell/home tabs intentionally have no hover card. Only real documents
         // expose a preview, matching the browser-like behavior requested for files.
         if (tag is DocumentSession session)
@@ -44,7 +52,55 @@ public sealed partial class MainWindow
             container.Resources["DocumentPreviewTitle"] = title;
         }
 
-        AnimateTabOpen(container, targetWidth);
+        // Match Chrome/Firefox behavior: once the preferred tab widths no longer
+        // fit, shrink every existing tab evenly before expanding the new tab into
+        // its final slot. The new-tab button remains permanently visible.
+        var adaptiveTargetWidth = ApplyAdaptiveTabWidths(container, targetWidth);
+        AnimateTabOpen(container, adaptiveTargetWidth);
+    }
+
+    private void EnsureAdaptiveTabSizing()
+    {
+        if (_adaptiveTabSizingInitialized) return;
+        _adaptiveTabSizingInitialized = true;
+        AppTitleBar.SizeChanged += AppTitleBar_AdaptiveTabsSizeChanged;
+    }
+
+    private void AppTitleBar_AdaptiveTabsSizeChanged(object sender, SizeChangedEventArgs e) => ApplyAdaptiveTabWidths();
+
+    private void ShellTab_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element) element.Unloaded -= ShellTab_Unloaded;
+        // UIElementCollection removal completes before this callback is dispatched.
+        // Re-expand the remaining tabs only after the closed tab has left the panel.
+        DispatcherQueue.TryEnqueue(() => ApplyAdaptiveTabWidths());
+    }
+
+    private double ApplyAdaptiveTabWidths(Border? openingTab = null, double preferredWidth = PreferredTabWidth)
+    {
+        var tabCount = ShellTabItems.Children.Count;
+        if (tabCount <= 0) return preferredWidth;
+
+        var titleBarWidth = AppTitleBar.ActualWidth;
+        if (!double.IsFinite(titleBarWidth) || titleBarWidth <= 0) return preferredWidth;
+
+        // AppTitleBar = 104 DIP product column + flexible tab column + 132 DIP
+        // caption-button reserve, with 16/12 DIP horizontal padding. The tab column
+        // itself keeps the existing 12-DIP right margin before the caption area.
+        const double fixedTitleBarWidth = 104 + 132 + 16 + 12 + 12;
+        var tabViewportWidth = Math.Max(0, titleBarWidth - fixedTitleBarWidth);
+        var spacingWidth = ShellTabSpacing * tabCount; // (n-1) tab gaps + gap before '+'
+        var usableTabWidth = Math.Max(0, tabViewportWidth - NewTabButtonWidth - spacingWidth);
+        var calculatedWidth = usableTabWidth / tabCount;
+        var targetWidth = Math.Clamp(calculatedWidth, MinimumTabWidth, Math.Min(PreferredTabWidth, preferredWidth));
+
+        foreach (var child in ShellTabItems.Children)
+        {
+            if (child is not Border tab || ReferenceEquals(tab, openingTab)) continue;
+            tab.Width = targetWidth;
+        }
+
+        return targetWidth;
     }
 
     private void AnimateTabOpen(Border container, double targetWidth)
@@ -91,8 +147,8 @@ public sealed partial class MainWindow
         storyboard.Completed += (_, _) =>
         {
             if (container.Parent is null) return;
-            container.Width = targetWidth;
             container.Opacity = 1;
+            ApplyAdaptiveTabWidths();
         };
         storyboard.Begin();
     }
