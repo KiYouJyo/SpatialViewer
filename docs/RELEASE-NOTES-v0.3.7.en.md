@@ -1,5 +1,7 @@
 # SpatialViewer v0.3.7 Startup Screen
 
+[简体中文](RELEASE-NOTES-v0.3.7.md) | [日本語](RELEASE-NOTES-v0.3.7.ja.md) | English
+
 SpatialViewer v0.3.7 adds a native Windows startup screen following the same implementation approach used by UrbanPlanToolbox and PageArc.
 
 ## Highlights
