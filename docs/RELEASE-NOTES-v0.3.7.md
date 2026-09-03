@@ -1,5 +1,7 @@
 # SpatialViewer v0.3.7 启动界面
 
+简体中文 | [日本語](RELEASE-NOTES-v0.3.7.ja.md) | [English](RELEASE-NOTES-v0.3.7.en.md)
+
 SpatialViewer v0.3.7 为应用增加与 UrbanPlanToolbox、PageArc 一致思路的原生 Windows 启动界面。
 
 ## 主要变化
