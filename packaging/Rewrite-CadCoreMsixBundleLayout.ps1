@@ -79,11 +79,15 @@ try {
         throw "Original bundle version is invalid: $bundleVersion"
     }
 
-    $innerPackages = @(Get-ChildItem -LiteralPath $unbundle -Filter '*.msix' -File)
-    if ($innerPackages.Count -ne 1) {
-        throw "Expected exactly one inner x64 MSIX, found $($innerPackages.Count)."
+    # A proper high-DPI bundle contains one architecture package plus zero or more
+    # resource packs (for example scale-100/125/150/400). Rewrite only the x64
+    # architecture package and copy resource packs back byte-for-byte.
+    $allInnerPackages = @(Get-ChildItem -LiteralPath $unbundle -Filter '*.msix' -File)
+    $architecturePackages = @($allInnerPackages | Where-Object { $_.Name -match '_x64\.msix$' })
+    if ($architecturePackages.Count -ne 1) {
+        throw "Expected exactly one inner x64 architecture MSIX, found $($architecturePackages.Count) among $($allInnerPackages.Count) bundle packages."
     }
-    $inner = $innerPackages[0]
+    $inner = $architecturePackages[0]
 
     & $makeappx.FullName unpack /p $inner.FullName /d $unpack /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx unpack failed: $LASTEXITCODE" }
@@ -127,8 +131,16 @@ try {
     & $makeappx.FullName pack /d $unpack /p $repackedInner /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx pack failed: $LASTEXITCODE" }
 
-    $innerInput = Join-Path $bundleInputs $inner.Name
-    Copy-Item -LiteralPath $repackedInner -Destination $innerInput -Force
+    foreach ($package in $allInnerPackages) {
+        $destination = Join-Path $bundleInputs $package.Name
+        if ($package.FullName -eq $inner.FullName) {
+            Copy-Item -LiteralPath $repackedInner -Destination $destination -Force
+        }
+        else {
+            Copy-Item -LiteralPath $package.FullName -Destination $destination -Force
+        }
+    }
+
     & $makeappx.FullName bundle /d $bundleInputs /p $repackedBundle /bv $bundleVersion /o | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed: $LASTEXITCODE" }
 
@@ -143,9 +155,14 @@ try {
         throw "Rewritten bundle version mismatch: rewritten=$rewrittenVersion original=$bundleVersion package=$packageVersion"
     }
 
+    $verifiedPackages = @(Get-ChildItem -LiteralPath $verifyBundle -Filter '*.msix' -File)
+    if ($verifiedPackages.Count -ne $allInnerPackages.Count) {
+        throw "Resource-pack preservation failed: before=$($allInnerPackages.Count) after=$($verifiedPackages.Count)."
+    }
+
     Move-Item -LiteralPath $repackedBundle -Destination $bundle -Force
     $sourceLabel = if ($payloadRoot) { 'resolved latest integrated release' } else { 'build output' }
-    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; source=$sourceLabel; package=$bundleVersion."
+    Write-Host "Rewrote MSIX Cad Core layout: root payload removed; bundled fallback=$BundledVersion; source=$sourceLabel; package=$bundleVersion; preserved resource packs=$($allInnerPackages.Count - 1)."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
