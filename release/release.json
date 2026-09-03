@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3.7 启动界面",
-    "ja-JP": "SpatialViewer v0.3.7 起動画面",
-    "en-US": "SpatialViewer v0.3.7 Startup Screen"
+    "zh-CN": "SpatialViewer v0.3.7 启动界面与 CadCore v0.12.3 集成",
+    "ja-JP": "SpatialViewer v0.3.7 起動画面と CadCore v0.12.3 統合",
+    "en-US": "SpatialViewer v0.3.7 Startup and CadCore v0.12.3 Integration"
   }
 }
