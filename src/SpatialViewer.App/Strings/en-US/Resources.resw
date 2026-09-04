@@ -30,6 +30,7 @@
   <data name="HomeEmptyState.Text" xml:space="preserve"><value>No files have been opened yet. Use the button or drop area above to open DWG / DXF / 3DM.</value></data>
   <data name="Home_Filter_All" xml:space="preserve"><value>All</value></data>
   <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>Open a CAD file</value></data>
+  <data name="Home_Workflow_Rhino_Tooltip" xml:space="preserve"><value>Open a Rhino 3DM model</value></data>
   <data name="Home_Workflow_Planned" xml:space="preserve"><value>In development</value></data>
   <data name="Home_OpenFile_Automation" xml:space="preserve"><value>Open a DWG, DXF, or Rhino 3DM file</value></data>
   <data name="Home_Date_Today" xml:space="preserve"><value>Today {0:HH:mm}</value></data>

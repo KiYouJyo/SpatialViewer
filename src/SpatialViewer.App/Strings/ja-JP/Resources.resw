@@ -30,6 +30,7 @@
   <data name="HomeEmptyState.Text" xml:space="preserve"><value>まだファイルを開いていません。上のボタンまたはドロップ領域から DWG / DXF / 3DM を開いてください。</value></data>
   <data name="Home_Filter_All" xml:space="preserve"><value>すべて</value></data>
   <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>CAD ファイルを開く</value></data>
+  <data name="Home_Workflow_Rhino_Tooltip" xml:space="preserve"><value>Rhino 3DM モデルを開く</value></data>
   <data name="Home_Workflow_Planned" xml:space="preserve"><value>開発中</value></data>
   <data name="Home_OpenFile_Automation" xml:space="preserve"><value>DWG、DXF、または Rhino 3DM ファイルを開く</value></data>
   <data name="Home_Date_Today" xml:space="preserve"><value>今日 {0:HH:mm}</value></data>
