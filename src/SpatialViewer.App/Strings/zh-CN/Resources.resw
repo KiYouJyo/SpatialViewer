@@ -27,11 +27,11 @@
   <data name="HomeRecentCompact.Text" xml:space="preserve"><value>最近打开</value></data>
   <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>搜索最近文件</value></data>
   <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>搜索最近文件</value></data>
-  <data name="HomeEmptyState.Text" xml:space="preserve"><value>尚未打开任何图纸。使用上方按钮或拖放区域打开 DWG / DXF。</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>尚未打开任何文件。使用上方按钮或拖放区域打开 DWG / DXF / 3DM。</value></data>
   <data name="Home_Filter_All" xml:space="preserve"><value>全部</value></data>
   <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>打开 CAD 文件</value></data>
   <data name="Home_Workflow_Planned" xml:space="preserve"><value>开发中</value></data>
-  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>打开 DWG 或 DXF 文件</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>打开 DWG、DXF 或 Rhino 3DM 文件</value></data>
   <data name="Home_Date_Today" xml:space="preserve"><value>今天 {0:HH:mm}</value></data>
   <data name="Home_Date_Yesterday" xml:space="preserve"><value>昨天</value></data>
   <data name="Home_Date_Format" xml:space="preserve"><value>M月d日</value></data>
@@ -156,4 +156,17 @@
   <data name="Update_Download" xml:space="preserve"><value>下载更新</value></data>
   <data name="Update_Retry" xml:space="preserve"><value>重试</value></data>
   <data name="Update_WaitingRestart" xml:space="preserve"><value>等待重启</value></data>
+  <data name="ThreeDmLayersTitle.Text" xml:space="preserve"><value>图层</value></data>
+  <data name="ThreeDmDiagnosticsBar.Title" xml:space="preserve"><value>模型包含导入诊断</value></data>
+  <data name="ThreeDm_Status_OpeningFile" xml:space="preserve"><value>正在打开 {0}…</value></data>
+  <data name="ThreeDm_Status_OpeningProgress" xml:space="preserve"><value>正在打开 · {0}/{1}</value></data>
+  <data name="ThreeDm_Status_OpenFailed" xml:space="preserve"><value>无法打开 3DM 文件。</value></data>
+  <data name="ThreeDm_Status_Ready" xml:space="preserve"><value>Rhino 3DM</value></data>
+  <data name="ThreeDm_Status_ObjectCount" xml:space="preserve"><value>{0} 个对象</value></data>
+  <data name="ThreeDm_Unitless" xml:space="preserve"><value>无单位</value></data>
+  <data name="ThreeDm_Diagnostics_Count" xml:space="preserve"><value>{0} 条导入诊断</value></data>
+  <data name="ThreeDm_Summary" xml:space="preserve"><value>对象：{0}\n图层：{1}\n材质：{2}\n命名视图：{3}\n块定义：{4}</value></data>
+  <data name="ThreeDm_Display_Shaded" xml:space="preserve"><value>着色</value></data>
+  <data name="ThreeDm_Display_ShadedWithEdges" xml:space="preserve"><value>着色并显示边线</value></data>
+  <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>线框</value></data>
 </root>

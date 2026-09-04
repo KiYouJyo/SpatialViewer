@@ -19,7 +19,7 @@
       <SplitView.Pane>
         <Border Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,1,0" Padding="12">
           <Grid RowDefinitions="Auto,10,*">
-            <TextBlock Text="Layers" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+            <TextBlock x:Uid="ThreeDmLayersTitle" Text="图层" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
             <ListView Grid.Row="2" x:Name="LayerList">
               <ListView.ItemTemplate>
                 <DataTemplate>
@@ -37,7 +37,7 @@
               <StackPanel Spacing="10">
                 <TextBlock x:Uid="CadPropertiesPanelTitle" Text="属性" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
                 <TextBlock x:Name="SummaryText" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
-                <InfoBar x:Name="DiagnosticsBar" IsOpen="False" Severity="Warning" IsClosable="True" />
+                <InfoBar x:Name="DiagnosticsBar" x:Uid="ThreeDmDiagnosticsBar" IsOpen="False" Severity="Warning" IsClosable="True" />
               </StackPanel>
             </Border>
           </SplitView.Pane>

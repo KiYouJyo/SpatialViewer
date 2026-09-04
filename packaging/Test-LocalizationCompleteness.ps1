@@ -43,7 +43,8 @@ function Assert-Key([string]$key, [string]$origin) {
 $xamlFiles = @(
     'src/SpatialViewer.App/MainWindow.xaml',
     'src/SpatialViewer.App/Views/HomeView.xaml',
-    'src/SpatialViewer.App/Views/CadViewerView.xaml'
+    'src/SpatialViewer.App/Views/CadViewerView.xaml',
+    'src/SpatialViewer.App/Views/ThreeDmViewerView.xaml'
 )
 foreach ($relative in $xamlFiles) {
     $path = Join-Path $ProjectRoot $relative

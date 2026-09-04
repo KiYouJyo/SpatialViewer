@@ -10,6 +10,7 @@ namespace SpatialViewer.Product.Views;
 public sealed partial class ThreeDmViewerView : UserControl, IDisposable
 {
     private readonly ThreeDmProductSession _session;
+    private readonly AppLocalizationService _localization = AppLocalizationService.Default;
     private bool _leftExpanded = true;
     private bool _rightExpanded = true;
     private bool _initialViewportPrepared;
@@ -21,8 +22,9 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         _session = session;
         InitializeComponent();
         Viewport.Session = session;
-        DisplayModePicker.ItemsSource = Enum.GetValues<ThreeDmRenderDisplayMode>();
-        DisplayModePicker.SelectedItem = ThreeDmRenderDisplayMode.ShadedWithEdges;
+        DisplayModePicker.ItemsSource = CreateDisplayModes();
+        DisplayModePicker.DisplayMemberPath = nameof(ThreeDmDisplayModeRow.Name);
+        DisplayModePicker.SelectedIndex = 1;
         Loaded += ThreeDmViewerView_Loaded;
         Unloaded += ThreeDmViewerView_Unloaded;
         ThreeDmRoot.ActualThemeChanged += ThreeDmRoot_ActualThemeChanged;
@@ -87,14 +89,14 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         if (_session.State == ThreeDmProductSessionState.Loading)
         {
             ProgressText.Text = _session.TotalObjects > 0
-                ? $"Opening · {_session.ProcessedObjects}/{_session.TotalObjects}"
-                : "Opening 3DM…";
+                ? string.Format(T("ThreeDm_Status_OpeningProgress"), _session.ProcessedObjects, _session.TotalObjects)
+                : string.Format(T("ThreeDm_Status_OpeningFile"), _session.DisplayName);
             return;
         }
 
         if (_session.State != ThreeDmProductSessionState.Ready)
         {
-            ProgressText.Text = _session.ErrorMessage ?? "Unable to open 3DM.";
+            ProgressText.Text = _session.ErrorMessage ?? T("ThreeDm_Status_OpenFailed");
             return;
         }
 
@@ -111,20 +113,23 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         var summary = _session.Summary;
         if (summary is not null)
         {
-            SummaryText.Text =
-                $"Objects: {summary.ObjectCount}\n" +
-                $"Layers: {summary.LayerCount}\n" +
-                $"Materials: {summary.MaterialCount}\n" +
-                $"Named views: {summary.NamedViewCount}\n" +
-                $"Instances: {summary.InstanceDefinitionCount}";
-            UnitsText.Text = summary.ModelUnitSystem ?? "Unitless";
-            ObjectText.Text = $"{summary.ObjectCount} objects";
+            SummaryText.Text = string.Format(
+                T("ThreeDm_Summary"),
+                summary.ObjectCount,
+                summary.LayerCount,
+                summary.MaterialCount,
+                summary.NamedViewCount,
+                summary.InstanceDefinitionCount);
+            UnitsText.Text = summary.ModelUnitSystem ?? T("ThreeDm_Unitless");
+            ObjectText.Text = string.Format(T("ThreeDm_Status_ObjectCount"), summary.ObjectCount);
             var warningCount = summary.WarningDiagnosticCount + summary.ErrorDiagnosticCount;
             DiagnosticsBar.IsOpen = warningCount > 0;
-            DiagnosticsBar.Title = warningCount > 0 ? $"{warningCount} import diagnostics" : string.Empty;
+            DiagnosticsBar.Title = warningCount > 0
+                ? string.Format(T("ThreeDm_Diagnostics_Count"), warningCount)
+                : string.Empty;
         }
 
-        ProgressText.Text = "3DM";
+        ProgressText.Text = T("ThreeDm_Status_Ready");
         if (!_initialViewportPrepared)
         {
             if (AppSettingsStore.Current.FitToWindowOnOpen) Viewport.Fit();
@@ -160,8 +165,8 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
 
     private void DisplayModePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (DisplayModePicker.SelectedItem is not ThreeDmRenderDisplayMode mode) return;
-        _session.SetDisplayMode(mode);
+        if (DisplayModePicker.SelectedItem is not ThreeDmDisplayModeRow row) return;
+        _session.SetDisplayMode(row.Mode);
         Viewport.Draw();
     }
 
@@ -205,6 +210,15 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         RightPaneHost.IsPaneOpen = _rightExpanded;
     }
 
+    private ThreeDmDisplayModeRow[] CreateDisplayModes() =>
+    [
+        new(ThreeDmRenderDisplayMode.Shaded, T("ThreeDm_Display_Shaded")),
+        new(ThreeDmRenderDisplayMode.ShadedWithEdges, T("ThreeDm_Display_ShadedWithEdges")),
+        new(ThreeDmRenderDisplayMode.Wireframe, T("ThreeDm_Display_Wireframe")),
+    ];
+
+    private string T(string key) => _localization.GetString(key);
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -215,6 +229,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
     }
 
     private sealed record ThreeDmLayerRow(Guid Id, string Name, bool IsVisible, Thickness Margin);
+    private sealed record ThreeDmDisplayModeRow(ThreeDmRenderDisplayMode Mode, string Name);
 }
 
 internal enum ThreeDmLayoutMode

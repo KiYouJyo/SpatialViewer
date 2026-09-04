@@ -27,11 +27,11 @@
   <data name="HomeRecentCompact.Text" xml:space="preserve"><value>最近開いたファイル</value></data>
   <data name="HomeSearchRecent.PlaceholderText" xml:space="preserve"><value>最近のファイルを検索</value></data>
   <data name="HomeSearchRecentCompact.PlaceholderText" xml:space="preserve"><value>最近のファイルを検索</value></data>
-  <data name="HomeEmptyState.Text" xml:space="preserve"><value>まだ図面を開いていません。上のボタンまたはドロップ領域から DWG / DXF を開いてください。</value></data>
+  <data name="HomeEmptyState.Text" xml:space="preserve"><value>まだファイルを開いていません。上のボタンまたはドロップ領域から DWG / DXF / 3DM を開いてください。</value></data>
   <data name="Home_Filter_All" xml:space="preserve"><value>すべて</value></data>
   <data name="Home_Workflow_Cad_Tooltip" xml:space="preserve"><value>CAD ファイルを開く</value></data>
   <data name="Home_Workflow_Planned" xml:space="preserve"><value>開発中</value></data>
-  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>DWG または DXF ファイルを開く</value></data>
+  <data name="Home_OpenFile_Automation" xml:space="preserve"><value>DWG、DXF、または Rhino 3DM ファイルを開く</value></data>
   <data name="Home_Date_Today" xml:space="preserve"><value>今日 {0:HH:mm}</value></data>
   <data name="Home_Date_Yesterday" xml:space="preserve"><value>昨日</value></data>
   <data name="Home_Date_Format" xml:space="preserve"><value>M月d日</value></data>
@@ -156,4 +156,17 @@
   <data name="Update_Download" xml:space="preserve"><value>更新をダウンロード</value></data>
   <data name="Update_Retry" xml:space="preserve"><value>再試行</value></data>
   <data name="Update_WaitingRestart" xml:space="preserve"><value>再起動待ち</value></data>
+  <data name="ThreeDmLayersTitle.Text" xml:space="preserve"><value>レイヤー</value></data>
+  <data name="ThreeDmDiagnosticsBar.Title" xml:space="preserve"><value>モデルに読み込み診断があります</value></data>
+  <data name="ThreeDm_Status_OpeningFile" xml:space="preserve"><value>{0} を開いています…</value></data>
+  <data name="ThreeDm_Status_OpeningProgress" xml:space="preserve"><value>読み込み中 · {0}/{1}</value></data>
+  <data name="ThreeDm_Status_OpenFailed" xml:space="preserve"><value>3DM ファイルを開けませんでした。</value></data>
+  <data name="ThreeDm_Status_Ready" xml:space="preserve"><value>Rhino 3DM</value></data>
+  <data name="ThreeDm_Status_ObjectCount" xml:space="preserve"><value>{0} オブジェクト</value></data>
+  <data name="ThreeDm_Unitless" xml:space="preserve"><value>単位なし</value></data>
+  <data name="ThreeDm_Diagnostics_Count" xml:space="preserve"><value>読み込み診断 {0} 件</value></data>
+  <data name="ThreeDm_Summary" xml:space="preserve"><value>オブジェクト：{0}\nレイヤー：{1}\nマテリアル：{2}\n名前付きビュー：{3}\nブロック定義：{4}</value></data>
+  <data name="ThreeDm_Display_Shaded" xml:space="preserve"><value>シェーディング</value></data>
+  <data name="ThreeDm_Display_ShadedWithEdges" xml:space="preserve"><value>エッジ付きシェーディング</value></data>
+  <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>ワイヤーフレーム</value></data>
 </root>
