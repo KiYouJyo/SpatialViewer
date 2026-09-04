@@ -17,7 +17,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
     private bool _disposed;
     private ThreeDmLayoutMode _layoutMode = ThreeDmLayoutMode.Large;
 
-    public ThreeDmViewerView(ThreeDmProductSession session)
+    internal ThreeDmViewerView(ThreeDmProductSession session)
     {
         _session = session;
         InitializeComponent();

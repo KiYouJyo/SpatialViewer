@@ -32,7 +32,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         InitializeComponent();
     }
 
-    public ThreeDmProductSession? Session
+    internal ThreeDmProductSession? Session
     {
         get => _session;
         set
@@ -362,7 +362,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
             var factor = delta > 0 ? 0.85 : 1.0 / 0.85;
             _camera = camera with
             {
-                Location = Add(camera.Target, Scale(offset, factor)),
+                Location = Add(camera.Target, ScaleVector(offset, factor)),
                 SourceFrustum = null,
             };
         }
@@ -405,8 +405,8 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 ? Math.Max(camera.OrthographicHeight, 1e-9) / viewportHeight
                 : Math.Max(2 * distance * Math.Tan(camera.VerticalFieldOfViewRadians * 0.5), 1e-9) / viewportHeight;
             var translation = Add(
-                Scale(basis.Right, -dx * worldPerPixel),
-                Scale(basis.Up, dy * worldPerPixel));
+                ScaleVector(basis.Right, -dx * worldPerPixel),
+                ScaleVector(basis.Up, dy * worldPerPixel));
             _camera = camera with
             {
                 Location = Add(camera.Location, translation),
@@ -418,7 +418,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         {
             var offset = Subtract(camera.Location, camera.Target);
             var yawed = Rotate(offset, basis.Up, -dx * 0.006);
-            var right = Normalize(Cross(Scale(yawed, -1), camera.Up));
+            var right = Normalize(Cross(ScaleVector(yawed, -1), camera.Up));
             if (Length(right) <= 1e-12) right = basis.Right;
             var rotated = Rotate(yawed, right, -dy * 0.006);
             var up = Normalize(Rotate(camera.Up, right, -dy * 0.006));
@@ -466,7 +466,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private static Vector3d Add(Vector3d left, Vector3d right) =>
         new(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
 
-    private static Vector3d Scale(Vector3d vector, double factor) =>
+    private static Vector3d ScaleVector(Vector3d vector, double factor) =>
         new(vector.X * factor, vector.Y * factor, vector.Z * factor);
 
     private static double Dot(Vector3d left, Vector3d right) =>
@@ -484,7 +484,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private static Vector3d Normalize(Vector3d vector)
     {
         var length = Length(vector);
-        return length > 1e-15 ? Scale(vector, 1 / length) : new Vector3d(0, 0, 0);
+        return length > 1e-15 ? ScaleVector(vector, 1 / length) : new Vector3d(0, 0, 0);
     }
 
     private static Vector3d Rotate(Vector3d vector, Vector3d axis, double radians)
@@ -495,9 +495,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         var sine = Math.Sin(radians);
         return Add(
             Add(
-                Scale(vector, cosine),
-                Scale(Cross(axis, vector), sine)),
-            Scale(axis, Dot(axis, vector) * (1 - cosine)));
+                ScaleVector(vector, cosine),
+                ScaleVector(Cross(axis, vector), sine)),
+            ScaleVector(axis, Dot(axis, vector) * (1 - cosine)));
     }
 
     public void Dispose()
