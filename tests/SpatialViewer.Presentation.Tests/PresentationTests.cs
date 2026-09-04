@@ -78,4 +78,12 @@ public sealed class PresentationTests
         public Task<ImportResult> ImportAsync(ImportRequest request, IProgress<ImportProgress>? progress = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(new ImportResult(document, Array.Empty<Diagnostic>()));
     }
+    [Fact]
+    public void FormatGateSupportsThreeDmAlongsideCad()
+    {
+        Assert.True(FormatGate.IsSupported("model.dwg"));
+        Assert.True(FormatGate.IsSupported("model.dxf"));
+        Assert.True(FormatGate.IsSupported("model.3dm"));
+        Assert.False(FormatGate.IsSupported("model.ifc"));
+    }
 }

@@ -9,9 +9,9 @@ public sealed record DiagnosticGroup(DiagnosticSeverity Severity, string Code, s
 
 public static class FormatGate
 {
-    private static readonly HashSet<string> Supported = new(StringComparer.OrdinalIgnoreCase) { ".dwg", ".dxf" };
+    private static readonly HashSet<string> Supported = new(StringComparer.OrdinalIgnoreCase) { ".dwg", ".dxf", ".3dm" };
     public static bool IsSupported(string path) => Supported.Contains(Path.GetExtension(path));
-    public static string UnsupportedMessage(string path) => $"{Path.GetExtension(path).ToUpperInvariant()} is not supported yet. Spatial Viewer Preview currently opens DWG and DXF files.";
+    public static string UnsupportedMessage(string path) => $"{Path.GetExtension(path).ToUpperInvariant()} is not supported yet. Spatial Viewer currently opens DWG, DXF and Rhino 3DM files.";
 }
 
 public static class DiagnosticsPresenter
