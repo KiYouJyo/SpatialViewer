@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.3.9",
-    "packageVersion": "0.3.9.0"
+    "version": "0.3.10",
+    "packageVersion": "0.3.10.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3.9 湘源用地色块修复",
-    "ja-JP": "SpatialViewer v0.3.9 湘源用途色面修正",
-    "en-US": "SpatialViewer v0.3.9 Xiangyuan Land-use Fill Fix"
+    "zh-CN": "SpatialViewer v0.3.10 湘源用地面填充修复",
+    "ja-JP": "SpatialViewer v0.3.10 湘源用途面塗り修正",
+    "en-US": "SpatialViewer v0.3.10 Xiangyuan Surface Fill Fix"
   }
 }
