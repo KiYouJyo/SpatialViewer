@@ -170,4 +170,6 @@
   <data name="ThreeDm_Display_Shaded" xml:space="preserve"><value>シェーディング</value></data>
   <data name="ThreeDm_Display_ShadedWithEdges" xml:space="preserve"><value>エッジ付きシェーディング</value></data>
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>ワイヤーフレーム</value></data>
+  <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>3DM ファイルの変更を検出しました。再読み込み中…</value></data>
+  <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM ファイルを再読み込みしました</value></data>
 </root>

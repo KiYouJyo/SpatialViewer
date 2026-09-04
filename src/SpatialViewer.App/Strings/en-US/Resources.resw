@@ -170,4 +170,6 @@
   <data name="ThreeDm_Display_Shaded" xml:space="preserve"><value>Shaded</value></data>
   <data name="ThreeDm_Display_ShadedWithEdges" xml:space="preserve"><value>Shaded with edges</value></data>
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>Wireframe</value></data>
+  <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>3DM file changed; reloading…</value></data>
+  <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM file reloaded</value></data>
 </root>

@@ -181,6 +181,14 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
         }
     }
 
+    public async Task ReloadAsync()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (State != ThreeDmProductSessionState.Ready) return;
+        await _session.CloseAsync();
+        await LoadAsync();
+    }
+
     public void SetDisplayMode(ThreeDmRenderDisplayMode mode)
     {
         if (State != ThreeDmProductSessionState.Ready || _disposed) return;

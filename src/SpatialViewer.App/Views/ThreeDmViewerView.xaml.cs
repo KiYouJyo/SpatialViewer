@@ -16,6 +16,8 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
     private bool _initialViewportPrepared;
     private bool _disposed;
     private ThreeDmLayoutMode _layoutMode = ThreeDmLayoutMode.Large;
+    private FileSystemWatcher? _fileWatcher;
+    private DateTimeOffset _lastReloadRequestUtc;
 
     internal ThreeDmViewerView(ThreeDmProductSession session)
     {
@@ -36,6 +38,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         _session.PropertyChanged += Session_PropertyChanged;
         AppSettingsStore.Changed += AppSettingsStore_Changed;
         ApplyViewerPreferences();
+        ConfigureFileWatcher();
         ApplyLayout();
         RefreshSessionState();
     }
@@ -44,6 +47,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
     {
         _session.PropertyChanged -= Session_PropertyChanged;
         AppSettingsStore.Changed -= AppSettingsStore_Changed;
+        DisposeFileWatcher();
     }
 
     private void Session_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -56,6 +60,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         DispatcherQueue.TryEnqueue(() =>
         {
             ApplyViewerPreferences();
+            ConfigureFileWatcher();
             Viewport.Draw();
         });
     }
@@ -104,11 +109,12 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         foreach (var root in _session.Layers) AddLayerRows(root, 0, layers);
         LayerList.ItemsSource = layers;
 
-        if (ViewPicker.ItemsSource is null)
-        {
-            ViewPicker.ItemsSource = _session.ViewPresets;
-            ViewPicker.SelectedItem = _session.ViewPresets.FirstOrDefault(item => item.Key == "standard:perspective");
-        }
+        var selectedKey = (ViewPicker.SelectedItem as ThreeDmViewPreset)?.Key;
+        ViewPicker.ItemsSource = _session.ViewPresets;
+        ViewPicker.SelectedItem =
+            _session.ViewPresets.FirstOrDefault(item => item.Key == selectedKey) ??
+            _session.ViewPresets.FirstOrDefault(item => item.Key == "standard:perspective") ??
+            _session.ViewPresets.FirstOrDefault();
 
         var summary = _session.Summary;
         if (summary is not null)
@@ -210,6 +216,66 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         RightPaneHost.IsPaneOpen = _rightExpanded;
     }
 
+    private void ConfigureFileWatcher()
+    {
+        DisposeFileWatcher();
+        if (_disposed ||
+            !AppSettingsStore.Current.AutoCheckFileChanges ||
+            !File.Exists(_session.FilePath))
+        {
+            return;
+        }
+
+        var directory = Path.GetDirectoryName(_session.FilePath);
+        var fileName = Path.GetFileName(_session.FilePath);
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)) return;
+
+        _fileWatcher = new FileSystemWatcher(directory, fileName)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
+            EnableRaisingEvents = true,
+        };
+        _fileWatcher.Changed += FileWatcher_Changed;
+        _fileWatcher.Renamed += FileWatcher_Changed;
+    }
+
+    private void FileWatcher_Changed(object sender, FileSystemEventArgs e)
+    {
+        if (_disposed) return;
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastReloadRequestUtc < TimeSpan.FromMilliseconds(900)) return;
+        _lastReloadRequestUtc = now;
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (_disposed ||
+                !AppSettingsStore.Current.AutoCheckFileChanges ||
+                !File.Exists(_session.FilePath) ||
+                _session.State != ThreeDmProductSessionState.Ready)
+            {
+                return;
+            }
+
+            ProgressText.Text = T("ThreeDm_Status_FileChanged");
+            await _session.ReloadAsync();
+            if (_session.State == ThreeDmProductSessionState.Ready)
+            {
+                ProgressText.Text = T("ThreeDm_Status_FileReloaded");
+                RefreshSessionState();
+                Viewport.Draw();
+            }
+        });
+    }
+
+    private void DisposeFileWatcher()
+    {
+        if (_fileWatcher is null) return;
+        _fileWatcher.EnableRaisingEvents = false;
+        _fileWatcher.Changed -= FileWatcher_Changed;
+        _fileWatcher.Renamed -= FileWatcher_Changed;
+        _fileWatcher.Dispose();
+        _fileWatcher = null;
+    }
+
     private ThreeDmDisplayModeRow[] CreateDisplayModes() =>
     [
         new(ThreeDmRenderDisplayMode.Shaded, T("ThreeDm_Display_Shaded")),
@@ -225,6 +291,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         _disposed = true;
         _session.PropertyChanged -= Session_PropertyChanged;
         AppSettingsStore.Changed -= AppSettingsStore_Changed;
+        DisposeFileWatcher();
         Viewport.Dispose();
     }
 

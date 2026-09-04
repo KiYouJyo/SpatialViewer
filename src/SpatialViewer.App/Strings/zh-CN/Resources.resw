@@ -170,4 +170,6 @@
   <data name="ThreeDm_Display_Shaded" xml:space="preserve"><value>着色</value></data>
   <data name="ThreeDm_Display_ShadedWithEdges" xml:space="preserve"><value>着色并显示边线</value></data>
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>线框</value></data>
+  <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>检测到 3DM 文件已更改，正在重新加载…</value></data>
+  <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM 文件已重新加载</value></data>
 </root>
