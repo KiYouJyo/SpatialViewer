@@ -1,3 +1,7 @@
 [submodule "external/SpatialViewer.CadCore"]
 	path = external/SpatialViewer.CadCore
 	url = https://github.com/KiYouJyo/SpatialViewer.CadCore.git
+
+[submodule "external/SpatialViewer.3DMCore"]
+	path = external/SpatialViewer.3DMCore
+	url = https://github.com/KiYouJyo/SpatialViewer.3DMCore.git
