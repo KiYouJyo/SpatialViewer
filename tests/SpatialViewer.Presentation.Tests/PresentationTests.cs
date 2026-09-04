@@ -86,4 +86,27 @@ public sealed class PresentationTests
         Assert.True(FormatGate.IsSupported("model.3dm"));
         Assert.False(FormatGate.IsSupported("model.ifc"));
     }
+    [Fact]
+    public async Task RecentFilesClassifiesThreeDmAsRhino()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"spatialviewer-recent-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var storage = Path.Combine(root, "recent.json");
+            var model = Path.Combine(root, "sample.3dm");
+            await File.WriteAllTextAsync(model, "fixture");
+
+            var service = new RecentFilesService(storage);
+            await service.RecordAsync(model);
+            var item = Assert.Single(await service.LoadAsync());
+
+            Assert.Equal(DocumentKind.Rhino, item.DocumentKind);
+            Assert.Equal(".3dm", item.Extension, ignoreCase: true);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }
