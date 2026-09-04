@@ -23,6 +23,9 @@
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad\SpatialViewer.Formats.Cad.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
     <ProjectReference Include="..\..\external\SpatialViewer.CadCore\src\SpatialViewer.Formats.Cad.ACadSharp\SpatialViewer.Formats.Cad.ACadSharp.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
     <ProjectReference Include="..\SpatialViewer.Presentation\SpatialViewer.Presentation.csproj" />
+    <ProjectReference Include="..\..\external\SpatialViewer.3DMCore\src\SpatialViewer.Formats.ThreeDm.Rhino3dm\SpatialViewer.Formats.ThreeDm.Rhino3dm.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.3DMCore\src\SpatialViewer.ThreeDm.Integration\SpatialViewer.ThreeDm.Integration.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
+    <ProjectReference Include="..\..\external\SpatialViewer.3DMCore\src\SpatialViewer.ThreeDm.Rendering.Windows\SpatialViewer.ThreeDm.Rendering.Windows.csproj" SetConfiguration="Configuration=$(Configuration)" SetPlatform="Platform=$(Platform)" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.0" />
   </ItemGroup>
