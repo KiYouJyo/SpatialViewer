@@ -7,6 +7,7 @@ using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Presentation;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Windows.ApplicationModel.DataTransfer;
 
 namespace SpatialViewer.Product.Views;
