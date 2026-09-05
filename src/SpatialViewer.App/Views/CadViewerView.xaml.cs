@@ -6,6 +6,8 @@ using SpatialViewer.Formats.Cad;
 using SpatialViewer.Formats.Cad.ACadSharp;
 using SpatialViewer.Presentation;
 using System.Globalization;
+using System.Text;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace SpatialViewer.Product.Views;
 
@@ -166,6 +168,56 @@ public sealed partial class CadViewerView : UserControl, IDisposable
 
     private void Layer_Click(object sender, RoutedEventArgs e) => Viewport.Draw();
     private void LayerList_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+    private void ExportCompatibilityReport_Click(object sender, RoutedEventArgs e)
+    {
+        if (_session.State != DocumentSessionState.Ready || _session.Document is not CadDocument document)
+        {
+            DiagnosticsBar.Severity = InfoBarSeverity.Warning;
+            DiagnosticsBar.Title = T("Cad_CompatibilityReport_Unavailable");
+            DiagnosticsBar.Message = T("Cad_CompatibilityReport_UnavailableMessage");
+            DiagnosticsBar.IsOpen = true;
+            return;
+        }
+
+        try
+        {
+            var json = CadCompatibilityReportBuilder.Build(document);
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var root = string.IsNullOrWhiteSpace(desktop)
+                ? Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "SpatialViewer")
+                : desktop;
+            var directory = Path.Combine(root, "SpatialViewer Diagnostics");
+            Directory.CreateDirectory(directory);
+
+            var timestamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            var path = Path.Combine(directory, $"SpatialViewer-CAD-compatibility-{timestamp}.json");
+            File.WriteAllText(path, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+            var clipboard = new DataPackage();
+            clipboard.SetText(path);
+            Clipboard.SetContent(clipboard);
+            Clipboard.Flush();
+
+            DiagnosticsBar.Severity = InfoBarSeverity.Success;
+            DiagnosticsBar.Title = T("Cad_CompatibilityReport_Saved");
+            DiagnosticsBar.Message = string.Format(
+                CultureInfo.CurrentCulture,
+                T("Cad_CompatibilityReport_SavedMessage"),
+                path);
+            DiagnosticsBar.IsOpen = true;
+            ObjectText.Text = T("Cad_CompatibilityReport_PathCopied");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            DiagnosticsBar.Severity = InfoBarSeverity.Error;
+            DiagnosticsBar.Title = T("Cad_CompatibilityReport_Failed");
+            DiagnosticsBar.Message = T("Cad_CompatibilityReport_FailedMessage");
+            DiagnosticsBar.IsOpen = true;
+        }
+    }
+
     private void Fit_Click(object sender, RoutedEventArgs e) => Viewport.Fit();
     private void SelectTool_Click(object sender, RoutedEventArgs e) => SetMode(ViewerMode.Select);
     private void PanTool_Click(object sender, RoutedEventArgs e) => SetMode(ViewerMode.Pan);
