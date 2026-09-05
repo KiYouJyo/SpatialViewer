@@ -156,4 +156,12 @@
   <data name="Update_Download" xml:space="preserve"><value>Download update</value></data>
   <data name="Update_Retry" xml:space="preserve"><value>Retry</value></data>
   <data name="Update_WaitingRestart" xml:space="preserve"><value>Waiting for restart</value></data>
+  <data name="CadCompatibilityReportButton.Content" xml:space="preserve"><value>Export CAD compatibility report</value></data>
+  <data name="Cad_CompatibilityReport_Unavailable" xml:space="preserve"><value>Report is not available yet</value></data>
+  <data name="Cad_CompatibilityReport_UnavailableMessage" xml:space="preserve"><value>The current drawing has not finished loading.</value></data>
+  <data name="Cad_CompatibilityReport_Saved" xml:space="preserve"><value>CAD compatibility report exported</value></data>
+  <data name="Cad_CompatibilityReport_SavedMessage" xml:space="preserve"><value>Report saved to: {0}\nThe file path was copied to the clipboard.</value></data>
+  <data name="Cad_CompatibilityReport_PathCopied" xml:space="preserve"><value>Compatibility report path copied</value></data>
+  <data name="Cad_CompatibilityReport_Failed" xml:space="preserve"><value>CAD compatibility report export failed</value></data>
+  <data name="Cad_CompatibilityReport_FailedMessage" xml:space="preserve"><value>The diagnostic report could not be written. Check local file permissions and try again.</value></data>
 </root>

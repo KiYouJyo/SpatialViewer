@@ -156,4 +156,12 @@
   <data name="Update_Download" xml:space="preserve"><value>更新をダウンロード</value></data>
   <data name="Update_Retry" xml:space="preserve"><value>再試行</value></data>
   <data name="Update_WaitingRestart" xml:space="preserve"><value>再起動待ち</value></data>
+  <data name="CadCompatibilityReportButton.Content" xml:space="preserve"><value>CAD 互換性レポートを出力</value></data>
+  <data name="Cad_CompatibilityReport_Unavailable" xml:space="preserve"><value>レポートを出力できません</value></data>
+  <data name="Cad_CompatibilityReport_UnavailableMessage" xml:space="preserve"><value>現在の図面はまだ読み込みを完了していません。</value></data>
+  <data name="Cad_CompatibilityReport_Saved" xml:space="preserve"><value>CAD 互換性レポートを出力しました</value></data>
+  <data name="Cad_CompatibilityReport_SavedMessage" xml:space="preserve"><value>レポートを保存しました：{0}\nファイルパスをクリップボードにコピーしました。</value></data>
+  <data name="Cad_CompatibilityReport_PathCopied" xml:space="preserve"><value>互換性レポートのパスをコピーしました</value></data>
+  <data name="Cad_CompatibilityReport_Failed" xml:space="preserve"><value>CAD 互換性レポートの出力に失敗しました</value></data>
+  <data name="Cad_CompatibilityReport_FailedMessage" xml:space="preserve"><value>診断レポートを書き込めません。ローカルのファイル権限を確認して再試行してください。</value></data>
 </root>
