@@ -156,4 +156,12 @@
   <data name="Update_Download" xml:space="preserve"><value>下载更新</value></data>
   <data name="Update_Retry" xml:space="preserve"><value>重试</value></data>
   <data name="Update_WaitingRestart" xml:space="preserve"><value>等待重启</value></data>
+  <data name="CadCompatibilityReportButton.Content" xml:space="preserve"><value>导出 CAD 兼容性报告</value></data>
+  <data name="Cad_CompatibilityReport_Unavailable" xml:space="preserve"><value>暂时无法导出报告</value></data>
+  <data name="Cad_CompatibilityReport_UnavailableMessage" xml:space="preserve"><value>当前图纸尚未完成读取。</value></data>
+  <data name="Cad_CompatibilityReport_Saved" xml:space="preserve"><value>CAD 兼容性报告已导出</value></data>
+  <data name="Cad_CompatibilityReport_SavedMessage" xml:space="preserve"><value>报告已保存到：{0}\n文件路径已复制到剪贴板。</value></data>
+  <data name="Cad_CompatibilityReport_PathCopied" xml:space="preserve"><value>兼容性报告路径已复制</value></data>
+  <data name="Cad_CompatibilityReport_Failed" xml:space="preserve"><value>CAD 兼容性报告导出失败</value></data>
+  <data name="Cad_CompatibilityReport_FailedMessage" xml:space="preserve"><value>无法写入诊断报告，请检查本机文件权限后重试。</value></data>
 </root>
