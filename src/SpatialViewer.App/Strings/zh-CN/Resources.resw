@@ -172,4 +172,23 @@
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>线框</value></data>
   <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>检测到 3DM 文件已更改，正在重新加载…</value></data>
   <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM 文件已重新加载</value></data>
+  <data name="ThreeDmOrbitButton.Label" xml:space="preserve"><value>旋转</value></data>
+  <data name="ThreeDmViewSegment.Content" xml:space="preserve"><value>视图</value></data>
+  <data name="ThreeDmPropertiesEmpty.Text" xml:space="preserve"><value>选择一个对象以查看 Rhino 属性。</value></data>
+  <data name="ThreeDm_View_Perspective" xml:space="preserve"><value>透视</value></data>
+  <data name="ThreeDm_View_Top" xml:space="preserve"><value>顶视</value></data>
+  <data name="ThreeDm_View_Front" xml:space="preserve"><value>前视</value></data>
+  <data name="ThreeDm_View_Right" xml:space="preserve"><value>右视</value></data>
+  <data name="ThreeDm_Property_Name" xml:space="preserve"><value>名称</value></data>
+  <data name="ThreeDm_Property_Type" xml:space="preserve"><value>类型</value></data>
+  <data name="ThreeDm_Property_Layer" xml:space="preserve"><value>图层</value></data>
+  <data name="ThreeDm_Property_Material" xml:space="preserve"><value>材质</value></data>
+  <data name="ThreeDm_Property_Visible" xml:space="preserve"><value>可见性</value></data>
+  <data name="ThreeDm_Property_Bounds" xml:space="preserve"><value>包围盒</value></data>
+  <data name="ThreeDm_Property_Instance" xml:space="preserve"><value>实例路径</value></data>
+  <data name="ThreeDm_Property_Color" xml:space="preserve"><value>对象颜色</value></data>
+  <data name="ThreeDm_Property_ColorSource" xml:space="preserve"><value>颜色来源</value></data>
+  <data name="ThreeDm_Property_MaterialSource" xml:space="preserve"><value>材质来源</value></data>
+  <data name="ThreeDm_Yes" xml:space="preserve"><value>是</value></data>
+  <data name="ThreeDm_No" xml:space="preserve"><value>否</value></data>
 </root>

@@ -172,4 +172,23 @@
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>ワイヤーフレーム</value></data>
   <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>3DM ファイルの変更を検出しました。再読み込み中…</value></data>
   <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM ファイルを再読み込みしました</value></data>
+  <data name="ThreeDmOrbitButton.Label" xml:space="preserve"><value>回転</value></data>
+  <data name="ThreeDmViewSegment.Content" xml:space="preserve"><value>ビュー</value></data>
+  <data name="ThreeDmPropertiesEmpty.Text" xml:space="preserve"><value>オブジェクトを選択すると Rhino プロパティを表示します。</value></data>
+  <data name="ThreeDm_View_Perspective" xml:space="preserve"><value>透視</value></data>
+  <data name="ThreeDm_View_Top" xml:space="preserve"><value>上面</value></data>
+  <data name="ThreeDm_View_Front" xml:space="preserve"><value>正面</value></data>
+  <data name="ThreeDm_View_Right" xml:space="preserve"><value>右面</value></data>
+  <data name="ThreeDm_Property_Name" xml:space="preserve"><value>名前</value></data>
+  <data name="ThreeDm_Property_Type" xml:space="preserve"><value>種類</value></data>
+  <data name="ThreeDm_Property_Layer" xml:space="preserve"><value>レイヤー</value></data>
+  <data name="ThreeDm_Property_Material" xml:space="preserve"><value>マテリアル</value></data>
+  <data name="ThreeDm_Property_Visible" xml:space="preserve"><value>表示</value></data>
+  <data name="ThreeDm_Property_Bounds" xml:space="preserve"><value>バウンディングボックス</value></data>
+  <data name="ThreeDm_Property_Instance" xml:space="preserve"><value>インスタンスパス</value></data>
+  <data name="ThreeDm_Property_Color" xml:space="preserve"><value>オブジェクト色</value></data>
+  <data name="ThreeDm_Property_ColorSource" xml:space="preserve"><value>色の参照元</value></data>
+  <data name="ThreeDm_Property_MaterialSource" xml:space="preserve"><value>マテリアルの参照元</value></data>
+  <data name="ThreeDm_Yes" xml:space="preserve"><value>はい</value></data>
+  <data name="ThreeDm_No" xml:space="preserve"><value>いいえ</value></data>
 </root>

@@ -172,4 +172,23 @@
   <data name="ThreeDm_Display_Wireframe" xml:space="preserve"><value>Wireframe</value></data>
   <data name="ThreeDm_Status_FileChanged" xml:space="preserve"><value>3DM file changed; reloading…</value></data>
   <data name="ThreeDm_Status_FileReloaded" xml:space="preserve"><value>3DM file reloaded</value></data>
+  <data name="ThreeDmOrbitButton.Label" xml:space="preserve"><value>Orbit</value></data>
+  <data name="ThreeDmViewSegment.Content" xml:space="preserve"><value>Views</value></data>
+  <data name="ThreeDmPropertiesEmpty.Text" xml:space="preserve"><value>Select an object to inspect its Rhino properties.</value></data>
+  <data name="ThreeDm_View_Perspective" xml:space="preserve"><value>Perspective</value></data>
+  <data name="ThreeDm_View_Top" xml:space="preserve"><value>Top</value></data>
+  <data name="ThreeDm_View_Front" xml:space="preserve"><value>Front</value></data>
+  <data name="ThreeDm_View_Right" xml:space="preserve"><value>Right</value></data>
+  <data name="ThreeDm_Property_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="ThreeDm_Property_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="ThreeDm_Property_Layer" xml:space="preserve"><value>Layer</value></data>
+  <data name="ThreeDm_Property_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="ThreeDm_Property_Visible" xml:space="preserve"><value>Visible</value></data>
+  <data name="ThreeDm_Property_Bounds" xml:space="preserve"><value>Bounds</value></data>
+  <data name="ThreeDm_Property_Instance" xml:space="preserve"><value>Instance path</value></data>
+  <data name="ThreeDm_Property_Color" xml:space="preserve"><value>Object color</value></data>
+  <data name="ThreeDm_Property_ColorSource" xml:space="preserve"><value>Color source</value></data>
+  <data name="ThreeDm_Property_MaterialSource" xml:space="preserve"><value>Material source</value></data>
+  <data name="ThreeDm_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="ThreeDm_No" xml:space="preserve"><value>No</value></data>
 </root>
