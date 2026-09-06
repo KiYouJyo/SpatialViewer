@@ -105,107 +105,281 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         var basis = CameraBasis.Create(camera);
         var policies = scene.MeshDrawPolicies.ToDictionary(item => item.GeometryIndex);
         var geometries = scene.SharedMeshes.Geometries.ToDictionary(item => item.GeometryIndex);
-        var fills = new List<ProjectedTriangle>();
 
+        var fillTrianglesRemaining = 80_000;
+        var wireSegmentsRemaining = 120_000;
+        var curveSegmentsRemaining = 100_000;
+        var pointsRemaining = 50_000;
+
+        var batches = new List<ProjectedMeshBatch>(scene.SharedMeshes.Instances.Count);
         foreach (var instance in scene.SharedMeshes.Instances)
         {
-            if (!geometries.TryGetValue(instance.GeometryIndex, out var geometry)) continue;
+            if (!geometries.TryGetValue(instance.GeometryIndex, out var geometry))
+            {
+                continue;
+            }
+
             policies.TryGetValue(instance.GeometryIndex, out var policy);
             policy ??= new ThreeDmPreparedMeshDrawPolicy(instance.GeometryIndex, true, false);
-            var color = ToColor(instance.Appearance.ColorArgb, instance.Appearance.Opacity);
+            var center = Center(geometry.Bounds);
+            var worldCenter = TransformPoint(center, instance.Transform);
+            var depth = Dot(Subtract(worldCenter, camera.Location), basis.Forward);
+            batches.Add(new ProjectedMeshBatch(instance, geometry, policy, depth));
+        }
 
-            if (policy.DrawFill)
+        foreach (var batch in batches.OrderByDescending(item => item.Depth))
+        {
+            var projected = ProjectVertices(
+                batch.Geometry,
+                batch.Instance.Transform,
+                camera,
+                basis,
+                aspect,
+                width,
+                height);
+            var triangleCount = batch.Geometry.Indices.Count / 3;
+            var drawFill = batch.Policy.DrawFill &&
+                triangleCount > 0 &&
+                triangleCount <= fillTrianglesRemaining;
+            var color = ResolveDisplayColor(
+                batch.Instance.Appearance.ColorArgb,
+                batch.Instance.Appearance.Opacity);
+
+            if (drawFill)
             {
-                for (var index = 0; index + 2 < geometry.Indices.Count; index += 3)
-                {
-                    var aIndex = geometry.Indices[index];
-                    var bIndex = geometry.Indices[index + 1];
-                    var cIndex = geometry.Indices[index + 2];
-                    if (!TryVertex(geometry, aIndex, instance.Transform, out var a) ||
-                        !TryVertex(geometry, bIndex, instance.Transform, out var b) ||
-                        !TryVertex(geometry, cIndex, instance.Transform, out var c) ||
-                        !Project(a, camera, basis, aspect, width, height, out var pa) ||
-                        !Project(b, camera, basis, aspect, width, height, out var pb) ||
-                        !Project(c, camera, basis, aspect, width, height, out var pc))
-                    {
-                        continue;
-                    }
-
-                    fills.Add(new ProjectedTriangle(
-                        pa.Screen,
-                        pb.Screen,
-                        pc.Screen,
-                        (pa.Depth + pb.Depth + pc.Depth) / 3,
-                        color));
-                }
+                DrawFilledMesh(
+                    args.DrawingSession,
+                    batch.Geometry,
+                    projected,
+                    color);
+                fillTrianglesRemaining -= triangleCount;
             }
-        }
 
-        foreach (var triangle in fills.OrderByDescending(item => item.Depth))
-        {
-            FillTriangle(args.DrawingSession, triangle);
-        }
-
-        foreach (var instance in scene.SharedMeshes.Instances)
-        {
-            if (!geometries.TryGetValue(instance.GeometryIndex, out var geometry)) continue;
-            if (!policies.TryGetValue(instance.GeometryIndex, out var policy) || !policy.DrawWireIndices) continue;
-            var color = ToColor(instance.Appearance.ColorArgb, Math.Max(instance.Appearance.Opacity, 0.65));
-            foreach (var (aIndex, bIndex) in GetWireEdges(geometry))
+            if (batch.Policy.DrawWireIndices || !drawFill)
             {
-                if (!TryVertex(geometry, aIndex, instance.Transform, out var a) ||
-                    !TryVertex(geometry, bIndex, instance.Transform, out var b) ||
-                    !Project(a, camera, basis, aspect, width, height, out var pa) ||
-                    !Project(b, camera, basis, aspect, width, height, out var pb))
-                {
-                    continue;
-                }
-
-                args.DrawingSession.DrawLine(pa.Screen, pb.Screen, color, 1f);
+                DrawWireMesh(
+                    args.DrawingSession,
+                    batch.Geometry,
+                    projected,
+                    ResolveDisplayColor(
+                        batch.Instance.Appearance.ColorArgb,
+                        Math.Max(batch.Instance.Appearance.Opacity, 0.72)),
+                    ref wireSegmentsRemaining);
             }
         }
 
         foreach (var curve in scene.Curves)
         {
-            var color = ToColor(curve.Appearance.ColorArgb, curve.Appearance.Opacity);
-            for (var index = 1; index < curve.Points.Count; index++)
+            if (curveSegmentsRemaining <= 0)
             {
-                var a = ToPoint(curve.Points[index - 1]);
-                var b = ToPoint(curve.Points[index]);
-                if (!Project(a, camera, basis, aspect, width, height, out var pa) ||
-                    !Project(b, camera, basis, aspect, width, height, out var pb))
-                {
-                    continue;
-                }
-
-                args.DrawingSession.DrawLine(pa.Screen, pb.Screen, color, 1f);
+                break;
             }
 
-            if (curve.IsClosed && curve.Points.Count > 2)
-            {
-                var a = ToPoint(curve.Points[^1]);
-                var b = ToPoint(curve.Points[0]);
-                if (Project(a, camera, basis, aspect, width, height, out var pa) &&
-                    Project(b, camera, basis, aspect, width, height, out var pb))
-                {
-                    args.DrawingSession.DrawLine(pa.Screen, pb.Screen, color, 1f);
-                }
-            }
+            DrawCurve(
+                args.DrawingSession,
+                curve,
+                camera,
+                basis,
+                aspect,
+                width,
+                height,
+                ResolveDisplayColor(curve.Appearance.ColorArgb, curve.Appearance.Opacity),
+                ref curveSegmentsRemaining);
         }
 
         foreach (var pointSet in scene.PointSets)
         {
-            var color = ToColor(pointSet.Appearance.ColorArgb, pointSet.Appearance.Opacity);
-            foreach (var point in pointSet.Points)
+            if (pointsRemaining <= 0)
             {
-                if (Project(ToPoint(point), camera, basis, aspect, width, height, out var projected))
+                break;
+            }
+
+            var color = ResolveDisplayColor(pointSet.Appearance.ColorArgb, pointSet.Appearance.Opacity);
+            var stride = Math.Max(1, (int)Math.Ceiling((double)pointSet.Points.Count / Math.Max(1, pointsRemaining)));
+            for (var index = 0; index < pointSet.Points.Count && pointsRemaining > 0; index += stride)
+            {
+                if (Project(ToPoint(pointSet.Points[index]), camera, basis, aspect, width, height, out var projected))
                 {
                     args.DrawingSession.FillCircle(projected.Screen, 2.5f, color);
+                    pointsRemaining--;
                 }
             }
         }
 
         DrawSelectionOverlay(args.DrawingSession, scene, camera, basis, aspect, width, height);
+    }
+
+    private static ProjectedPoint?[] ProjectVertices(
+        ThreeDmSharedMeshGeometry geometry,
+        Transform3d transform,
+        ThreeDmCameraState camera,
+        CameraBasis basis,
+        double aspect,
+        double width,
+        double height)
+    {
+        var projected = new ProjectedPoint?[geometry.Vertices.Count];
+        for (var index = 0; index < geometry.Vertices.Count; index++)
+        {
+            if (!TryVertex(geometry, index, transform, out var point) ||
+                !Project(point, camera, basis, aspect, width, height, out var screen))
+            {
+                continue;
+            }
+
+            projected[index] = screen;
+        }
+
+        return projected;
+    }
+
+    private static void DrawFilledMesh(
+        CanvasDrawingSession drawingSession,
+        ThreeDmSharedMeshGeometry geometry,
+        IReadOnlyList<ProjectedPoint?> projected,
+        Color color)
+    {
+        using var path = new CanvasPathBuilder(drawingSession);
+        var hasFigures = false;
+        for (var index = 0; index + 2 < geometry.Indices.Count; index += 3)
+        {
+            var aIndex = geometry.Indices[index];
+            var bIndex = geometry.Indices[index + 1];
+            var cIndex = geometry.Indices[index + 2];
+            if ((uint)aIndex >= (uint)projected.Count ||
+                (uint)bIndex >= (uint)projected.Count ||
+                (uint)cIndex >= (uint)projected.Count ||
+                projected[aIndex] is not { } a ||
+                projected[bIndex] is not { } b ||
+                projected[cIndex] is not { } c)
+            {
+                continue;
+            }
+
+            path.BeginFigure(a.Screen);
+            path.AddLine(b.Screen);
+            path.AddLine(c.Screen);
+            path.EndFigure(CanvasFigureLoop.Closed);
+            hasFigures = true;
+        }
+
+        if (!hasFigures)
+        {
+            return;
+        }
+
+        using var geometryPath = CanvasGeometry.CreatePath(path);
+        drawingSession.FillGeometry(geometryPath, color);
+    }
+
+    private void DrawWireMesh(
+        CanvasDrawingSession drawingSession,
+        ThreeDmSharedMeshGeometry geometry,
+        IReadOnlyList<ProjectedPoint?> projected,
+        Color color,
+        ref int segmentBudget)
+    {
+        if (segmentBudget <= 0 || geometry.Indices.Count < 3)
+        {
+            return;
+        }
+
+        var triangleCount = geometry.Indices.Count / 3;
+        var desiredTriangles = Math.Max(1, segmentBudget / 3);
+        var stride = Math.Max(1, (int)Math.Ceiling((double)triangleCount / desiredTriangles));
+        using var path = new CanvasPathBuilder(drawingSession);
+        var hasFigures = false;
+
+        for (var triangle = 0; triangle < triangleCount && segmentBudget >= 3; triangle += stride)
+        {
+            var index = triangle * 3;
+            var aIndex = geometry.Indices[index];
+            var bIndex = geometry.Indices[index + 1];
+            var cIndex = geometry.Indices[index + 2];
+            if ((uint)aIndex >= (uint)projected.Count ||
+                (uint)bIndex >= (uint)projected.Count ||
+                (uint)cIndex >= (uint)projected.Count ||
+                projected[aIndex] is not { } a ||
+                projected[bIndex] is not { } b ||
+                projected[cIndex] is not { } c)
+            {
+                continue;
+            }
+
+            AddLineFigure(path, a.Screen, b.Screen);
+            AddLineFigure(path, b.Screen, c.Screen);
+            AddLineFigure(path, c.Screen, a.Screen);
+            hasFigures = true;
+            segmentBudget -= 3;
+        }
+
+        if (!hasFigures)
+        {
+            return;
+        }
+
+        using var geometryPath = CanvasGeometry.CreatePath(path);
+        drawingSession.DrawGeometry(geometryPath, color, 1f);
+    }
+
+    private static void DrawCurve(
+        CanvasDrawingSession drawingSession,
+        ThreeDmRenderCurve curve,
+        ThreeDmCameraState camera,
+        CameraBasis basis,
+        double aspect,
+        double width,
+        double height,
+        Color color,
+        ref int segmentBudget)
+    {
+        if (curve.Points.Count < 2 || segmentBudget <= 0)
+        {
+            return;
+        }
+
+        var segmentCount = curve.Points.Count - 1 + (curve.IsClosed ? 1 : 0);
+        var stride = Math.Max(1, (int)Math.Ceiling((double)segmentCount / Math.Max(1, segmentBudget)));
+        using var path = new CanvasPathBuilder(drawingSession);
+        var hasFigures = false;
+
+        for (var index = 1; index < curve.Points.Count && segmentBudget > 0; index += stride)
+        {
+            var previous = Math.Max(0, index - 1);
+            if (!Project(ToPoint(curve.Points[previous]), camera, basis, aspect, width, height, out var a) ||
+                !Project(ToPoint(curve.Points[index]), camera, basis, aspect, width, height, out var b))
+            {
+                continue;
+            }
+
+            AddLineFigure(path, a.Screen, b.Screen);
+            hasFigures = true;
+            segmentBudget--;
+        }
+
+        if (curve.IsClosed && curve.Points.Count > 2 && segmentBudget > 0 &&
+            Project(ToPoint(curve.Points[^1]), camera, basis, aspect, width, height, out var last) &&
+            Project(ToPoint(curve.Points[0]), camera, basis, aspect, width, height, out var first))
+        {
+            AddLineFigure(path, last.Screen, first.Screen);
+            hasFigures = true;
+            segmentBudget--;
+        }
+
+        if (!hasFigures)
+        {
+            return;
+        }
+
+        using var geometryPath = CanvasGeometry.CreatePath(path);
+        drawingSession.DrawGeometry(geometryPath, color, 1f);
+    }
+
+    private static void AddLineFigure(CanvasPathBuilder path, Vector2 start, Vector2 end)
+    {
+        path.BeginFigure(start);
+        path.AddLine(end);
+        path.EndFigure(CanvasFigureLoop.Open);
     }
 
     private (int A, int B)[] GetWireEdges(ThreeDmSharedMeshGeometry geometry)
@@ -338,17 +512,6 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         return true;
     }
 
-    private static void FillTriangle(CanvasDrawingSession session, ProjectedTriangle triangle)
-    {
-        using var path = new CanvasPathBuilder(session);
-        path.BeginFigure(triangle.A);
-        path.AddLine(triangle.B);
-        path.AddLine(triangle.C);
-        path.EndFigure(CanvasFigureLoop.Closed);
-        using var geometry = CanvasGeometry.CreatePath(path);
-        session.FillGeometry(geometry, triangle.Color);
-    }
-
     private void Viewport_SizeChanged(object sender, SizeChangedEventArgs e) => Draw();
 
     private void Viewport_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
@@ -364,7 +527,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 SourceFrustum = null,
             };
         }
-        else if (Mode == ThreeDmViewerMode.Orbit)
+        else
         {
             var offset = Subtract(camera.Location, camera.Target);
             var factor = delta > 0 ? 0.85 : 1.0 / 0.85;
@@ -643,21 +806,64 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
 
     private Color ParseCanvasColor() => _canvasColor == "#FFFFFF" ? Colors.White : Colors.Black;
 
-    private static Color ToColor(uint argb, double opacity)
+    private Color ResolveDisplayColor(uint argb, double opacity)
     {
         var alpha = (byte)((argb >> 24) & 0xFF);
         var red = (byte)((argb >> 16) & 0xFF);
         var green = (byte)((argb >> 8) & 0xFF);
         var blue = (byte)(argb & 0xFF);
+        var luminance = ((0.2126 * red) + (0.7152 * green) + (0.0722 * blue)) / 255.0;
+
+        if (_canvasColor == "#000000" && luminance < 0.18)
+        {
+            var amount = luminance < 0.06 ? 0.78 : 0.58;
+            red = Blend(red, 235, amount);
+            green = Blend(green, 235, amount);
+            blue = Blend(blue, 235, amount);
+        }
+        else if (_canvasColor == "#FFFFFF" && luminance > 0.86)
+        {
+            red = Blend(red, 35, 0.72);
+            green = Blend(green, 35, 0.72);
+            blue = Blend(blue, 35, 0.72);
+        }
+
         var combinedAlpha = (byte)Math.Clamp(alpha * Math.Clamp(opacity, 0, 1), 0, 255);
         return Color.FromArgb(combinedAlpha, red, green, blue);
     }
+
+    private static byte Blend(byte source, byte target, double amount) =>
+        (byte)Math.Clamp(Math.Round(source + ((target - source) * amount)), 0, 255);
 
     private static Vector3d Subtract(Point3d left, Point3d right) =>
         new(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
 
     private static Point3d Add(Point3d point, Vector3d vector) =>
         new(point.X + vector.X, point.Y + vector.Y, point.Z + vector.Z);
+
+    private static Point3d Center(BoundingBox3d bounds) =>
+        bounds.IsValid
+            ? new Point3d(
+                bounds.Min.X + ((bounds.Max.X - bounds.Min.X) * 0.5),
+                bounds.Min.Y + ((bounds.Max.Y - bounds.Min.Y) * 0.5),
+                bounds.Min.Z + ((bounds.Max.Z - bounds.Min.Z) * 0.5))
+            : new Point3d(0, 0, 0);
+
+    private static Point3d TransformPoint(Point3d source, Transform3d transform)
+    {
+        var x = (transform.M00 * source.X) + (transform.M01 * source.Y) + (transform.M02 * source.Z) + transform.M03;
+        var y = (transform.M10 * source.X) + (transform.M11 * source.Y) + (transform.M12 * source.Z) + transform.M13;
+        var z = (transform.M20 * source.X) + (transform.M21 * source.Y) + (transform.M22 * source.Z) + transform.M23;
+        var w = (transform.M30 * source.X) + (transform.M31 * source.Y) + (transform.M32 * source.Z) + transform.M33;
+        if (Math.Abs(w) > 1e-15 && Math.Abs(w - 1.0) > 1e-15)
+        {
+            x /= w;
+            y /= w;
+            z /= w;
+        }
+
+        return new Point3d(x, y, z);
+    }
 
     private static Vector3d Add(Vector3d left, Vector3d right) =>
         new(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
@@ -704,7 +910,11 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     }
 
     private readonly record struct ProjectedPoint(Vector2 Screen, double Depth);
-    private readonly record struct ProjectedTriangle(Vector2 A, Vector2 B, Vector2 C, double Depth, Color Color);
+    private readonly record struct ProjectedMeshBatch(
+        ThreeDmSharedMeshInstance Instance,
+        ThreeDmSharedMeshGeometry Geometry,
+        ThreeDmPreparedMeshDrawPolicy Policy,
+        double Depth);
 
     private readonly record struct CameraBasis(Vector3d Forward, Vector3d Right, Vector3d Up)
     {
