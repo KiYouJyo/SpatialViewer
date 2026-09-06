@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SpatialViewer.Product.Controls;
@@ -94,8 +95,8 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         if (_session.State == ThreeDmProductSessionState.Loading)
         {
             ProgressText.Text = _session.TotalObjects > 0
-                ? string.Format(T("ThreeDm_Status_OpeningProgress"), _session.ProcessedObjects, _session.TotalObjects)
-                : string.Format(T("ThreeDm_Status_OpeningFile"), _session.DisplayName);
+                ? string.Format(CultureInfo.CurrentCulture, T("ThreeDm_Status_OpeningProgress"), _session.ProcessedObjects, _session.TotalObjects)
+                : string.Format(CultureInfo.CurrentCulture, T("ThreeDm_Status_OpeningFile"), _session.DisplayName);
             return;
         }
 
@@ -114,7 +115,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         ViewPicker.SelectedItem =
             _session.ViewPresets.FirstOrDefault(item => item.Key == selectedKey) ??
             _session.ViewPresets.FirstOrDefault(item => item.Key == "standard:perspective") ??
-            _session.ViewPresets.FirstOrDefault();
+            (_session.ViewPresets.Count > 0 ? _session.ViewPresets[0] : null);
 
         var summary = _session.Summary;
         if (summary is not null)
@@ -127,11 +128,11 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
                 summary.NamedViewCount,
                 summary.InstanceDefinitionCount);
             UnitsText.Text = summary.ModelUnitSystem ?? T("ThreeDm_Unitless");
-            ObjectText.Text = string.Format(T("ThreeDm_Status_ObjectCount"), summary.ObjectCount);
+            ObjectText.Text = string.Format(CultureInfo.CurrentCulture, T("ThreeDm_Status_ObjectCount"), summary.ObjectCount);
             var warningCount = summary.WarningDiagnosticCount + summary.ErrorDiagnosticCount;
             DiagnosticsBar.IsOpen = warningCount > 0;
             DiagnosticsBar.Title = warningCount > 0
-                ? string.Format(T("ThreeDm_Diagnostics_Count"), warningCount)
+                ? string.Format(CultureInfo.CurrentCulture, T("ThreeDm_Diagnostics_Count"), warningCount)
                 : string.Empty;
         }
 

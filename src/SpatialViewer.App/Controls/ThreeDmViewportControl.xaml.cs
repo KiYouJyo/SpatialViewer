@@ -66,7 +66,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     {
         if (_session?.State != ThreeDmProductSessionState.Ready) return;
         var preset = _session.ViewPresets.FirstOrDefault(item => item.Key == "standard:perspective")
-            ?? _session.ViewPresets.FirstOrDefault();
+            ?? (_session.ViewPresets.Count > 0 ? _session.ViewPresets[0] : null);
         if (preset is null) return;
         SetView(preset.Camera);
     }
