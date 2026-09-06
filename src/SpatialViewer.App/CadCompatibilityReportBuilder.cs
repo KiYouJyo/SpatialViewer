@@ -84,7 +84,7 @@ internal static class CadCompatibilityReportBuilder
 
     private static CadCompatibilityCustomGroup BuildGroup(
         EntityGroupKey key,
-        IReadOnlyList<CadCustomEntity> entities)
+        CadCustomEntity[] entities)
     {
         var primitiveKinds = entities
             .SelectMany(entity => entity.ProxyGraphicKinds)
@@ -133,7 +133,7 @@ internal static class CadCompatibilityReportBuilder
                 yield return entity;
     }
 
-    private static IReadOnlyDictionary<string, string> FilterMetadata(
+    private static ReadOnlyDictionary<string, string> FilterMetadata(
         IReadOnlyDictionary<string, string> source,
         IEnumerable<string> allowList)
     {
