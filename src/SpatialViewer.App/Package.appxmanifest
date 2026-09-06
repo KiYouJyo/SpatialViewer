@@ -6,7 +6,7 @@
   xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap uap5 rescap">
-  <Identity Name="SpatialViewer" Publisher="CN=AppPublisher" Version="0.3.10.0" />
+  <Identity Name="SpatialViewer" Publisher="CN=AppPublisher" Version="0.4.0.0" />
   <mp:PhoneIdentity PhoneProductId="A423C3B4-2B87-4EA4-921B-5E596A107C08" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>Spatial Viewer</DisplayName>
@@ -39,6 +39,14 @@
             <uap:SupportedFileTypes>
               <uap:FileType>.dwg</uap:FileType>
               <uap:FileType>.dxf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="spatialviewer-rhino">
+            <uap:DisplayName>Spatial Viewer Rhino model</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.3dm</uap:FileType>
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>

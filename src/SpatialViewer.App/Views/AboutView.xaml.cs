@@ -54,6 +54,8 @@ public sealed partial class AboutView : UserControl
         PackageVersionText.Text = AppVersionProvider.GetPackageVersion();
         ArchitectureText.Text = RuntimeInformation.ProcessArchitecture.ToString();
         CurrentAppVersionText.Text = AppVersionProvider.DisplayVersion;
+        RhinoCurrentVersionText.Text = "v1.0.1";
+        RhinoCoreStatusText.Text = T("About_RhinoBundled");
     }
 
     private async void CheckAppUpdateButton_Click(object sender, RoutedEventArgs e)

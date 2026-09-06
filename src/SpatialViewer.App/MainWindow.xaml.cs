@@ -185,9 +185,10 @@ public sealed partial class MainWindow : Window
         }
 
         PersistWindowSize();
-        SessionStateStore.Save(_workspace.Documents.Select(document => document.FilePath));
+        SessionStateStore.Save(OpenDocumentPaths());
         AppWindow.Changed -= AppWindow_Changed;
         DisposeDocumentViews();
+        DisposeThreeDmSessions();
         _workspace.CloseAll();
     }
 
@@ -297,6 +298,12 @@ public sealed partial class MainWindow : Window
         foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (!FormatGate.IsSupported(path)) { await ShowInfoAsync(FormatGate.UnsupportedMessage(path)); continue; }
+            if (string.Equals(Path.GetExtension(path), ".3dm", StringComparison.OrdinalIgnoreCase))
+            {
+                OpenOrFocusThreeDm(path);
+                continue;
+            }
+
             var session = _workspace.OpenOrFocus(path, out var existing);
             if (!existing) _ = LoadSessionAsync(session);
             ShowDocument(session);
@@ -322,6 +329,7 @@ public sealed partial class MainWindow : Window
         var activeView = EnsureDocumentView(session);
         foreach (var pair in _documentViews)
             pair.Value.Visibility = ReferenceEquals(pair.Key, session) ? Visibility.Visible : Visibility.Collapsed;
+        HideThreeDmViews();
 
         if (!IsDocumentSurfaceVisible) MainContent.Content = _documentViewHost;
         if (activeView.Visibility != Visibility.Visible) activeView.Visibility = Visibility.Visible;
@@ -356,6 +364,7 @@ public sealed partial class MainWindow : Window
     {
         foreach (var view in _documentViews.Values) view.Dispose();
         _documentViews.Clear();
+        DisposeThreeDmViews();
         _documentViewHost.Children.Clear();
     }
 
@@ -379,17 +388,20 @@ public sealed partial class MainWindow : Window
             if (!Equals(_selectedTab, tag) || !IsKnownTab(tag)) return;
             if (tag is string homeId) ShowHome(homeId);
             else if (tag is DocumentSession session) ShowDocument(session);
+            else if (tag is ThreeDmProductSession threeDmSession) ShowThreeDmDocument(threeDmSession);
         });
     }
 
     private bool IsKnownTab(object tag) =>
         tag is string homeId ? _homeTabs.ContainsKey(homeId) :
-        tag is DocumentSession session && _documentTabs.ContainsKey(session);
+        tag is DocumentSession session ? _documentTabs.ContainsKey(session) :
+        tag is ThreeDmProductSession threeDmSession && _threeDmTabs.ContainsKey(threeDmSession);
 
     private void ShellTabClose_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: { } tag }) return;
         if (tag is DocumentSession session) { CloseSession(session); return; }
+        if (tag is ThreeDmProductSession threeDmSession) { CloseThreeDmSession(threeDmSession); return; }
         if (tag is string homeId && _homeTabs.Remove(homeId, out var visual))
         {
             _homeViews.Remove(homeId);
@@ -397,6 +409,7 @@ public sealed partial class MainWindow : Window
             if (Equals(_selectedTab, homeId))
             {
                 if (_documentTabs.Keys.FirstOrDefault() is { } document) ShowDocument(document);
+                else if (_threeDmTabs.Keys.FirstOrDefault() is { } threeDmDocument) ShowThreeDmDocument(threeDmDocument);
                 else if (_homeTabs.Keys.FirstOrDefault() is { } nextHome) ShowHome(nextHome);
                 else CreateHomeTab(select: true);
             }
@@ -408,9 +421,7 @@ public sealed partial class MainWindow : Window
         if (_documentTabs.Remove(session, out var tab)) ShellTabItems.Children.Remove(tab.Container);
         DisposeDocumentView(session);
         _workspace.Close(session);
-        if (_workspace.ActiveDocument is { } active) ShowDocument(active);
-        else if (_homeTabs.Keys.FirstOrDefault() is { } home) ShowHome(home);
-        else CreateHomeTab(select: true);
+        ShowFallbackDocumentOrHome();
     }
 
     private void SelectTab(object tag)
@@ -435,6 +446,11 @@ public sealed partial class MainWindow : Window
         if (tag is DocumentSession session && _documentTabs.TryGetValue(session, out var documentVisual))
         {
             visual = documentVisual;
+            return true;
+        }
+        if (tag is ThreeDmProductSession threeDmSession && _threeDmTabs.TryGetValue(threeDmSession, out var threeDmVisual))
+        {
+            visual = threeDmVisual;
             return true;
         }
         visual = null!;
@@ -483,7 +499,7 @@ public sealed partial class MainWindow : Window
 
     private async Task PickAndOpenAsync()
     {
-        var picker = new FileOpenPicker(); picker.FileTypeFilter.Add(".dwg"); picker.FileTypeFilter.Add(".dxf");
+        var picker = new FileOpenPicker(); picker.FileTypeFilter.Add(".dwg"); picker.FileTypeFilter.Add(".dxf"); picker.FileTypeFilter.Add(".3dm");
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
         var files = await picker.PickMultipleFilesAsync();
         await OpenFilesAsync(files.Select(file => file.Path));
@@ -606,7 +622,11 @@ public sealed partial class MainWindow : Window
     {
         var controlDown = InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
         if (controlDown && e.Key == Windows.System.VirtualKey.O) { e.Handled = true; await PickAndOpenAsync(); }
-        else if (controlDown && e.Key == Windows.System.VirtualKey.W && _workspace.ActiveDocument is { } active) { e.Handled = true; CloseSession(active); }
+        else if (controlDown && e.Key == Windows.System.VirtualKey.W)
+        {
+            if (_selectedTab is DocumentSession active) { e.Handled = true; CloseSession(active); }
+            else if (_selectedTab is ThreeDmProductSession threeDmActive) { e.Handled = true; CloseThreeDmSession(threeDmActive); }
+        }
     }
 }
 

@@ -21,8 +21,8 @@ public sealed class PresentationTests
     [InlineData("drawing.dwg", true)]
     [InlineData("drawing.dxf", true)]
     [InlineData("drawing.ifc", false)]
-    [InlineData("drawing.3dm", false)]
-    public void FormatGateOnlyAdmitsImplementedCadFormats(string path, bool allowed) => Assert.Equal(allowed, FormatGate.IsSupported(path));
+    [InlineData("drawing.3dm", true)]
+    public void FormatGateOnlyAdmitsImplementedViewerFormats(string path, bool allowed) => Assert.Equal(allowed, FormatGate.IsSupported(path));
 
     [Fact]
     public void DiagnosticsAggregateSameCode()
@@ -77,5 +77,36 @@ public sealed class PresentationTests
 
         public Task<ImportResult> ImportAsync(ImportRequest request, IProgress<ImportProgress>? progress = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(new ImportResult(document, Array.Empty<Diagnostic>()));
+    }
+    [Fact]
+    public void FormatGateSupportsThreeDmAlongsideCad()
+    {
+        Assert.True(FormatGate.IsSupported("model.dwg"));
+        Assert.True(FormatGate.IsSupported("model.dxf"));
+        Assert.True(FormatGate.IsSupported("model.3dm"));
+        Assert.False(FormatGate.IsSupported("model.ifc"));
+    }
+    [Fact]
+    public async Task RecentFilesClassifiesThreeDmAsRhino()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"spatialviewer-recent-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var storage = Path.Combine(root, "recent.json");
+            var model = Path.Combine(root, "sample.3dm");
+            await File.WriteAllTextAsync(model, "fixture");
+
+            var service = new RecentFilesService(storage);
+            await service.RecordAsync(model);
+            var item = Assert.Single(await service.LoadAsync());
+
+            Assert.Equal(DocumentKind.Rhino, item.DocumentKind);
+            Assert.Equal(".3dm", item.Extension, ignoreCase: true);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 }

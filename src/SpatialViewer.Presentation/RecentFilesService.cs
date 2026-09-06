@@ -22,9 +22,26 @@ public sealed class RecentFilesService
         if (!FormatGate.IsSupported(path)) return;
         var current = (await LoadAsync(cancellationToken).ConfigureAwait(false)).Where(item => !string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase)).ToList();
         var file = new FileInfo(path);
-        current.Insert(0, new RecentFile(path, file.Name, file.Extension, DocumentKind.Cad, DateTimeOffset.UtcNow, file.Exists ? file.Length : 0, file.Exists));
+        current.Insert(0, new RecentFile(
+            path,
+            file.Name,
+            file.Extension,
+            ResolveDocumentKind(file.Extension),
+            DateTimeOffset.UtcNow,
+            file.Exists ? file.Length : 0,
+            file.Exists));
         Directory.CreateDirectory(Path.GetDirectoryName(_storagePath)!);
         await using var stream = File.Create(_storagePath);
         await JsonSerializer.SerializeAsync(stream, current.Take(MaximumCount).ToArray(), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
+
+    private static DocumentKind ResolveDocumentKind(string extension) =>
+        extension.ToLowerInvariant() switch
+        {
+            ".dwg" or ".dxf" => DocumentKind.Cad,
+            ".3dm" => DocumentKind.Rhino,
+            ".gpkg" or ".shp" or ".tif" or ".tiff" or ".geojson" or ".json" => DocumentKind.Gis,
+            ".ifc" => DocumentKind.Bim,
+            _ => DocumentKind.Synthetic,
+        };
 }

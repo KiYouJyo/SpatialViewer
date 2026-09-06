@@ -37,7 +37,7 @@ public sealed partial class HomeView : UserControl
             new("CAD", "DWG / DXF", AppIconKind.Document, true, T("Home_Workflow_Cad_Tooltip")),
             new("GIS", "GPKG / SHP / GeoTIFF", AppIconKind.Area, false, T("Home_Workflow_Planned")),
             new("BIM", "IFC", AppIconKind.Project, false, T("Home_Workflow_Planned")),
-            new("Rhino", "3DM", AppIconKind.View, false, T("Home_Workflow_Planned"))
+            new("Rhino", "3DM", AppIconKind.View, true, T("Home_Workflow_Rhino_Tooltip"))
         ];
         InitializeComponent();
         AutomationProperties.SetName(OpenFileHeaderButton, T("Home_OpenFile_Automation"));
