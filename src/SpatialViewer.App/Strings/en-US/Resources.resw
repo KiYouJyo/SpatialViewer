@@ -191,4 +191,5 @@
   <data name="ThreeDm_Property_MaterialSource" xml:space="preserve"><value>Material source</value></data>
   <data name="ThreeDm_Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="ThreeDm_No" xml:space="preserve"><value>No</value></data>
+  <data name="About_RhinoBundled" xml:space="preserve"><value>Integrated</value></data>
 </root>
