@@ -234,7 +234,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private static void DrawFilledMesh(
         CanvasDrawingSession drawingSession,
         ThreeDmSharedMeshGeometry geometry,
-        IReadOnlyList<ProjectedPoint?> projected,
+        ProjectedPoint?[] projected,
         Color color)
     {
         using var path = new CanvasPathBuilder(drawingSession);
@@ -273,7 +273,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private void DrawWireMesh(
         CanvasDrawingSession drawingSession,
         ThreeDmSharedMeshGeometry geometry,
-        IReadOnlyList<ProjectedPoint?> projected,
+        ProjectedPoint?[] projected,
         Color color,
         ref int segmentBudget,
         float strokeWidth = 1f)
