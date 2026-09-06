@@ -1,5 +1,7 @@
 # SpatialViewer v0.4.0
 
+[简体中文](RELEASE-NOTES-v0.4.0.md) | [日本語](RELEASE-NOTES-v0.4.0.ja.md) | English
+
 v0.4.0 adds the Rhino 3DM viewing workflow while preserving the existing CAD viewer and WinUI 3 shell behavior.
 
 ## Rhino 3DM

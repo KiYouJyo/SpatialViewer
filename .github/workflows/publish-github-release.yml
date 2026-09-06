@@ -218,8 +218,9 @@ jobs:
             "docs/RELEASE-NOTES-v$version.en.md"
           )
           $hydratedFromMain = $false
+          $preferMainReleaseNotes = '${{ github.event_name }}' -eq 'workflow_dispatch'
           foreach ($noteFile in $noteFiles) {
-            if (-not (Test-Path -LiteralPath $noteFile -PathType Leaf)) {
+            if ($preferMainReleaseNotes -or -not (Test-Path -LiteralPath $noteFile -PathType Leaf)) {
               $content = git show "origin/main:$noteFile"
               if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace(($content -join "`n"))) { throw "Missing release notes in both release tag and main: $noteFile" }
               $directory = Split-Path -Parent $noteFile
