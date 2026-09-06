@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.4.1",
-    "packageVersion": "0.4.1.0"
+    "version": "0.4.2",
+    "packageVersion": "0.4.2.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.4.1 Rhino 显示与响应性热修",
-    "ja-JP": "SpatialViewer v0.4.1 Rhino 表示・応答性ホットフィックス",
-    "en-US": "SpatialViewer v0.4.1 Rhino Rendering and Responsiveness Hotfix"
+    "zh-CN": "SpatialViewer v0.4.2 CAD 兼容性报告与内核诊断",
+    "ja-JP": "SpatialViewer v0.4.2 CAD 互換性レポートとカーネル診断",
+    "en-US": "SpatialViewer v0.4.2 CAD Compatibility Report and Kernel Diagnostics"
   }
 }

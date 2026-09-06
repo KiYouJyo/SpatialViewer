@@ -30,7 +30,13 @@
       <SplitView.Content>
         <SplitView x:Name="RightPaneHost" DisplayMode="Inline" PanePlacement="Right" IsPaneOpen="True" OpenPaneLength="300" CompactPaneLength="0">
           <SplitView.Pane>
-            <Border x:Name="RightPanel" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1,0,0,0" Padding="12"><StackPanel Spacing="10"><TextBlock x:Uid="CadPropertiesPanelTitle" Text="属性" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock x:Name="PropertiesEmpty" x:Uid="CadPropertiesEmpty" Text="选择一个对象以查看真实 CAD 属性。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /><ListView x:Name="PropertiesList"><ListView.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Label}" Style="{StaticResource MetadataText}" /><TextBlock Text="{Binding Value}" TextWrapping="Wrap" /></StackPanel></DataTemplate></ListView.ItemTemplate></ListView><InfoBar x:Name="DiagnosticsBar" x:Uid="CadDiagnosticsBar" IsOpen="False" Severity="Warning" Title="图纸包含暂不支持的对象" IsClosable="True" /></StackPanel></Border>
+            <Border x:Name="RightPanel" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1,0,0,0" Padding="12"><StackPanel Spacing="10"><TextBlock x:Uid="CadPropertiesPanelTitle" Text="属性" Style="{StaticResource BodyText}" FontWeight="SemiBold" /><TextBlock x:Name="PropertiesEmpty" x:Uid="CadPropertiesEmpty" Text="选择一个对象以查看真实 CAD 属性。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" /><ListView x:Name="PropertiesList"><ListView.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Label}" Style="{StaticResource MetadataText}" /><TextBlock Text="{Binding Value}" TextWrapping="Wrap" /></StackPanel></DataTemplate></ListView.ItemTemplate></ListView><InfoBar x:Name="DiagnosticsBar" x:Uid="CadDiagnosticsBar" IsOpen="False" Severity="Warning" Title="图纸包含暂不支持的对象" IsClosable="True" />
+              <Button x:Name="CompatibilityReportButton"
+                      x:Uid="CadCompatibilityReportButton"
+                      Content="导出 CAD 兼容性报告"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      Click="ExportCompatibilityReport_Click" /></StackPanel></Border>
           </SplitView.Pane>
           <SplitView.Content><controls:CadViewportControl x:Name="Viewport" /></SplitView.Content>
         </SplitView>

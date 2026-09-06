@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.2] - 2026-09-06
+
+### Added
+
+- Added a native CAD compatibility-report export action at the bottom of the existing right-side Properties pane.
+- Added a privacy-safe JSON report generated from the loaded reader-independent `CadDocument`, including app/kernel/adapter versions, safe aggregate reader metadata, structural custom-object groups, proxy primitive coverage and raw proxy-command diagnostics when available.
+- Reports are saved to `Desktop/SpatialViewer Diagnostics` with a LocalAppData fallback, and the resulting path is copied to the clipboard.
+- Added Simplified Chinese, Japanese and English UI feedback for report availability, success and failure states.
+
+### Privacy and integration
+
+- The report uses an explicit allow-list and does not export the drawing filename/path, entity or target handles, layer names, coordinates, raw property values, colors, text content, raw DWG/DXF bytes or complete entity metadata.
+- SpatialViewer v0.4.2 is released against the latest stable compatible SpatialViewer.CadCore; v0.12.10 supplies the raw ObjectARX proxy-command inventory used by the new report.
+
+### Preserved
+
+- CAD rendering behavior, toolbar geometry, layer/properties pane layout, title bar, tabs, NavigationView, Projects, Favorites, Rhino 3DM rendering and the v0.4.1 responsiveness fixes remain unchanged.
+
+
 ## [0.4.1] - 2026-09-06
 
 ### Fixed
