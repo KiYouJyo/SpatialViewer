@@ -28,7 +28,6 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private bool _pointerMoved;
     private bool _disposed;
     private string _canvasColor = "#000000";
-    private readonly Dictionary<int, (int A, int B)[]> _wireEdgeCache = [];
 
     public ThreeDmViewportControl()
     {
@@ -44,7 +43,6 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         set
         {
             _session = value;
-            _wireEdgeCache.Clear();
             if (_session?.State == ThreeDmProductSessionState.Ready) Fit();
             Draw();
         }
@@ -277,7 +275,8 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         ThreeDmSharedMeshGeometry geometry,
         IReadOnlyList<ProjectedPoint?> projected,
         Color color,
-        ref int segmentBudget)
+        ref int segmentBudget,
+        float strokeWidth = 1f)
     {
         if (segmentBudget <= 0 || geometry.Indices.Count < 3)
         {
@@ -319,7 +318,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         }
 
         using var geometryPath = CanvasGeometry.CreatePath(path);
-        drawingSession.DrawGeometry(geometryPath, color, 1f);
+        drawingSession.DrawGeometry(geometryPath, color, strokeWidth);
     }
 
     private static void DrawCurve(
@@ -380,27 +379,6 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         path.BeginFigure(start);
         path.AddLine(end);
         path.EndFigure(CanvasFigureLoop.Open);
-    }
-
-    private (int A, int B)[] GetWireEdges(ThreeDmSharedMeshGeometry geometry)
-    {
-        if (_wireEdgeCache.TryGetValue(geometry.GeometryIndex, out var cached)) return cached;
-        var edges = new HashSet<(int A, int B)>();
-        for (var index = 0; index + 2 < geometry.Indices.Count; index += 3)
-        {
-            AddEdge(geometry.Indices[index], geometry.Indices[index + 1], edges);
-            AddEdge(geometry.Indices[index + 1], geometry.Indices[index + 2], edges);
-            AddEdge(geometry.Indices[index + 2], geometry.Indices[index], edges);
-        }
-
-        cached = edges.OrderBy(item => item.A).ThenBy(item => item.B).ToArray();
-        _wireEdgeCache[geometry.GeometryIndex] = cached;
-        return cached;
-    }
-
-    private static void AddEdge(int left, int right, HashSet<(int A, int B)> edges)
-    {
-        edges.Add(left <= right ? (left, right) : (right, left));
     }
 
     private static bool TryVertex(
@@ -738,47 +716,65 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         if (_session?.Selection is not { } selection) return;
         var geometries = scene.SharedMeshes.Geometries.ToDictionary(item => item.GeometryIndex);
         var highlight = Color.FromArgb(255, 0x42, 0xB8, 0xE3);
+        var selectionWireBudget = 30_000;
 
         foreach (var instance in scene.SharedMeshes.Instances)
         {
             var id = ThreeDmSelectionId.Create(instance.SourceObjectId, instance.SourceSubobjectIndex, instance.InstancePath);
-            if (id != selection || !geometries.TryGetValue(instance.GeometryIndex, out var geometry)) continue;
-            foreach (var (aIndex, bIndex) in GetWireEdges(geometry))
+            if (id != selection ||
+                !geometries.TryGetValue(instance.GeometryIndex, out var geometry) ||
+                selectionWireBudget <= 0)
             {
-                if (!TryVertex(geometry, aIndex, instance.Transform, out var a) ||
-                    !TryVertex(geometry, bIndex, instance.Transform, out var b) ||
-                    !Project(a, camera, basis, aspect, width, height, out var pa) ||
-                    !Project(b, camera, basis, aspect, width, height, out var pb))
-                {
-                    continue;
-                }
-
-                drawingSession.DrawLine(pa.Screen, pb.Screen, highlight, 2f);
+                continue;
             }
+
+            var projected = ProjectVertices(
+                geometry,
+                instance.Transform,
+                camera,
+                basis,
+                aspect,
+                width,
+                height);
+            DrawWireMesh(
+                drawingSession,
+                geometry,
+                projected,
+                highlight,
+                ref selectionWireBudget,
+                2f);
         }
 
         foreach (var curve in scene.Curves)
         {
             var id = ThreeDmSelectionId.Create(curve.SourceObjectId, curve.SourceSubobjectIndex, curve.InstancePath);
             if (id != selection) continue;
-            for (var index = 1; index < curve.Points.Count; index++)
-            {
-                if (Project(ToPoint(curve.Points[index - 1]), camera, basis, aspect, width, height, out var pa) &&
-                    Project(ToPoint(curve.Points[index]), camera, basis, aspect, width, height, out var pb))
-                {
-                    drawingSession.DrawLine(pa.Screen, pb.Screen, highlight, 2.5f);
-                }
-            }
+            var budget = 20_000;
+            DrawCurve(
+                drawingSession,
+                curve,
+                camera,
+                basis,
+                aspect,
+                width,
+                height,
+                highlight,
+                ref budget);
         }
 
+        var selectedPointBudget = 10_000;
         foreach (var pointSet in scene.PointSets)
         {
             var id = ThreeDmSelectionId.Create(pointSet.SourceObjectId, null, pointSet.InstancePath);
             if (id != selection) continue;
-            foreach (var point in pointSet.Points)
+            var stride = Math.Max(1, (int)Math.Ceiling((double)pointSet.Points.Count / Math.Max(1, selectedPointBudget)));
+            for (var index = 0; index < pointSet.Points.Count && selectedPointBudget > 0; index += stride)
             {
-                if (Project(ToPoint(point), camera, basis, aspect, width, height, out var projected))
+                if (Project(ToPoint(pointSet.Points[index]), camera, basis, aspect, width, height, out var projected))
+                {
                     drawingSession.FillCircle(projected.Screen, 4f, highlight);
+                    selectedPointBudget--;
+                }
             }
         }
     }
@@ -906,7 +902,6 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _wireEdgeCache.Clear();
     }
 
     private readonly record struct ProjectedPoint(Vector2 Screen, double Depth);
