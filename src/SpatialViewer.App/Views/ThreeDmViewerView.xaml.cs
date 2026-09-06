@@ -150,7 +150,7 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         Viewport.Draw();
     }
 
-    private IReadOnlyList<ThreeDmViewRow> CreateViewRows() =>
+    private ThreeDmViewRow[] CreateViewRows() =>
         _session.ViewPresets.Select(preset => new ThreeDmViewRow(preset, LocalizePresetName(preset))).ToArray();
 
     private string LocalizePresetName(ThreeDmViewPreset preset) => preset.Key switch
