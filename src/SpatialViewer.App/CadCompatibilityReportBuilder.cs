@@ -107,7 +107,7 @@ internal static class CadCompatibilityReportBuilder
             key.SourceEntityType,
             key.Vendor,
             key.Representation,
-            entities.Count,
+            entities.Length,
             primitiveKinds,
             SumMetadata(entities, "ProxyGraphicCount"),
             SumMetadata(entities, "ProxyGraphicTranslatedCount"),
