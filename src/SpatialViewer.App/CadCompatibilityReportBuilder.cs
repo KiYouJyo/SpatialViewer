@@ -59,8 +59,8 @@ internal static class CadCompatibilityReportBuilder
             SchemaVersion,
             DateTimeOffset.UtcNow,
             AppVersionProvider.Version,
-            typeof(CadDocument).Assembly.GetName().Version?.ToString() ?? "unknown",
-            typeof(ACadSharpCadImporter).Assembly.GetName().Version?.ToString() ?? "unknown",
+            GetProductVersion(typeof(CadDocument)),
+            GetProductVersion(typeof(ACadSharpCadImporter)),
             document.SourceFormat,
             document.Version,
             document.Units.ToString(),
@@ -70,6 +70,16 @@ internal static class CadCompatibilityReportBuilder
             groups);
 
         return JsonSerializer.Serialize(report, JsonOptions);
+    }
+
+    private static string GetProductVersion(Type type)
+    {
+        var fileVersion = System.Diagnostics.FileVersionInfo
+            .GetVersionInfo(type.Assembly.Location)
+            .FileVersion;
+        return string.IsNullOrWhiteSpace(fileVersion)
+            ? type.Assembly.GetName().Version?.ToString() ?? "unknown"
+            : fileVersion;
     }
 
     private static CadCompatibilityCustomGroup BuildGroup(
@@ -192,8 +202,8 @@ internal sealed record CadCompatibilityReport(
     int SchemaVersion,
     DateTimeOffset GeneratedUtc,
     string AppVersion,
-    string CadCoreAssemblyVersion,
-    string CadAdapterAssemblyVersion,
+    string CadCoreVersion,
+    string CadAdapterVersion,
     string SourceFormat,
     string CadVersion,
     string Units,
