@@ -21,8 +21,8 @@ public sealed class PresentationTests
     [InlineData("drawing.dwg", true)]
     [InlineData("drawing.dxf", true)]
     [InlineData("drawing.ifc", false)]
-    [InlineData("drawing.3dm", false)]
-    public void FormatGateOnlyAdmitsImplementedCadFormats(string path, bool allowed) => Assert.Equal(allowed, FormatGate.IsSupported(path));
+    [InlineData("drawing.3dm", true)]
+    public void FormatGateOnlyAdmitsImplementedViewerFormats(string path, bool allowed) => Assert.Equal(allowed, FormatGate.IsSupported(path));
 
     [Fact]
     public void DiagnosticsAggregateSameCode()

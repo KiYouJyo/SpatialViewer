@@ -23,6 +23,9 @@ jobs:
       - name: Verify trilingual localization contract
         shell: pwsh
         run: ./packaging/Test-LocalizationCompleteness.ps1
+      - name: Verify Rhino/CAD viewer parity contract
+        shell: pwsh
+        run: ./packaging/Test-RhinoViewerParity.ps1
       - name: Verify application update contract
         shell: pwsh
         run: ./packaging/Test-AppUpdateContract.ps1
