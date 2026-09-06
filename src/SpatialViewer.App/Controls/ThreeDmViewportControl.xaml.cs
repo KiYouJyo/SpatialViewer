@@ -244,9 +244,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
             var aIndex = geometry.Indices[index];
             var bIndex = geometry.Indices[index + 1];
             var cIndex = geometry.Indices[index + 2];
-            if ((uint)aIndex >= (uint)projected.Count ||
-                (uint)bIndex >= (uint)projected.Count ||
-                (uint)cIndex >= (uint)projected.Count ||
+            if ((uint)aIndex >= (uint)projected.Length ||
+                (uint)bIndex >= (uint)projected.Length ||
+                (uint)cIndex >= (uint)projected.Length ||
                 projected[aIndex] is not { } a ||
                 projected[bIndex] is not { } b ||
                 projected[cIndex] is not { } c)
@@ -295,9 +295,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
             var aIndex = geometry.Indices[index];
             var bIndex = geometry.Indices[index + 1];
             var cIndex = geometry.Indices[index + 2];
-            if ((uint)aIndex >= (uint)projected.Count ||
-                (uint)bIndex >= (uint)projected.Count ||
-                (uint)cIndex >= (uint)projected.Count ||
+            if ((uint)aIndex >= (uint)projected.Length ||
+                (uint)bIndex >= (uint)projected.Length ||
+                (uint)cIndex >= (uint)projected.Length ||
                 projected[aIndex] is not { } a ||
                 projected[bIndex] is not { } b ||
                 projected[cIndex] is not { } c)
