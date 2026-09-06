@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.1] - 2026-09-06
+
+### Fixed
+
+- Fixed Rhino 3DM models loading layers and object counts but showing a blank viewport when Brep/Extrusion objects had no embedded Rhino render mesh.
+- Updated the bundled SpatialViewer.3DMCore to 1.0.2 with semantic Brep and Extrusion fallback tessellation.
+- Moved prepared 3DM render-scene construction off the WinUI UI thread so NURBS tessellation no longer freezes the window after loading.
+- Replaced per-triangle Win2D CanvasGeometry creation with batched per-instance paths and bounded frame budgets.
+- Added dark/light canvas contrast correction so black or near-black Rhino layer colors remain visible on dark backgrounds without mutating source colors.
+- Bounded selection highlighting to avoid allocating very large edge hash sets for complex meshes.
+- Mouse-wheel zoom now remains available regardless of the active Rhino navigation tool.
+
+### Preserved
+
+- CAD viewer rendering, CadCore runtime behavior, CAD toolbar/view controls, title bar, tabs, navigation, Projects, Favorites, and existing shell effects remain unchanged.
+
+
 ## [0.4.0] - 2026-09-06
 
 ### Added

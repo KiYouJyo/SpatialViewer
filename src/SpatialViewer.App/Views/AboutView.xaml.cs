@@ -54,7 +54,7 @@ public sealed partial class AboutView : UserControl
         PackageVersionText.Text = AppVersionProvider.GetPackageVersion();
         ArchitectureText.Text = RuntimeInformation.ProcessArchitecture.ToString();
         CurrentAppVersionText.Text = AppVersionProvider.DisplayVersion;
-        RhinoCurrentVersionText.Text = "v1.0.1";
+        RhinoCurrentVersionText.Text = "v1.0.2";
         RhinoCoreStatusText.Text = T("About_RhinoBundled");
     }
 
