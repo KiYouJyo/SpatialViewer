@@ -308,7 +308,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 ndcY = y / (z * tanHalf);
             }
         }
-        else if (Mode == ThreeDmViewerMode.Orbit)
+        else
         {
             if (camera.SourceFrustum is { } frustum)
             {
@@ -364,7 +364,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 SourceFrustum = null,
             };
         }
-        else
+        else if (Mode == ThreeDmViewerMode.Orbit)
         {
             var offset = Subtract(camera.Location, camera.Target);
             var factor = delta > 0 ? 0.85 : 1.0 / 0.85;
