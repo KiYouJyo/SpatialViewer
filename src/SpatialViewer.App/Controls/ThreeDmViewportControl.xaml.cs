@@ -15,6 +15,8 @@ using Windows.UI;
 
 namespace SpatialViewer.Product.Controls;
 
+internal enum ThreeDmViewerMode { Select, Orbit, Pan }
+
 public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
 {
     private ThreeDmProductSession? _session;
@@ -23,6 +25,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     private ThreeDmCameraState? _pointerStartCamera;
     private uint? _capturedPointerId;
     private bool _panning;
+    private bool _pointerMoved;
     private bool _disposed;
     private string _canvasColor = "#000000";
     private readonly Dictionary<int, (int A, int B)[]> _wireEdgeCache = [];
@@ -31,6 +34,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
     {
         InitializeComponent();
     }
+
+    internal event EventHandler<ThreeDmSelectionProperties?>? SelectionChanged;
+    internal ThreeDmViewerMode Mode { get; set; } = ThreeDmViewerMode.Orbit;
 
     internal ThreeDmProductSession? Session
     {
@@ -198,6 +204,8 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 }
             }
         }
+
+        DrawSelectionOverlay(args.DrawingSession, scene, camera, basis, aspect, width, height);
     }
 
     private (int A, int B)[] GetWireEdges(ThreeDmSharedMeshGeometry geometry)
@@ -300,7 +308,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
                 ndcY = y / (z * tanHalf);
             }
         }
-        else
+        else if (Mode == ThreeDmViewerMode.Orbit)
         {
             if (camera.SourceFrustum is { } frustum)
             {
@@ -379,7 +387,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         _pointerStart = point.Position;
         _pointerStartCamera = _camera;
         _capturedPointerId = e.Pointer.PointerId;
-        _panning = point.Properties.IsMiddleButtonPressed;
+        _panning = point.Properties.IsMiddleButtonPressed ||
+            (Mode == ThreeDmViewerMode.Pan && point.Properties.IsLeftButtonPressed);
+        _pointerMoved = false;
         ViewportCanvas.CapturePointer(e.Pointer);
     }
 
@@ -395,6 +405,9 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         var position = e.GetCurrentPoint(ViewportCanvas).Position;
         var dx = position.X - start.X;
         var dy = position.Y - start.Y;
+        if (Math.Abs(dx) > 0.5 || Math.Abs(dy) > 0.5) _pointerMoved = true;
+        if (Mode == ThreeDmViewerMode.Select && !_panning) return;
+
         var basis = CameraBasis.Create(camera);
 
         if (_panning)
@@ -433,7 +446,17 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         Draw();
     }
 
-    private void Viewport_PointerReleased(object sender, PointerRoutedEventArgs e) => EndPointer(e.Pointer.PointerId);
+    private void Viewport_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        var position = e.GetCurrentPoint(ViewportCanvas).Position;
+        var shouldSelect = _capturedPointerId == e.Pointer.PointerId &&
+            Mode == ThreeDmViewerMode.Select &&
+            !_panning &&
+            !_pointerMoved;
+        EndPointer(e.Pointer.PointerId);
+        if (shouldSelect) Select(position);
+    }
+
     private void Viewport_PointerCanceled(object sender, PointerRoutedEventArgs e) => EndPointer(e.Pointer.PointerId);
 
     private void EndPointer(uint pointerId)
@@ -442,7 +465,180 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         _pointerStart = null;
         _pointerStartCamera = null;
         _capturedPointerId = null;
+        _pointerMoved = false;
         ViewportCanvas.ReleasePointerCaptures();
+    }
+
+    private void Select(Point position)
+    {
+        if (_session?.State != ThreeDmProductSessionState.Ready ||
+            _session.RenderScene is not { } scene ||
+            _camera is not { } camera)
+        {
+            return;
+        }
+
+        var width = Math.Max(1, ViewportCanvas.ActualWidth);
+        var height = Math.Max(1, ViewportCanvas.ActualHeight);
+        var aspect = width / height;
+        var basis = CameraBasis.Create(camera);
+        var pointer = new Vector2((float)position.X, (float)position.Y);
+        var geometries = scene.SharedMeshes.Geometries.ToDictionary(item => item.GeometryIndex);
+        ThreeDmSelectionId? best = null;
+        var bestDistance = double.MaxValue;
+        var bestDepth = double.MaxValue;
+
+        void Consider(ThreeDmSelectionId id, double distance, double depth)
+        {
+            if (distance > bestDistance + 1e-6) return;
+            if (Math.Abs(distance - bestDistance) <= 1e-6 && depth >= bestDepth) return;
+            best = id;
+            bestDistance = distance;
+            bestDepth = depth;
+        }
+
+        foreach (var instance in scene.SharedMeshes.Instances)
+        {
+            if (!geometries.TryGetValue(instance.GeometryIndex, out var geometry)) continue;
+            for (var index = 0; index + 2 < geometry.Indices.Count; index += 3)
+            {
+                if (!TryVertex(geometry, geometry.Indices[index], instance.Transform, out var a) ||
+                    !TryVertex(geometry, geometry.Indices[index + 1], instance.Transform, out var b) ||
+                    !TryVertex(geometry, geometry.Indices[index + 2], instance.Transform, out var d) ||
+                    !Project(a, camera, basis, aspect, width, height, out var pa) ||
+                    !Project(b, camera, basis, aspect, width, height, out var pb) ||
+                    !Project(d, camera, basis, aspect, width, height, out var pd) ||
+                    !PointInTriangle(pointer, pa.Screen, pb.Screen, pd.Screen))
+                {
+                    continue;
+                }
+
+                Consider(
+                    ThreeDmSelectionId.Create(instance.SourceObjectId, instance.SourceSubobjectIndex, instance.InstancePath),
+                    0,
+                    (pa.Depth + pb.Depth + pd.Depth) / 3);
+            }
+        }
+
+        const double pickRadius = 6;
+        foreach (var curve in scene.Curves)
+        {
+            for (var index = 1; index < curve.Points.Count; index++)
+            {
+                if (!Project(ToPoint(curve.Points[index - 1]), camera, basis, aspect, width, height, out var pa) ||
+                    !Project(ToPoint(curve.Points[index]), camera, basis, aspect, width, height, out var pb))
+                {
+                    continue;
+                }
+
+                var distance = DistanceToSegment(pointer, pa.Screen, pb.Screen);
+                if (distance <= pickRadius)
+                {
+                    Consider(
+                        ThreeDmSelectionId.Create(curve.SourceObjectId, curve.SourceSubobjectIndex, curve.InstancePath),
+                        distance,
+                        Math.Min(pa.Depth, pb.Depth));
+                }
+            }
+        }
+
+        foreach (var pointSet in scene.PointSets)
+        {
+            foreach (var point in pointSet.Points)
+            {
+                if (!Project(ToPoint(point), camera, basis, aspect, width, height, out var projected)) continue;
+                var distance = Vector2.Distance(pointer, projected.Screen);
+                if (distance <= pickRadius)
+                {
+                    Consider(
+                        ThreeDmSelectionId.Create(pointSet.SourceObjectId, null, pointSet.InstancePath),
+                        distance,
+                        projected.Depth);
+                }
+            }
+        }
+
+        _session.Selection = best;
+        SelectionChanged?.Invoke(this, best is { } id ? _session.GetSelectionProperties(id) : null);
+        Draw();
+    }
+
+    private void DrawSelectionOverlay(
+        CanvasDrawingSession drawingSession,
+        ThreeDmPreparedRenderScene scene,
+        ThreeDmCameraState camera,
+        CameraBasis basis,
+        double aspect,
+        double width,
+        double height)
+    {
+        if (_session?.Selection is not { } selection) return;
+        var geometries = scene.SharedMeshes.Geometries.ToDictionary(item => item.GeometryIndex);
+        var highlight = Color.FromArgb(255, 0x42, 0xB8, 0xE3);
+
+        foreach (var instance in scene.SharedMeshes.Instances)
+        {
+            var id = ThreeDmSelectionId.Create(instance.SourceObjectId, instance.SourceSubobjectIndex, instance.InstancePath);
+            if (id != selection || !geometries.TryGetValue(instance.GeometryIndex, out var geometry)) continue;
+            foreach (var (aIndex, bIndex) in GetWireEdges(geometry))
+            {
+                if (!TryVertex(geometry, aIndex, instance.Transform, out var a) ||
+                    !TryVertex(geometry, bIndex, instance.Transform, out var b) ||
+                    !Project(a, camera, basis, aspect, width, height, out var pa) ||
+                    !Project(b, camera, basis, aspect, width, height, out var pb))
+                {
+                    continue;
+                }
+
+                drawingSession.DrawLine(pa.Screen, pb.Screen, highlight, 2f);
+            }
+        }
+
+        foreach (var curve in scene.Curves)
+        {
+            var id = ThreeDmSelectionId.Create(curve.SourceObjectId, curve.SourceSubobjectIndex, curve.InstancePath);
+            if (id != selection) continue;
+            for (var index = 1; index < curve.Points.Count; index++)
+            {
+                if (Project(ToPoint(curve.Points[index - 1]), camera, basis, aspect, width, height, out var pa) &&
+                    Project(ToPoint(curve.Points[index]), camera, basis, aspect, width, height, out var pb))
+                {
+                    drawingSession.DrawLine(pa.Screen, pb.Screen, highlight, 2.5f);
+                }
+            }
+        }
+
+        foreach (var pointSet in scene.PointSets)
+        {
+            var id = ThreeDmSelectionId.Create(pointSet.SourceObjectId, null, pointSet.InstancePath);
+            if (id != selection) continue;
+            foreach (var point in pointSet.Points)
+            {
+                if (Project(ToPoint(point), camera, basis, aspect, width, height, out var projected))
+                    drawingSession.FillCircle(projected.Screen, 4f, highlight);
+            }
+        }
+    }
+
+    private static bool PointInTriangle(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
+    {
+        static float Sign(Vector2 p1, Vector2 p2, Vector2 p3) =>
+            ((p1.X - p3.X) * (p2.Y - p3.Y)) - ((p2.X - p3.X) * (p1.Y - p3.Y));
+        var d1 = Sign(point, a, b);
+        var d2 = Sign(point, b, c);
+        var d3 = Sign(point, c, a);
+        var hasNegative = d1 < 0 || d2 < 0 || d3 < 0;
+        var hasPositive = d1 > 0 || d2 > 0 || d3 > 0;
+        return !(hasNegative && hasPositive);
+    }
+
+    private static double DistanceToSegment(Vector2 point, Vector2 start, Vector2 end)
+    {
+        var delta = end - start;
+        var lengthSquared = delta.LengthSquared();
+        if (lengthSquared <= float.Epsilon) return Vector2.Distance(point, start);
+        var t = Math.Clamp(Vector2.Dot(point - start, delta) / lengthSquared, 0f, 1f);
+        return Vector2.Distance(point, start + (delta * t));
     }
 
     private Color ParseCanvasColor() => _canvasColor == "#FFFFFF" ? Colors.White : Colors.Black;
