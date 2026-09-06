@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.3.9",
-    "packageVersion": "0.3.9.0"
+    "version": "0.4.0",
+    "packageVersion": "0.4.0.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.3.9 湘源用地色块修复",
-    "ja-JP": "SpatialViewer v0.3.9 湘源用途色面修正",
-    "en-US": "SpatialViewer v0.3.9 Xiangyuan Land-use Fill Fix"
+    "zh-CN": "SpatialViewer v0.4.0 Rhino 3DM 看图接入",
+    "ja-JP": "SpatialViewer v0.4.0 Rhino 3DM ビューア統合",
+    "en-US": "SpatialViewer v0.4.0 Rhino 3DM Viewer Integration"
   }
 }

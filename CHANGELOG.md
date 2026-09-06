@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0] - 2026-09-06
+
+### Added
+
+- Integrated SpatialViewer.3DMCore 1.0.1 as the independent Rhino 3DM read/view kernel.
+- Added direct .3dm opening, progressive loading, layers, standard/named views, orbit/pan/zoom/fit, display modes, selection highlighting, property inspection, recent files, session restore, external-file reload, and Windows file association.
+
+### Changed
+
+- Advanced the product and MSIX identities to 0.4.0 / 0.4.0.0.
+- Reworked the Rhino viewer chrome to follow the existing CAD viewer's toolbar, native AppBar control types, inline sidebars, responsive pane widths, properties list, status bar, theme behavior, and keyboard conventions.
+
+### Preserved
+
+- Existing CAD rendering, CadCore runtime activation/update, title bar, tab interactions, NavigationView, themes, Projects, Favorites, and existing shell effects remain unchanged.
+
+
 ## [0.3.7] - 2026-09-03
 
 ### Added
