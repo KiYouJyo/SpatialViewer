@@ -1,5 +1,7 @@
 # SpatialViewer v0.4.0
 
+简体中文 | [日本語](RELEASE-NOTES-v0.4.0.ja.md) | [English](RELEASE-NOTES-v0.4.0.en.md)
+
 v0.4.0 正式接入 Rhino 3DM 看图能力，并保持既有 CAD 看图与 WinUI 3 外壳行为不变。
 
 ## Rhino 3DM

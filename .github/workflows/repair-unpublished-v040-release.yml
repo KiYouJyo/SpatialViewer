@@ -1,0 +1,53 @@
+name: Repair Unpublished v0.4.0 Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-unpublished-v040-release.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  repair-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable unpublished v0.4.0 tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='v0.4.0'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already has a published GitHub Release; no repair is needed."
+            exit 0
+          fi
+
+          git fetch --tags --force
+          existing="$(git rev-list -n 1 "refs/tags/$tag" 2>/dev/null || true)"
+          if [[ -z "$existing" ]]; then
+            echo "$tag is missing; refusing to create or retarget it from the repair workflow."
+            exit 1
+          fi
+          echo "$tag remains immutable at $existing; only release-note metadata will be hydrated from main."
+
+      - name: Dispatch normal release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='v0.4.0'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already has a published GitHub Release; skipping dispatch."
+            exit 0
+          fi
+          gh workflow run publish-github-release.yml -f version=0.4.0 -f dry_run=false
+          echo 'Dispatched normal Publish GitHub Release workflow for immutable v0.4.0.'

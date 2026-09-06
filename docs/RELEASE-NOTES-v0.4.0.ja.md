@@ -1,5 +1,7 @@
 # SpatialViewer v0.4.0
 
+[简体中文](RELEASE-NOTES-v0.4.0.md) | 日本語 | [English](RELEASE-NOTES-v0.4.0.en.md)
+
 v0.4.0 では Rhino 3DM ビューアーを追加し、既存の CAD ビューアーと WinUI 3 シェルの挙動を維持します。
 
 ## Rhino 3DM
