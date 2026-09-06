@@ -3,23 +3,40 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:SpatialViewer.Product.Controls">
   <Grid x:Name="ThreeDmRoot" Background="{ThemeResource BgPanelBrush}" RowDefinitions="64,*,24" UseLayoutRounding="True" SizeChanged="ThreeDmRoot_SizeChanged">
-    <Grid Grid.Row="0" Background="{ThemeResource BgToolbarBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" ColumnDefinitions="*,Auto">
-      <ScrollViewer HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <AppBarButton x:Name="LayersButton" x:Uid="CadLayersButton" Label="图层" Click="ToggleLeft_Click"><AppBarButton.Icon><SymbolIcon Symbol="GlobalNavigationButton" /></AppBarButton.Icon></AppBarButton>
-          <AppBarButton x:Uid="CadFitButton" Label="适合窗口" Click="Fit_Click"><AppBarButton.Icon><SymbolIcon Symbol="FullScreen" /></AppBarButton.Icon></AppBarButton>
-          <ComboBox x:Name="ViewPicker" Width="150" Margin="6,12,0,12" DisplayMemberPath="Name" SelectionChanged="ViewPicker_SelectionChanged" />
-          <ComboBox x:Name="DisplayModePicker" Width="150" Margin="6,12,0,12" SelectionChanged="DisplayModePicker_SelectionChanged" />
+    <Grid x:Name="ViewerToolbar" Grid.Row="0" Background="{ThemeResource BgToolbarBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" ColumnDefinitions="*,Auto">
+      <ScrollViewer Grid.Column="0" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Horizontal">
+          <AppBarButton x:Name="LayersButton" x:Uid="CadLayersButton" Label="图层" LabelPosition="Default" Click="ToggleLeft_Click"><AppBarButton.Icon><SymbolIcon Symbol="GlobalNavigationButton" /></AppBarButton.Icon></AppBarButton>
+          <AppBarToggleButton x:Name="SelectTool" x:Uid="CadSelectButton" Label="选择" LabelPosition="Default" Click="SelectTool_Click"><AppBarToggleButton.Icon><SymbolIcon Symbol="TouchPointer" /></AppBarToggleButton.Icon></AppBarToggleButton>
+          <AppBarToggleButton x:Name="OrbitTool" x:Uid="ThreeDmOrbitButton" Label="旋转" LabelPosition="Default" Click="OrbitTool_Click"><AppBarToggleButton.Icon><SymbolIcon Symbol="Refresh" /></AppBarToggleButton.Icon></AppBarToggleButton>
+          <AppBarToggleButton x:Name="PanTool" x:Uid="CadPanButton" Label="平移" LabelPosition="Default" Click="PanTool_Click"><AppBarToggleButton.Icon><SymbolIcon Symbol="Map" /></AppBarToggleButton.Icon></AppBarToggleButton>
+          <AppBarButton x:Uid="CadFitButton" Label="适合窗口" LabelPosition="Default" Click="Fit_Click"><AppBarButton.Icon><SymbolIcon Symbol="FullScreen" /></AppBarButton.Icon></AppBarButton>
+          <AppBarButton x:Uid="CadDistanceButton" Label="测距" LabelPosition="Default" IsEnabled="False"><AppBarButton.Icon><SymbolIcon Symbol="Preview" /></AppBarButton.Icon></AppBarButton>
+          <AppBarButton x:Uid="CadAreaButton" Label="面积" LabelPosition="Default" IsEnabled="False"><AppBarButton.Icon><SymbolIcon Symbol="Map" /></AppBarButton.Icon></AppBarButton>
+          <AppBarButton x:Uid="CadCoordinateButton" Label="坐标" LabelPosition="Default" IsEnabled="False"><AppBarButton.Icon><SymbolIcon Symbol="Target" /></AppBarButton.Icon></AppBarButton>
+          <AppBarButton x:Name="DisplayButton" x:Uid="CadDisplayButton" Label="显示" LabelPosition="Default">
+            <AppBarButton.Icon><SymbolIcon Symbol="View" /></AppBarButton.Icon>
+            <AppBarButton.Flyout>
+              <MenuFlyout>
+                <ToggleMenuFlyoutItem x:Name="ShadedMenuItem" Click="ShadedMenuItem_Click" />
+                <ToggleMenuFlyoutItem x:Name="ShadedEdgesMenuItem" Click="ShadedEdgesMenuItem_Click" />
+                <ToggleMenuFlyoutItem x:Name="WireframeMenuItem" Click="WireframeMenuItem_Click" />
+              </MenuFlyout>
+            </AppBarButton.Flyout>
+          </AppBarButton>
         </StackPanel>
       </ScrollViewer>
-      <AppBarButton Grid.Column="1" x:Name="PropertiesButton" x:Uid="CadPropertiesButton" Label="属性" Click="ToggleRight_Click"><AppBarButton.Icon><SymbolIcon Symbol="OpenPane" /></AppBarButton.Icon></AppBarButton>
+      <AppBarButton Grid.Column="1" x:Name="PropertiesButton" x:Uid="CadPropertiesButton" Label="属性" LabelPosition="Default" HorizontalAlignment="Right" Click="ToggleRight_Click"><AppBarButton.Icon><SymbolIcon Symbol="OpenPane" /></AppBarButton.Icon></AppBarButton>
     </Grid>
 
     <SplitView x:Name="LeftPaneHost" Grid.Row="1" DisplayMode="Inline" PanePlacement="Left" IsPaneOpen="True" OpenPaneLength="300" CompactPaneLength="0">
       <SplitView.Pane>
-        <Border Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,1,0" Padding="12">
+        <Border x:Name="LeftPanel" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,1,0" Padding="12">
           <Grid RowDefinitions="Auto,10,*">
-            <TextBlock x:Uid="ThreeDmLayersTitle" Text="图层" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="Auto,*">
+              <Button x:Name="LayerSegment" x:Uid="CadLayerSegment" Style="{StaticResource PanelSegmentActive}" Content="图层" Click="ShowLayers_Click" />
+              <Button x:Name="ViewSegment" x:Uid="ThreeDmViewSegment" Grid.Column="1" Style="{StaticResource PanelSegment}" Content="视图" HorizontalAlignment="Left" Margin="8,0,0,0" Click="ShowViews_Click" />
+            </Grid>
             <ListView Grid.Row="2" x:Name="LayerList">
               <ListView.ItemTemplate>
                 <DataTemplate>
@@ -27,16 +44,27 @@
                 </DataTemplate>
               </ListView.ItemTemplate>
             </ListView>
+            <ListView Grid.Row="2" x:Name="ViewList" Visibility="Collapsed" DisplayMemberPath="Name" SelectionChanged="ViewList_SelectionChanged" />
           </Grid>
         </Border>
       </SplitView.Pane>
       <SplitView.Content>
         <SplitView x:Name="RightPaneHost" DisplayMode="Inline" PanePlacement="Right" IsPaneOpen="True" OpenPaneLength="300" CompactPaneLength="0">
           <SplitView.Pane>
-            <Border Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1,0,0,0" Padding="12">
+            <Border x:Name="RightPanel" Background="{ThemeResource BgPanelBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1,0,0,0" Padding="12">
               <StackPanel Spacing="10">
                 <TextBlock x:Uid="CadPropertiesPanelTitle" Text="属性" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
-                <TextBlock x:Name="SummaryText" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                <TextBlock x:Name="PropertiesEmpty" x:Uid="ThreeDmPropertiesEmpty" Text="选择一个对象以查看 Rhino 属性。" Style="{StaticResource BodyText}" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                <ListView x:Name="PropertiesList">
+                  <ListView.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource MetadataText}" />
+                        <TextBlock Text="{Binding Value}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListView.ItemTemplate>
+                </ListView>
                 <InfoBar x:Name="DiagnosticsBar" x:Uid="ThreeDmDiagnosticsBar" IsOpen="False" Severity="Warning" IsClosable="True" />
               </StackPanel>
             </Border>
@@ -46,10 +74,11 @@
       </SplitView.Content>
     </SplitView>
 
-    <Grid Grid.Row="2" Background="{ThemeResource BgToolbarBrush}" Padding="12,2" ColumnDefinitions="Auto,Auto,*,Auto">
-      <TextBlock x:Name="ProgressText" Style="{StaticResource MetadataText}" />
-      <TextBlock x:Name="UnitsText" Grid.Column="1" Margin="18,0,0,0" Style="{StaticResource MetadataText}" />
-      <TextBlock x:Name="ObjectText" Grid.Column="3" Style="{StaticResource MetadataText}" TextTrimming="CharacterEllipsis" />
+    <Grid Grid.Row="2" Background="{ThemeResource BgToolbarBrush}" Padding="12,2" ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+      <TextBlock x:Name="CoordinateText" Style="{StaticResource MetadataText}" />
+      <TextBlock x:Name="ZoomText" Grid.Column="1" Margin="18,0,0,0" Style="{StaticResource MetadataText}" />
+      <TextBlock x:Name="UnitsText" Grid.Column="2" Margin="18,0,0,0" Style="{StaticResource MetadataText}" />
+      <TextBlock x:Name="ObjectText" Grid.Column="4" Style="{StaticResource MetadataText}" TextTrimming="CharacterEllipsis" />
     </Grid>
   </Grid>
 </UserControl>
