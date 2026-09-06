@@ -270,7 +270,7 @@ public sealed partial class ThreeDmViewportControl : UserControl, IDisposable
         drawingSession.FillGeometry(geometryPath, color);
     }
 
-    private void DrawWireMesh(
+    private static void DrawWireMesh(
         CanvasDrawingSession drawingSession,
         ThreeDmSharedMeshGeometry geometry,
         ProjectedPoint?[] projected,
