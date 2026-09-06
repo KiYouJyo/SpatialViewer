@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "product": {
     "name": "SpatialViewer",
-    "version": "0.4.0",
-    "packageVersion": "0.4.0.0"
+    "version": "0.4.1",
+    "packageVersion": "0.4.1.0"
   },
   "channels": {
     "github": {
@@ -11,8 +11,8 @@
     }
   },
   "title": {
-    "zh-CN": "SpatialViewer v0.4.0 Rhino 3DM 看图接入",
-    "ja-JP": "SpatialViewer v0.4.0 Rhino 3DM ビューア統合",
-    "en-US": "SpatialViewer v0.4.0 Rhino 3DM Viewer Integration"
+    "zh-CN": "SpatialViewer v0.4.1 Rhino 显示与响应性热修",
+    "ja-JP": "SpatialViewer v0.4.1 Rhino 表示・応答性ホットフィックス",
+    "en-US": "SpatialViewer v0.4.1 Rhino Rendering and Responsiveness Hotfix"
   }
 }

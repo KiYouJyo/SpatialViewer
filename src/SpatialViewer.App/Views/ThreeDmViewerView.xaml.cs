@@ -178,11 +178,12 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         foreach (var child in node.Children) AddLayerRows(child, depth + 1, output);
     }
 
-    private void Layer_Click(object sender, RoutedEventArgs e)
+    private async void Layer_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not CheckBox { Tag: Guid id, IsChecked: bool visible }) return;
-        _session.SetLayerVisibility(id, visible);
+        await _session.SetLayerVisibilityAsync(id, visible);
         RefreshSessionState();
+        Viewport.Draw();
     }
 
     private void ShowLayers_Click(object sender, RoutedEventArgs e) => SetLeftPaneMode(showLayers: true);
@@ -218,13 +219,16 @@ public sealed partial class ThreeDmViewerView : UserControl, IDisposable
         PanTool.IsChecked = mode == ThreeDmViewerMode.Pan;
     }
 
-    private void ShadedMenuItem_Click(object sender, RoutedEventArgs e) => SetDisplayMode(ThreeDmRenderDisplayMode.Shaded);
-    private void ShadedEdgesMenuItem_Click(object sender, RoutedEventArgs e) => SetDisplayMode(ThreeDmRenderDisplayMode.ShadedWithEdges);
-    private void WireframeMenuItem_Click(object sender, RoutedEventArgs e) => SetDisplayMode(ThreeDmRenderDisplayMode.Wireframe);
+    private async void ShadedMenuItem_Click(object sender, RoutedEventArgs e) =>
+        await SetDisplayModeAsync(ThreeDmRenderDisplayMode.Shaded);
+    private async void ShadedEdgesMenuItem_Click(object sender, RoutedEventArgs e) =>
+        await SetDisplayModeAsync(ThreeDmRenderDisplayMode.ShadedWithEdges);
+    private async void WireframeMenuItem_Click(object sender, RoutedEventArgs e) =>
+        await SetDisplayModeAsync(ThreeDmRenderDisplayMode.Wireframe);
 
-    private void SetDisplayMode(ThreeDmRenderDisplayMode mode)
+    private async Task SetDisplayModeAsync(ThreeDmRenderDisplayMode mode)
     {
-        _session.SetDisplayMode(mode);
+        await _session.SetDisplayModeAsync(mode);
         SyncDisplayModeChecks();
         Viewport.Draw();
     }

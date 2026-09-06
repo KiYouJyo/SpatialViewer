@@ -27,6 +27,8 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
     private IReadOnlyList<ThreeDmViewPreset> _viewPresets = Array.Empty<ThreeDmViewPreset>();
     private ThreeDmSelectionId? _selection;
     private bool _disposed;
+    private readonly SemaphoreSlim _renderBuildGate = new(1, 1);
+    private int _renderBuildVersion;
 
     public ThreeDmProductSession(string filePath)
     {
@@ -173,7 +175,7 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
                 });
 
             if (_disposed) return;
-            RebuildRenderScene();
+            await RebuildRenderSceneAsync();
             var standard = _session.GetStandardViewPresets();
             var named = _session.GetNamedViewPresets();
             ViewPresets = standard.Concat(named).ToArray();
@@ -202,19 +204,19 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
         await LoadAsync();
     }
 
-    public void SetDisplayMode(ThreeDmRenderDisplayMode mode)
+    public async Task SetDisplayModeAsync(ThreeDmRenderDisplayMode mode)
     {
         if (State != ThreeDmProductSessionState.Ready || _disposed) return;
         DisplayMode = mode;
-        RebuildRenderScene();
+        await RebuildRenderSceneAsync();
     }
 
-    public void SetLayerVisibility(Guid layerId, bool? visible)
+    public async Task SetLayerVisibilityAsync(Guid layerId, bool? visible)
     {
         if (State != ThreeDmProductSessionState.Ready || _disposed) return;
         _session.SetLayerVisibility(layerId, visible);
-        RebuildRenderScene();
         OnChanged(nameof(Layers));
+        await RebuildRenderSceneAsync();
     }
 
     public IReadOnlyList<ThreeDmSelectionId> GetSelectionIds() =>
@@ -223,15 +225,36 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
     public ThreeDmSelectionProperties? GetSelectionProperties(ThreeDmSelectionId selectionId) =>
         State == ThreeDmProductSessionState.Ready ? _session.GetSelectionProperties(selectionId) : null;
 
-    private void RebuildRenderScene()
+    private async Task RebuildRenderSceneAsync()
     {
-        RenderScene = _session.BuildPreparedRenderScene(new ThreeDmVisualRenderSettings(DisplayMode));
+        var version = Interlocked.Increment(ref _renderBuildVersion);
+        var displayMode = DisplayMode;
+        await _renderBuildGate.WaitAsync();
+        try
+        {
+            if (_disposed || version != Volatile.Read(ref _renderBuildVersion))
+            {
+                return;
+            }
+
+            var scene = await Task.Run(() =>
+                _session.BuildPreparedRenderScene(new ThreeDmVisualRenderSettings(displayMode)));
+            if (!_disposed && version == Volatile.Read(ref _renderBuildVersion))
+            {
+                RenderScene = scene;
+            }
+        }
+        finally
+        {
+            _renderBuildGate.Release();
+        }
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+        Interlocked.Increment(ref _renderBuildVersion);
         _session.CancelOpen();
         State = ThreeDmProductSessionState.Closed;
         _ = _session.CloseAsync();
