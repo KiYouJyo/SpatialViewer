@@ -25,6 +25,7 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
     private ThreeDmPreparedRenderScene? _renderScene;
     private ThreeDmRenderDisplayMode _displayMode = ThreeDmRenderDisplayMode.ShadedWithEdges;
     private IReadOnlyList<ThreeDmViewPreset> _viewPresets = Array.Empty<ThreeDmViewPreset>();
+    private ThreeDmSelectionId? _selection;
     private bool _disposed;
 
     public ThreeDmProductSession(string filePath)
@@ -111,6 +112,17 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
         }
     }
 
+    public ThreeDmSelectionId? Selection
+    {
+        get => _selection;
+        set
+        {
+            if (_selection == value) return;
+            _selection = value;
+            OnChanged();
+        }
+    }
+
     public IReadOnlyList<ThreeDmViewPreset> ViewPresets
     {
         get => _viewPresets;
@@ -134,6 +146,7 @@ internal sealed class ThreeDmProductSession : INotifyPropertyChanged, IDisposabl
         ErrorMessage = null;
         ProcessedObjects = 0;
         TotalObjects = 0;
+        Selection = null;
 
         try
         {
